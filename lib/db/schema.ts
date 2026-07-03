@@ -91,6 +91,18 @@ export const textBlocks = pgTable("text_blocks", {
     .defaultNow(),
 });
 
+export const prompts = pgTable("prompts", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  title: text("title").notNull(),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
+    .notNull()
+    .defaultNow(),
+});
+
 export const authLoginAttempts = pgTable("auth_login_attempts", {
   id: uuid("id").primaryKey().defaultRandom(),
   email: text("email").notNull(),

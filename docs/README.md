@@ -7,6 +7,7 @@ Interne Dokumentation für Entwickler und Agenten. **Code und DB auf Englisch**,
 | Modul | UI-Name | Route | Status |
 |-------|---------|-------|--------|
 | [Textbausteine](./modules/text-blocks.md) | Textbausteine | `/textbausteine` | ✅ aktiv |
+| [Prompt](./modules/prompts.md) | Prompt | `/prompt` | ✅ aktiv |
 
 ## Konventionen
 

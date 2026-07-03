@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRightIcon, FileTextIcon } from "lucide-react";
+import { ArrowRightIcon, FileTextIcon, SparklesIcon } from "lucide-react";
 
 import { BrandWordmark } from "@/components/brand/brand-wordmark";
 import { PageHeader } from "@/components/layout/page-header";
@@ -19,6 +19,19 @@ const modules = [
     linkClass: "text-sky-700",
     cardClass:
       "hover:border-sky-200/80 hover:bg-gradient-to-br hover:from-sky-50/50 hover:to-white",
+  },
+  {
+    href: "/prompt",
+    title: "Prompt",
+    description:
+      "KI-Prompts speichern, suchen und mit einem Klick in die Zwischenablage kopieren.",
+    icon: SparklesIcon,
+    status: "Verfügbar",
+    iconWrap: "bg-violet-100 text-violet-700 ring-violet-200/70",
+    statusClass: "bg-violet-100 text-violet-800",
+    linkClass: "text-violet-700",
+    cardClass:
+      "hover:border-violet-200/80 hover:bg-gradient-to-br hover:from-violet-50/50 hover:to-white",
   },
 ];
 
@@ -94,7 +107,7 @@ export default function HomePage() {
             </Link>
           ))}
 
-          <div className="surface-panel flex flex-col justify-between border-dashed border-violet-200/60 bg-gradient-to-br from-violet-50/40 to-teal-50/20 p-6">
+          <div className="surface-panel flex flex-col justify-between border-dashed border-violet-200/60 bg-gradient-to-br from-violet-50/40 to-teal-50/20 p-6 md:col-span-2">
             <div className="space-y-2">
               <p className="text-[0.68rem] font-medium tracking-[0.16em] text-violet-700/70 uppercase">
                 Demnächst

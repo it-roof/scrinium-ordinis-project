@@ -1,4 +1,4 @@
-import { FileTextIcon, HomeIcon, type LucideIcon } from "lucide-react";
+import { FileTextIcon, HomeIcon, SparklesIcon, type LucideIcon } from "lucide-react";
 
 export type NavItem = {
   href: string;
@@ -27,6 +27,15 @@ export const navigation: NavItem[] = [
     accent: "bg-sky-400/25 text-sky-100",
     activeClass:
       "data-[active=true]:bg-sky-400/10 data-[active=true]:shadow-[inset_0_0_0_1px_oklch(0.7_0.12_235/0.25)]",
+  },
+  {
+    href: "/prompt",
+    label: "Prompt",
+    description: "Gespeicherte KI-Prompts",
+    icon: SparklesIcon,
+    accent: "bg-violet-400/25 text-violet-100",
+    activeClass:
+      "data-[active=true]:bg-violet-400/10 data-[active=true]:shadow-[inset_0_0_0_1px_oklch(0.7_0.12_290/0.25)]",
   },
 ];
 
