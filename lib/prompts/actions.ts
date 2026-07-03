@@ -8,6 +8,7 @@ import {
   deletePromptRow,
   updatePromptRow,
 } from "./storage";
+import { normalizeTagList } from "./tag-utils";
 import type { PromptInput } from "./types";
 
 function validateInput(input: PromptInput): string | null {
@@ -32,8 +33,12 @@ export async function createPrompt(input: PromptInput) {
   const error = validateInput(input);
   if (error) return { success: false as const, error };
 
-  const item = await createPromptRow(input);
+  const item = await createPromptRow({
+    ...input,
+    tags: normalizeTagList(input.tags),
+  });
   revalidatePath("/prompt");
+  revalidatePath("/prompt/neu");
 
   return { success: true as const, item };
 }
@@ -45,13 +50,17 @@ export async function updatePrompt(id: string, input: PromptInput) {
   const error = validateInput(input);
   if (error) return { success: false as const, error };
 
-  const item = await updatePromptRow(id, input);
+  const item = await updatePromptRow(id, {
+    ...input,
+    tags: normalizeTagList(input.tags),
+  });
 
   if (!item) {
     return { success: false as const, error: "Prompt nicht gefunden." };
   }
 
   revalidatePath("/prompt");
+  revalidatePath(`/prompt/${id}/bearbeiten`);
 
   return { success: true as const, item };
 }

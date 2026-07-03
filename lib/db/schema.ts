@@ -103,6 +103,31 @@ export const prompts = pgTable("prompts", {
     .defaultNow(),
 });
 
+export const promptTags = pgTable("prompt_tags", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull().unique(),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+    .notNull()
+    .defaultNow(),
+});
+
+export const promptTagAssignments = pgTable(
+  "prompt_tag_assignments",
+  {
+    promptId: uuid("prompt_id")
+      .notNull()
+      .references(() => prompts.id, { onDelete: "cascade" }),
+    tagId: uuid("tag_id")
+      .notNull()
+      .references(() => promptTags.id, { onDelete: "cascade" }),
+  },
+  (assignment) => ({
+    compositePk: primaryKey({
+      columns: [assignment.promptId, assignment.tagId],
+    }),
+  })
+);
+
 export const authLoginAttempts = pgTable("auth_login_attempts", {
   id: uuid("id").primaryKey().defaultRandom(),
   email: text("email").notNull(),

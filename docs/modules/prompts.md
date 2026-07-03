@@ -2,11 +2,11 @@
 
 > **Code-Name:** `prompts` · **UI-Name:** Prompt · **Route:** `/prompt`
 
-Gespeicherte KI-Prompt-Texte — anlegen, suchen, bearbeiten und mit einem Klick kopieren.
+Gespeicherte KI-Prompt-Texte — anlegen, taggen, suchen, bearbeiten und mit einem Klick kopieren.
 
 ## Zweck
 
-Zentrale Ablage für wiederkehrende Prompt-Formulierungen (z. B. für ChatGPT, Copilot, interne KI-Tools). Ähnlich wie Textbausteine, aber ohne Kanzlei-Bereiche — nur Titel + Prompt-Text.
+Zentrale Ablage für wiederkehrende Prompt-Formulierungen (z. B. für ChatGPT, Copilot, interne KI-Tools). Ähnlich wie Textbausteine, aber mit freien **Tags** statt Kanzlei-Bereichen.
 
 ## Auth
 
@@ -18,6 +18,8 @@ Zentrale Ablage für wiederkehrende Prompt-Formulierungen (z. B. für ChatGPT, C
 | | |
 |---|---|
 | URL | `/prompt` |
+| Anlegen | `/prompt/neu` |
+| Bearbeiten | `/prompt/[id]/bearbeiten` |
 | Sidebar | „Prompt“ |
 | Seite | `app/(main)/prompt/page.tsx` |
 
@@ -33,35 +35,54 @@ Zentrale Ablage für wiederkehrende Prompt-Formulierungen (z. B. für ChatGPT, C
 | `created_at` | `timestamptz` | Angelegt am |
 | `updated_at` | `timestamptz` | Zuletzt geändert |
 
-Schema: `lib/db/schema.ts` → `prompts`
+### Tabelle `prompt_tags`
+
+| Spalte | Typ | Beschreibung |
+|--------|-----|--------------|
+| `id` | `uuid` | Primary Key |
+| `name` | `text` | Tag-Name (eindeutig, case-insensitive) |
+| `created_at` | `timestamptz` | Angelegt am |
+
+### Tabelle `prompt_tag_assignments`
+
+Many-to-many zwischen `prompts` und `prompt_tags` (`prompt_id`, `tag_id`).
+
+Schema: `lib/db/schema.ts`
 
 ## Code-Struktur
 
 ```
 lib/prompts/
 ├── types.ts
+├── tag-utils.ts
 ├── storage.ts
 └── actions.ts
 
 components/prompts/
-└── prompts-view.tsx
+├── prompts-view.tsx
+├── prompt-form.tsx
+└── prompt-tags-input.tsx
 
 app/(main)/prompt/
-└── page.tsx
+├── page.tsx
+├── neu/page.tsx
+└── [id]/bearbeiten/page.tsx
 ```
 
 ## Server Actions
 
 | Action | Beschreibung |
 |--------|--------------|
-| `createPrompt` | Neuen Prompt anlegen |
-| `updatePrompt` | Prompt bearbeiten |
+| `createPrompt` | Neuen Prompt anlegen (inkl. Tags) |
+| `updatePrompt` | Prompt bearbeiten (inkl. Tags) |
 | `deletePrompt` | Prompt löschen |
 
 ## UI-Funktionen
 
-- Suche (Titel + Inhalt)
-- CRUD-Dialoge
+- Suche (Titel, Tags, Inhalt)
+- Tag-Filter in der Übersicht
+- Tags beim Anlegen/Bearbeiten (Enter/Komma, Vorschläge aus bestehenden Tags)
+- Eigene Seiten für Anlegen/Bearbeiten (scrollbar, auch für lange Texte)
 - **Kopieren** — Prompt-Text in Zwischenablage
 - Monospace-Darstellung des Prompt-Texts in der Liste
 
@@ -70,5 +91,5 @@ app/(main)/prompt/
 | | Textbausteine | Prompt |
 |--|---------------|--------|
 | Inhalt | Kanzlei-Formulierungen | KI-Prompts |
-| Bereiche | `department`-Filter | Keine |
+| Kategorisierung | Feste `department`-Bereiche | Freie Tags |
 | Route | `/textbausteine` | `/prompt` |

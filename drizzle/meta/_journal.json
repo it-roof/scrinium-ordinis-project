@@ -43,6 +43,13 @@
       "when": 1783076536436,
       "tag": "0005_brainy_newton_destine",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1783077465920,
+      "tag": "0006_lucky_onslaught",
+      "breakpoints": true
     }
   ]
 }

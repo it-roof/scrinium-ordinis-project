@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
 import {
   CopyIcon,
@@ -11,11 +12,8 @@ import {
 import { toast } from "sonner";
 
 import { PageHeader } from "@/components/layout/page-header";
-import {
-  createPrompt,
-  deletePrompt,
-  updatePrompt,
-} from "@/lib/prompts/actions";
+import { deletePrompt } from "@/lib/prompts/actions";
+import { tagKey } from "@/lib/prompts/tag-utils";
 import type { Prompt } from "@/lib/prompts/types";
 import { cn } from "@/lib/utils";
 import {
@@ -28,15 +26,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import {
   Empty,
   EmptyContent,
@@ -46,18 +37,6 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-
-type FormState = {
-  title: string;
-  content: string;
-};
-
-const emptyForm: FormState = {
-  title: "",
-  content: "",
-};
 
 type PromptsViewProps = {
   initialItems: Prompt[];
@@ -66,68 +45,51 @@ type PromptsViewProps = {
 export function PromptsView({ initialItems }: PromptsViewProps) {
   const [items, setItems] = useState(initialItems);
   const [search, setSearch] = useState("");
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingItem, setEditingItem] = useState<Prompt | null>(null);
-  const [form, setForm] = useState<FormState>(emptyForm);
+  const [tagFilter, setTagFilter] = useState<string | "all">("all");
   const [deleteTarget, setDeleteTarget] = useState<Prompt | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  const tagOptions = useMemo(() => {
+    const counts = new Map<string, number>();
+
+    for (const item of items) {
+      for (const tag of item.tags) {
+        const key = tagKey(tag.name);
+        counts.set(key, (counts.get(key) ?? 0) + 1);
+      }
+    }
+
+    return [...counts.entries()]
+      .map(([key, count]) => {
+        const label =
+          items
+            .flatMap((item) => item.tags)
+            .find((tag) => tagKey(tag.name) === key)?.name ?? key;
+
+        return { key, label, count };
+      })
+      .sort((left, right) => left.label.localeCompare(right.label, "de"));
+  }, [items]);
 
   const filteredItems = useMemo(() => {
     const query = search.trim().toLowerCase();
 
     return items.filter((item) => {
+      const matchesTag =
+        tagFilter === "all" ||
+        item.tags.some((tag) => tagKey(tag.name) === tagFilter);
+
+      if (!matchesTag) return false;
+
       if (!query) return true;
 
       return (
         item.title.toLowerCase().includes(query) ||
-        item.content.toLowerCase().includes(query)
+        item.content.toLowerCase().includes(query) ||
+        item.tags.some((tag) => tag.name.toLowerCase().includes(query))
       );
     });
-  }, [items, search]);
-
-  function openCreateDialog() {
-    setEditingItem(null);
-    setForm(emptyForm);
-    setDialogOpen(true);
-  }
-
-  function openEditDialog(item: Prompt) {
-    setEditingItem(item);
-    setForm({
-      title: item.title,
-      content: item.content,
-    });
-    setDialogOpen(true);
-  }
-
-  function handleSubmit() {
-    startTransition(async () => {
-      const result = editingItem
-        ? await updatePrompt(editingItem.id, form)
-        : await createPrompt(form);
-
-      if (!result.success) {
-        toast.error(result.error);
-        return;
-      }
-
-      if (editingItem) {
-        setItems((current) =>
-          current.map((item) =>
-            item.id === editingItem.id ? result.item : item
-          )
-        );
-        toast.success("Prompt aktualisiert.");
-      } else {
-        setItems((current) => [result.item, ...current]);
-        toast.success("Prompt angelegt.");
-      }
-
-      setDialogOpen(false);
-      setEditingItem(null);
-      setForm(emptyForm);
-    });
-  }
+  }, [items, search, tagFilter]);
 
   function handleDelete() {
     if (!deleteTarget) return;
@@ -162,28 +124,52 @@ export function PromptsView({ initialItems }: PromptsViewProps) {
       <PageHeader
         eyebrow="KI & Automatisierung"
         title="Prompt"
-        description="Gespeicherte Prompt-Texte für wiederkehrende Aufgaben — mit einem Klick kopieren."
+        description="Gespeicherte Prompt-Texte für wiederkehrende Aufgaben — mit Tags organisieren und mit einem Klick kopieren."
       >
         <Button
-          onClick={openCreateDialog}
+          asChild
           size="lg"
           className="px-5 shadow-sm shadow-primary/20"
         >
-          <PlusIcon data-icon="inline-start" />
-          Neuer Prompt
+          <Link href="/prompt/neu">
+            <PlusIcon data-icon="inline-start" />
+            Neuer Prompt
+          </Link>
         </Button>
       </PageHeader>
 
-      <div className="surface-panel p-4 md:p-5">
+      <div className="surface-panel space-y-4 p-4 md:p-5">
         <div className="relative">
           <SearchIcon className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Suchen nach Titel oder Prompt-Text…"
+            placeholder="Suchen nach Titel, Tag oder Prompt-Text…"
             className="h-11 rounded-xl border-border/80 bg-background/80 pl-10 shadow-none"
           />
         </div>
+
+        {tagOptions.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            <TagFilterPill
+              active={tagFilter === "all"}
+              onClick={() => setTagFilter("all")}
+              label="Alle"
+              count={items.length}
+              activeClassName="bg-primary text-primary-foreground shadow-sm shadow-primary/20"
+            />
+            {tagOptions.map((tag) => (
+              <TagFilterPill
+                key={tag.key}
+                active={tagFilter === tag.key}
+                onClick={() => setTagFilter(tag.key)}
+                label={tag.label}
+                count={tag.count}
+                activeClassName="bg-violet-600 text-white shadow-sm shadow-violet-600/20"
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="flex items-center justify-between gap-3 text-sm text-muted-foreground">
@@ -208,14 +194,16 @@ export function PromptsView({ initialItems }: PromptsViewProps) {
             <EmptyDescription className="max-w-sm text-sm leading-relaxed">
               {items.length === 0
                 ? "Lege den ersten Prompt an, um Formulierungen für KI-Tools zentral zu speichern."
-                : "Passe die Suche an."}
+                : "Passe die Suche oder den Tag-Filter an."}
             </EmptyDescription>
           </EmptyHeader>
           {items.length === 0 && (
             <EmptyContent>
-              <Button onClick={openCreateDialog} size="lg">
-                <PlusIcon data-icon="inline-start" />
-                Ersten Prompt anlegen
+              <Button asChild size="lg">
+                <Link href="/prompt/neu">
+                  <PlusIcon data-icon="inline-start" />
+                  Ersten Prompt anlegen
+                </Link>
               </Button>
             </EmptyContent>
           )}
@@ -233,9 +221,24 @@ export function PromptsView({ initialItems }: PromptsViewProps) {
             >
               <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-start sm:justify-between">
                 <div className="min-w-0 flex-1 space-y-3">
-                  <h2 className="font-heading text-lg font-medium tracking-tight">
-                    {item.title}
-                  </h2>
+                  <div className="space-y-2">
+                    <h2 className="font-heading text-lg font-medium tracking-tight">
+                      {item.title}
+                    </h2>
+                    {item.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5">
+                        {item.tags.map((tag) => (
+                          <Badge
+                            key={tag.id}
+                            variant="secondary"
+                            className="rounded-lg bg-violet-100/90 text-violet-900"
+                          >
+                            {tag.name}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                   <p className="line-clamp-4 whitespace-pre-wrap font-mono text-sm leading-relaxed text-muted-foreground">
                     {item.content}
                   </p>
@@ -254,10 +257,12 @@ export function PromptsView({ initialItems }: PromptsViewProps) {
                   <Button
                     variant="ghost"
                     size="icon-sm"
-                    onClick={() => openEditDialog(item)}
+                    asChild
                     aria-label="Bearbeiten"
                   >
-                    <PencilIcon />
+                    <Link href={`/prompt/${item.id}/bearbeiten`}>
+                      <PencilIcon />
+                    </Link>
                   </Button>
                   <Button
                     variant="ghost"
@@ -274,82 +279,6 @@ export function PromptsView({ initialItems }: PromptsViewProps) {
           ))}
         </div>
       )}
-
-      <Dialog
-        open={dialogOpen}
-        onOpenChange={(open) => {
-          setDialogOpen(open);
-          if (!open) {
-            setEditingItem(null);
-            setForm(emptyForm);
-          }
-        }}
-      >
-        <DialogContent className="overflow-hidden rounded-none border-border/80 p-0 sm:max-w-2xl">
-          <div className="h-1 bg-gradient-to-r from-violet-400 via-fuchsia-400 to-indigo-400" />
-          <div className="border-b border-border/70 px-6 py-5">
-            <DialogHeader className="text-left">
-              <p className="text-[0.68rem] font-medium tracking-[0.16em] text-primary/70 uppercase">
-                {editingItem ? "Bearbeiten" : "Neu anlegen"}
-              </p>
-              <DialogTitle className="font-heading text-xl font-medium">
-                {editingItem ? "Prompt bearbeiten" : "Neuer Prompt"}
-              </DialogTitle>
-              <DialogDescription className="text-sm leading-relaxed">
-                Titel und Prompt-Text für die spätere Wiederverwendung
-                festlegen.
-              </DialogDescription>
-            </DialogHeader>
-          </div>
-
-          <div className="grid gap-5 px-6 py-5">
-            <div className="grid gap-2">
-              <Label htmlFor="title">Titel</Label>
-              <Input
-                id="title"
-                value={form.title}
-                onChange={(event) =>
-                  setForm((current) => ({
-                    ...current,
-                    title: event.target.value,
-                  }))
-                }
-                placeholder="z. B. E-Mail zusammenfassen"
-                className="h-11 rounded-xl"
-              />
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="content">Prompt-Text</Label>
-              <Textarea
-                id="content"
-                value={form.content}
-                onChange={(event) =>
-                  setForm((current) => ({
-                    ...current,
-                    content: event.target.value,
-                  }))
-                }
-                placeholder="Dein Prompt…"
-                className="min-h-56 rounded-xl font-mono text-sm"
-              />
-            </div>
-          </div>
-
-          <DialogFooter className="border-t border-border/70 bg-muted/30 px-6 py-4">
-            <Button
-              variant="outline"
-              onClick={() => setDialogOpen(false)}
-              disabled={isPending}
-            >
-              Abbrechen
-            </Button>
-            <Button onClick={handleSubmit} disabled={isPending}>
-              {editingItem ? "Speichern" : "Anlegen"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       <AlertDialog
         open={deleteTarget !== null}
@@ -382,5 +311,42 @@ export function PromptsView({ initialItems }: PromptsViewProps) {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+  );
+}
+
+function TagFilterPill({
+  active,
+  onClick,
+  label,
+  count,
+  activeClassName,
+}: {
+  active: boolean;
+  onClick: () => void;
+  label: string;
+  count: number;
+  activeClassName: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm transition-colors",
+        active
+          ? activeClassName
+          : "border-border/80 bg-background text-muted-foreground hover:bg-muted hover:text-foreground"
+      )}
+    >
+      <span>{label}</span>
+      <span
+        className={cn(
+          "rounded-full px-1.5 py-0.5 text-xs",
+          active ? "bg-white/20" : "bg-muted text-muted-foreground"
+        )}
+      >
+        {count}
+      </span>
+    </button>
   );
 }
