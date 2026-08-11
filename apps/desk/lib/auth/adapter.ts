@@ -20,16 +20,41 @@ function createAuthAdapter(): Adapter {
 
 let cachedAdapter: Adapter | undefined;
 
+function getAuthAdapter(): Adapter {
+  cachedAdapter ??= createAuthAdapter();
+  return cachedAdapter;
+}
+
 /**
- * Lazy Adapter: DrizzleAdapter braucht die echte DB-Instanz (`is(db, PgDatabase)`).
- * Erst bei erster Adapter-Methode — nicht beim Modul-Import / Build.
+ * Explizite Wrapper (kein Proxy): Auth.js prüft Methoden mit `m in adapter`.
+ * getDb()/DrizzleAdapter erst bei erstem Methodenaufruf — nicht beim Import.
  */
-export const authAdapter: Adapter = new Proxy({} as Adapter, {
-  get(_target, prop, receiver) {
-    cachedAdapter ??= createAuthAdapter();
-    const value = Reflect.get(cachedAdapter as object, prop, receiver);
-    return typeof value === "function"
-      ? (value as (...args: unknown[]) => unknown).bind(cachedAdapter)
-      : value;
-  },
-});
+export const authAdapter: Adapter = {
+  createUser: (data) => getAuthAdapter().createUser!(data),
+  getUser: (id) => getAuthAdapter().getUser!(id),
+  getUserByEmail: (email) => getAuthAdapter().getUserByEmail!(email),
+  getUserByAccount: (account) => getAuthAdapter().getUserByAccount!(account),
+  updateUser: (data) => getAuthAdapter().updateUser!(data),
+  deleteUser: (id) => getAuthAdapter().deleteUser!(id),
+  linkAccount: (data) => getAuthAdapter().linkAccount!(data),
+  unlinkAccount: (account) => getAuthAdapter().unlinkAccount!(account),
+  createSession: (data) => getAuthAdapter().createSession!(data),
+  getSessionAndUser: (sessionToken) =>
+    getAuthAdapter().getSessionAndUser!(sessionToken),
+  updateSession: (data) => getAuthAdapter().updateSession!(data),
+  deleteSession: (sessionToken) =>
+    getAuthAdapter().deleteSession!(sessionToken),
+  createVerificationToken: (data) =>
+    getAuthAdapter().createVerificationToken!(data),
+  useVerificationToken: (params) =>
+    getAuthAdapter().useVerificationToken!(params),
+  getAccount: (providerAccountId, provider) =>
+    getAuthAdapter().getAccount!(providerAccountId, provider),
+  createAuthenticator: (data) => getAuthAdapter().createAuthenticator!(data),
+  getAuthenticator: (credentialID) =>
+    getAuthAdapter().getAuthenticator!(credentialID),
+  listAuthenticatorsByUserId: (userId) =>
+    getAuthAdapter().listAuthenticatorsByUserId!(userId),
+  updateAuthenticatorCounter: (credentialID, newCounter) =>
+    getAuthAdapter().updateAuthenticatorCounter!(credentialID, newCounter),
+};
