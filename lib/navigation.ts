@@ -1,4 +1,10 @@
-import { FileTextIcon, HomeIcon, SparklesIcon, type LucideIcon } from "lucide-react";
+import {
+  BookOpenIcon,
+  FileTextIcon,
+  HomeIcon,
+  SparklesIcon,
+  type LucideIcon,
+} from "lucide-react";
 
 export type NavItem = {
   href: string;
@@ -36,6 +42,15 @@ export const navigation: NavItem[] = [
     accent: "bg-violet-400/25 text-violet-100",
     activeClass:
       "data-[active=true]:bg-violet-400/10 data-[active=true]:shadow-[inset_0_0_0_1px_oklch(0.7_0.12_290/0.25)]",
+  },
+  {
+    href: "/dokumentation",
+    label: "Dokumentation",
+    description: "Interne Anleitungen und Prozesse",
+    icon: BookOpenIcon,
+    accent: "bg-teal-400/25 text-teal-100",
+    activeClass:
+      "data-[active=true]:bg-teal-400/10 data-[active=true]:shadow-[inset_0_0_0_1px_oklch(0.7_0.12_180/0.25)]",
   },
 ];
 

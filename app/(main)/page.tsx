@@ -1,5 +1,10 @@
 import Link from "next/link";
-import { ArrowRightIcon, FileTextIcon, SparklesIcon } from "lucide-react";
+import {
+  ArrowRightIcon,
+  BookOpenIcon,
+  FileTextIcon,
+  SparklesIcon,
+} from "lucide-react";
 
 import { BrandWordmark } from "@/components/brand/brand-wordmark";
 import { PageHeader } from "@/components/layout/page-header";
@@ -33,6 +38,19 @@ const modules = [
     cardClass:
       "hover:border-violet-200/80 hover:bg-gradient-to-br hover:from-violet-50/50 hover:to-white",
   },
+  {
+    href: "/dokumentation",
+    title: "Dokumentation",
+    description:
+      "Interne Anleitungen und Prozesse mit Bereichen, Markdown und Datei-Uploads pflegen.",
+    icon: BookOpenIcon,
+    status: "Verfügbar",
+    iconWrap: "bg-teal-100 text-teal-700 ring-teal-200/70",
+    statusClass: "bg-teal-100 text-teal-800",
+    linkClass: "text-teal-700",
+    cardClass:
+      "hover:border-teal-200/80 hover:bg-gradient-to-br hover:from-teal-50/50 hover:to-white",
+  },
 ];
 
 export default function HomePage() {
@@ -60,7 +78,7 @@ export default function HomePage() {
           </div>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {modules.map((module) => (
             <Link
               key={module.href}
@@ -107,7 +125,7 @@ export default function HomePage() {
             </Link>
           ))}
 
-          <div className="surface-panel flex flex-col justify-between border-dashed border-violet-200/60 bg-gradient-to-br from-violet-50/40 to-teal-50/20 p-6 md:col-span-2">
+          <div className="surface-panel flex flex-col justify-between border-dashed border-violet-200/60 bg-gradient-to-br from-violet-50/40 to-teal-50/20 p-6 lg:col-span-3">
             <div className="space-y-2">
               <p className="text-[0.68rem] font-medium tracking-[0.16em] text-violet-700/70 uppercase">
                 Demnächst

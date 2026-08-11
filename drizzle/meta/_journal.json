@@ -50,6 +50,13 @@
       "when": 1783077465920,
       "tag": "0006_lucky_onslaught",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1783678065294,
+      "tag": "0007_nappy_the_renegades",
+      "breakpoints": true
     }
   ]
 }

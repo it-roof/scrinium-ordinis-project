@@ -1,10 +1,12 @@
 import {
+  type AnyPgColumn,
   integer,
   pgEnum,
   pgTable,
   primaryKey,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
 
@@ -127,6 +129,47 @@ export const promptTagAssignments = pgTable(
     }),
   })
 );
+
+export const docPages = pgTable(
+  "doc_pages",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    title: text("title").notNull(),
+    slug: text("slug").notNull(),
+    content: text("content").notNull().default(""),
+    parentId: uuid("parent_id").references((): AnyPgColumn => docPages.id, {
+      onDelete: "cascade",
+    }),
+    sortOrder: integer("sort_order").notNull().default(0),
+    department: departmentEnum("department").notNull().default("general"),
+    updatedBy: uuid("updated_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    slugUnique: uniqueIndex("doc_pages_slug_unique").on(table.slug),
+  })
+);
+
+export const docAssets = pgTable("doc_assets", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  storageKey: text("storage_key").notNull().unique(),
+  filename: text("filename").notNull(),
+  mimeType: text("mime_type").notNull(),
+  sizeBytes: integer("size_bytes").notNull(),
+  uploadedBy: uuid("uploaded_by")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+    .notNull()
+    .defaultNow(),
+});
 
 export const authLoginAttempts = pgTable("auth_login_attempts", {
   id: uuid("id").primaryKey().defaultRandom(),
