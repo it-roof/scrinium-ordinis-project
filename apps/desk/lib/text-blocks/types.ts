@@ -1,18 +1,18 @@
-export const DEPARTMENTS = [
+export const CONTENT_MODULES = [
   { value: "general", label: "Allgemein" },
-  { value: "tax", label: "Steuerberatung" },
   { value: "legal", label: "Recht" },
+  { value: "tax", label: "Steuer" },
   { value: "restructuring-insolvency", label: "Sanierung & Insolvenz" },
-  { value: "consulting", label: "Unternehmensberatung" },
+  { value: "consulting", label: "Beratung" },
 ] as const;
 
-export type Department = (typeof DEPARTMENTS)[number]["value"];
+export type ContentModule = (typeof CONTENT_MODULES)[number]["value"];
 
 export type TextBlock = {
   id: string;
   title: string;
   content: string;
-  department: Department;
+  module: ContentModule;
   createdAt: string;
   updatedAt: string;
 };
@@ -20,9 +20,20 @@ export type TextBlock = {
 export type TextBlockInput = {
   title: string;
   content: string;
-  department: Department;
+  module: ContentModule;
 };
 
-export function getDepartmentLabel(department: Department): string {
-  return DEPARTMENTS.find((entry) => entry.value === department)?.label ?? department;
+export type ContentModuleOption = (typeof CONTENT_MODULES)[number];
+
+export function getModuleLabel(module: ContentModule): string {
+  return CONTENT_MODULES.find((entry) => entry.value === module)?.label ?? module;
+}
+
+export function filterModulesForEnabled(
+  enabledModules: readonly string[]
+): ContentModuleOption[] {
+  return CONTENT_MODULES.filter(
+    (entry) =>
+      entry.value === "general" || enabledModules.includes(entry.value)
+  );
 }

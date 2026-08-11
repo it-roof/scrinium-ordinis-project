@@ -10,6 +10,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { PromptTagsInput } from "@/components/prompts/prompt-tags-input";
 import { createPrompt, updatePrompt } from "@/lib/prompts/actions";
 import type { PromptInput } from "@/lib/prompts/types";
+import { useAreaBasePath } from "@/lib/area/use-area-path";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,6 +30,8 @@ export function PromptForm({
   availableTags,
 }: PromptFormProps) {
   const router = useRouter();
+  const basePath = useAreaBasePath() ?? "";
+  const promptBase = `${basePath}/prompt`;
   const [title, setTitle] = useState(initialValues?.title ?? "");
   const [content, setContent] = useState(initialValues?.content ?? "");
   const [tags, setTags] = useState(initialValues?.tags ?? []);
@@ -53,7 +56,7 @@ export function PromptForm({
       toast.success(
         mode === "edit" ? "Prompt aktualisiert." : "Prompt angelegt."
       );
-      router.push("/prompt");
+      router.push(promptBase);
       router.refresh();
     });
   }
@@ -66,7 +69,7 @@ export function PromptForm({
         size="sm"
         className="w-fit px-0 text-muted-foreground hover:text-foreground"
       >
-        <Link href="/prompt">
+        <Link href={promptBase}>
           <ArrowLeftIcon data-icon="inline-start" />
           Zurück zur Übersicht
         </Link>
@@ -120,7 +123,7 @@ export function PromptForm({
 
         <div className="mt-auto flex flex-col-reverse gap-2 border-t border-border/70 bg-muted/30 p-4 sm:flex-row sm:justify-end">
           <Button variant="outline" asChild disabled={isPending}>
-            <Link href="/prompt">Abbrechen</Link>
+            <Link href={promptBase}>Abbrechen</Link>
           </Button>
           <Button type="submit" disabled={isPending}>
             {isPending

@@ -7,6 +7,9 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
+import { areaBasePath, areaFromSlug, slugForArea } from "@/lib/area/paths";
+import { APP_MODULES } from "@/lib/modules";
+
 export type NavItem = {
   href: string;
   label: string;
@@ -14,13 +17,17 @@ export type NavItem = {
   icon: LucideIcon;
   accent: string;
   activeClass: string;
+  /** Optional: klickbarer Bereichs-Teil in der Kopfzeile („Steuer / …“). */
+  areaHref?: string;
+  areaLabel?: string;
+  pageLabel?: string;
 };
 
 export const navigation: NavItem[] = [
   {
     href: "/",
     label: "Start",
-    description: "Übersicht und Schnellzugriff",
+    description: "Startseite des gewählten Bereichs",
     icon: HomeIcon,
     accent: "bg-violet-400/25 text-violet-100",
     activeClass:
@@ -68,6 +75,38 @@ export const platformNavItem: NavItem = {
 export function getPageMeta(pathname: string): NavItem {
   if (pathname.startsWith("/platform")) {
     return platformNavItem;
+  }
+
+  const segments = pathname.split("/").filter(Boolean);
+
+  // /steuer/dokumentation → „Steuer / Dokumentation“
+  if (segments.length >= 2 && areaFromSlug(segments[0])) {
+    const area = areaFromSlug(segments[0])!;
+    const areaLabel =
+      APP_MODULES.find((module) => module.id === area)?.label ??
+      slugForArea(area);
+    const bySegment = navigation.find(
+      (item) => item.href === `/${segments[1]}`
+    );
+    if (bySegment) {
+      return {
+        ...bySegment,
+        label: `${areaLabel} / ${bySegment.label}`,
+        description: "",
+        areaHref: areaBasePath(area),
+        areaLabel,
+        pageLabel: bySegment.label,
+      };
+    }
+  }
+
+  // /recht → Startseite (Bereich)
+  if (segments.length === 1 && areaFromSlug(segments[0])) {
+    return {
+      ...navigation[0],
+      label: "Startseite",
+      description: "",
+    };
   }
 
   const match =

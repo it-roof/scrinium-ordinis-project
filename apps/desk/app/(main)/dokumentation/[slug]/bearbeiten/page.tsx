@@ -1,39 +1,12 @@
-import { notFound } from "next/navigation";
-
-import { DocForm } from "@/components/docs/doc-form";
-import { getDocPageBySlug, getRootDocPages } from "@/lib/docs/storage";
-import { requireTenantUser } from "@/lib/tenant/session";
+import { redirectLegacyFunction } from "@/lib/area/require-function";
 
 export const dynamic = "force-dynamic";
 
-type EditDocPageProps = {
+type PageProps = {
   params: Promise<{ slug: string }>;
 };
 
-export default async function EditDocPage({ params }: EditDocPageProps) {
-  const user = await requireTenantUser();
+export default async function LegacyEditDocRedirect({ params }: PageProps) {
   const { slug } = await params;
-  const [page, rootPages] = await Promise.all([
-    getDocPageBySlug(user.tenantId, slug),
-    getRootDocPages(user.tenantId),
-  ]);
-
-  if (!page) {
-    notFound();
-  }
-
-  return (
-    <DocForm
-      mode="edit"
-      pageId={page.id}
-      currentSlug={page.slug}
-      rootPages={rootPages}
-      initialValues={{
-        title: page.title,
-        content: page.content,
-        department: page.department,
-        parentId: page.parentId,
-      }}
-    />
-  );
+  await redirectLegacyFunction("docs", `/dokumentation/${slug}/bearbeiten`);
 }

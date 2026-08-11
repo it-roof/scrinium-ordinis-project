@@ -1,13 +1,19 @@
-import { asc, count, eq } from "drizzle-orm";
+import { asc, and, count, eq } from "drizzle-orm";
 
 import { hashPassword } from "@/lib/auth/password";
 import { db } from "@/lib/db";
 import { tenants, users, type UserRole } from "@/lib/db/schema";
+import {
+  ALL_APP_MODULE_IDS,
+  normalizeEnabledModules,
+  type AppModuleId,
+} from "@/lib/modules";
 
 export type TenantListItem = {
   id: string;
   name: string;
   slug: string;
+  customDomain: string | null;
   createdAt: string;
   userCount: number;
 };
@@ -27,6 +33,7 @@ export async function listTenantsWithUserCounts(): Promise<TenantListItem[]> {
       id: tenants.id,
       name: tenants.name,
       slug: tenants.slug,
+      customDomain: tenants.customDomain,
       createdAt: tenants.createdAt,
       userCount: count(users.id),
     })
@@ -39,6 +46,7 @@ export async function listTenantsWithUserCounts(): Promise<TenantListItem[]> {
     id: row.id,
     name: row.name,
     slug: row.slug,
+    customDomain: row.customDomain,
     createdAt: row.createdAt,
     userCount: Number(row.userCount),
   }));
@@ -57,16 +65,72 @@ export async function getTenantById(id: string) {
 export async function createTenantRow(input: {
   name: string;
   slug: string;
+  brandName?: string | null;
+  customDomain?: string | null;
+  enabledModules?: AppModuleId[];
 }) {
+  const brandName = input.brandName?.trim() || null;
+  const customDomain = input.customDomain?.trim().toLowerCase() || null;
+  const enabledModules = normalizeEnabledModules(
+    input.enabledModules ?? ALL_APP_MODULE_IDS
+  );
+
   const [tenant] = await db
     .insert(tenants)
     .values({
       name: input.name.trim(),
       slug: input.slug.trim().toLowerCase(),
+      brandName,
+      customDomain,
+      enabledModules,
     })
     .returning();
 
   return tenant;
+}
+
+export async function updateTenantRow(input: {
+  id: string;
+  name: string;
+  slug: string;
+  brandName?: string | null;
+  customDomain?: string | null;
+  enabledModules?: AppModuleId[];
+}) {
+  const brandName = input.brandName?.trim() || null;
+  const customDomain = input.customDomain?.trim().toLowerCase() || null;
+  const enabledModules = normalizeEnabledModules(
+    input.enabledModules ?? ALL_APP_MODULE_IDS
+  );
+
+  const [tenant] = await db
+    .update(tenants)
+    .set({
+      name: input.name.trim(),
+      slug: input.slug.trim().toLowerCase(),
+      brandName,
+      customDomain,
+      enabledModules,
+    })
+    .where(eq(tenants.id, input.id))
+    .returning();
+
+  return tenant ?? null;
+}
+
+/**
+ * Users haben onDelete:restrict auf tenants — zuerst User löschen,
+ * dann Tenant (Fachdaten cascade).
+ */
+export async function deleteTenantRow(id: string) {
+  return db.transaction(async (tx) => {
+    await tx.delete(users).where(eq(users.tenantId, id));
+    const [deleted] = await tx
+      .delete(tenants)
+      .where(eq(tenants.id, id))
+      .returning({ id: tenants.id });
+    return deleted ?? null;
+  });
 }
 
 export async function listUsersForTenant(
@@ -121,4 +185,54 @@ export async function createTenantUserRow(input: {
     });
 
   return user;
+}
+
+export async function updateTenantUserRow(input: {
+  id: string;
+  tenantId: string;
+  email: string;
+  name: string;
+  role: UserRole;
+  password?: string;
+}) {
+  const values: {
+    email: string;
+    name: string;
+    role: UserRole;
+    passwordHash?: string;
+  } = {
+    email: input.email.trim().toLowerCase(),
+    name: input.name.trim(),
+    role: input.role,
+  };
+
+  if (input.password) {
+    values.passwordHash = await hashPassword(input.password);
+  }
+
+  const [user] = await db
+    .update(users)
+    .set(values)
+    .where(and(eq(users.id, input.id), eq(users.tenantId, input.tenantId)))
+    .returning({
+      id: users.id,
+      email: users.email,
+      name: users.name,
+      role: users.role,
+      tenantId: users.tenantId,
+    });
+
+  return user ?? null;
+}
+
+export async function deleteTenantUserRow(input: {
+  id: string;
+  tenantId: string;
+}) {
+  const [deleted] = await db
+    .delete(users)
+    .where(and(eq(users.id, input.id), eq(users.tenantId, input.tenantId)))
+    .returning({ id: users.id });
+
+  return deleted ?? null;
 }

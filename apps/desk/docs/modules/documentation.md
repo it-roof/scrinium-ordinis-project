@@ -36,7 +36,7 @@ Zentrale Ablage für Anleitungen, Prozesse und internes Wissen. Ähnlich Notion,
 | `content` | `text` | Markdown |
 | `parent_id` | `uuid` | Übergeordnete Seite (null = Root) |
 | `sort_order` | `integer` | Sortierung |
-| `department` | `department` enum | Kanzlei-Bereich |
+| `module` | `module` enum | Kanzlei-Bereich |
 | `updated_by` | `uuid` | Zuletzt bearbeitet von |
 | `created_at` / `updated_at` | `timestamptz` | Zeitstempel |
 

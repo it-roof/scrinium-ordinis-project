@@ -19,8 +19,11 @@ import {
   uploadDocAsset,
 } from "@/lib/docs/actions";
 import type { DocPage, DocPageInput } from "@/lib/docs/types";
-import { DEPARTMENTS } from "@/lib/text-blocks/types";
-import type { Department } from "@/lib/db/schema";
+import { CONTENT_MODULES, type ContentModuleOption } from "@/lib/text-blocks/types";
+import type { ContentModule } from "@/lib/db/schema";
+import { modulesForActiveArea } from "@/lib/area/active-area";
+import { useAreaBasePath } from "@/lib/area/use-area-path";
+import { useOptionalActiveArea } from "@/components/layout/active-area-provider";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,6 +44,7 @@ type DocFormProps = {
   initialValues?: DocPageInput;
   rootPages: DocPage[];
   currentSlug?: string;
+  modules?: readonly ContentModuleOption[];
 };
 
 export function DocForm({
@@ -49,23 +53,35 @@ export function DocForm({
   initialValues,
   rootPages,
   currentSlug,
+  modules = CONTENT_MODULES,
 }: DocFormProps) {
   const router = useRouter();
+  const activeAreaCtx = useOptionalActiveArea();
+  const basePath = useAreaBasePath() ?? "";
+  const docsBase = `${basePath}/dokumentation`;
   const imageInputRef = useRef<HTMLInputElement>(null);
   const pdfInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const [title, setTitle] = useState(initialValues?.title ?? "");
   const [content, setContent] = useState(initialValues?.content ?? "");
-  const [department, setDepartment] = useState<Department>(
-    initialValues?.department ?? "general"
-  );
+  const [module, setModule] = useState<ContentModule>(() => {
+    if (initialValues?.module) return initialValues.module;
+    const area = activeAreaCtx?.activeArea;
+    if (area && area !== "all") return area;
+    return "general";
+  });
   const [parentId, setParentId] = useState<string>(
     initialValues?.parentId ?? "none"
   );
   const [preview, setPreview] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [isUploading, startUpload] = useTransition();
+
+  const formModules = modulesForActiveArea(
+    modules,
+    activeAreaCtx?.activeArea ?? "all"
+  );
 
   const parentOptions = useMemo(
     () => rootPages.filter((page) => page.id !== pageId),
@@ -78,7 +94,7 @@ export function DocForm({
     const input: DocPageInput = {
       title,
       content,
-      department,
+      module,
       parentId: parentId === "none" ? null : parentId,
     };
 
@@ -96,7 +112,7 @@ export function DocForm({
       toast.success(
         mode === "edit" ? "Seite aktualisiert." : "Seite angelegt."
       );
-      router.push(`/dokumentation/${result.page.slug}`);
+      router.push(`${docsBase}/${result.page.slug}`);
       router.refresh();
     });
   }
@@ -147,7 +163,7 @@ export function DocForm({
         size="sm"
         className="w-fit px-0 text-muted-foreground hover:text-foreground"
       >
-        <Link href={currentSlug ? `/dokumentation/${currentSlug}` : "/dokumentation"}>
+        <Link href={currentSlug ? `${docsBase}/${currentSlug}` : docsBase}>
           <ArrowLeftIcon data-icon="inline-start" />
           Zurück
         </Link>
@@ -180,14 +196,14 @@ export function DocForm({
             <div className="grid gap-2">
               <Label>Bereich</Label>
               <Select
-                value={department}
-                onValueChange={(value) => setDepartment(value as Department)}
+                value={module}
+                onValueChange={(value) => setModule(value as ContentModule)}
               >
                 <SelectTrigger className="h-11 rounded-xl">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {DEPARTMENTS.map((entry) => (
+                  {formModules.map((entry) => (
                     <SelectItem key={entry.value} value={entry.value}>
                       {entry.label}
                     </SelectItem>
@@ -304,7 +320,7 @@ export function DocForm({
 
         <div className="mt-auto flex flex-col-reverse gap-2 border-t border-border/70 bg-muted/30 p-4 sm:flex-row sm:justify-end">
           <Button variant="outline" asChild disabled={isPending}>
-            <Link href={currentSlug ? `/dokumentation/${currentSlug}` : "/dokumentation"}>
+            <Link href={currentSlug ? `${docsBase}/${currentSlug}` : docsBase}>
               Abbrechen
             </Link>
           </Button>

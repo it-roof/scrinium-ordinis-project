@@ -32,8 +32,7 @@ export async function createPrompt(input: PromptInput) {
     ...input,
     tags: normalizeTagList(input.tags),
   });
-  revalidatePath("/prompt");
-  revalidatePath("/prompt/neu");
+  revalidatePath("/", "layout");
 
   return { success: true as const, item };
 }
@@ -54,8 +53,7 @@ export async function updatePrompt(id: string, input: PromptInput) {
     return { success: false as const, error: "Prompt nicht gefunden." };
   }
 
-  revalidatePath("/prompt");
-  revalidatePath(`/prompt/${id}/bearbeiten`);
+  revalidatePath("/", "layout");
 
   return { success: true as const, item };
 }
@@ -70,7 +68,7 @@ export async function deletePrompt(id: string) {
     return { success: false as const, error: "Prompt nicht gefunden." };
   }
 
-  revalidatePath("/prompt");
+  revalidatePath("/", "layout");
 
   return { success: true as const };
 }

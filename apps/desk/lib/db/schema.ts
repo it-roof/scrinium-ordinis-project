@@ -1,6 +1,7 @@
 import {
   type AnyPgColumn,
   integer,
+  jsonb,
   pgEnum,
   pgTable,
   primaryKey,
@@ -10,7 +11,10 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 
-export const departmentEnum = pgEnum("department", [
+import type { AppModuleId } from "@/lib/modules";
+import { ALL_APP_MODULE_IDS } from "@/lib/modules";
+
+export const moduleEnum = pgEnum("module", [
   "general",
   "tax",
   "legal",
@@ -28,6 +32,15 @@ export const tenants = pgTable("tenants", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(),
   slug: text("slug").notNull().unique(),
+  /** Optional: UI-Label statt „Scrinium Ordinis“ (White-Label nach Login). */
+  brandName: text("brand_name"),
+  /** Optional: eine Custom-Domain pro Kanzlei (Host → Tenant). */
+  customDomain: text("custom_domain").unique(),
+  /** Freigeschaltete App-Module (ohne Start — Start ist immer da). */
+  enabledModules: jsonb("enabled_modules")
+    .$type<AppModuleId[]>()
+    .notNull()
+    .default([...ALL_APP_MODULE_IDS]),
   createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
     .notNull()
     .defaultNow(),
@@ -43,7 +56,7 @@ export const users = pgTable("users", {
   passwordHash: text("password_hash").notNull(),
   role: roleEnum("role").notNull().default("employee"),
   platformRole: platformRoleEnum("platform_role"),
-  department: departmentEnum("department"),
+  module: moduleEnum("module"),
   emailVerified: timestamp("email_verified", { mode: "date" }),
   image: text("image"),
   createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
@@ -104,7 +117,7 @@ export const textBlocks = pgTable("text_blocks", {
     .references(() => tenants.id, { onDelete: "cascade" }),
   title: text("title").notNull(),
   content: text("content").notNull(),
-  department: departmentEnum("department").notNull().default("general"),
+  module: moduleEnum("module").notNull().default("general"),
   createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
     .notNull()
     .defaultNow(),
@@ -179,7 +192,7 @@ export const docPages = pgTable(
       onDelete: "cascade",
     }),
     sortOrder: integer("sort_order").notNull().default(0),
-    department: departmentEnum("department").notNull().default("general"),
+    module: moduleEnum("module").notNull().default("general"),
     updatedBy: uuid("updated_by").references(() => users.id, {
       onDelete: "set null",
     }),
@@ -227,4 +240,4 @@ export type Tenant = typeof tenants.$inferSelect;
 export type User = typeof users.$inferSelect;
 export type UserRole = (typeof roleEnum.enumValues)[number];
 export type PlatformRole = (typeof platformRoleEnum.enumValues)[number];
-export type Department = (typeof departmentEnum.enumValues)[number];
+export type ContentModule = (typeof moduleEnum.enumValues)[number];

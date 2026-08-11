@@ -1,11 +1,11 @@
-import type { Department } from "@/lib/db/schema";
+import type { ContentModule } from "@/lib/db/schema";
 import {
-  DEPARTMENTS,
-  getDepartmentLabel,
+  CONTENT_MODULES,
+  getModuleLabel,
 } from "@/lib/text-blocks/types";
 
-export type { Department };
-export { DEPARTMENTS, getDepartmentLabel };
+export type { ContentModule };
+export { CONTENT_MODULES, getModuleLabel };
 
 export type DocPage = {
   id: string;
@@ -14,7 +14,7 @@ export type DocPage = {
   content: string;
   parentId: string | null;
   sortOrder: number;
-  department: Department;
+  module: ContentModule;
   updatedBy: string | null;
   createdAt: string;
   updatedAt: string;
@@ -30,7 +30,7 @@ export type DocPageInput = {
   content: string;
   parentId: string | null;
   sortOrder?: number;
-  department: Department;
+  module: ContentModule;
 };
 
 export type DocAsset = {

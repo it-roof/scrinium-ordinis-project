@@ -23,13 +23,16 @@ App: **`apps/desk`** (Scrinium Ordinis — Kanzlei-Werkzeug). Monorepo-Hinweise:
 - Ersten Benutzer: `pnpm user:create <email> <passwort> <name> [tenant-slug] [admin|employee]`
 - Plattform-Super-Admin: `pnpm platform:grant <email>` (UI unter `/platform`)
 - Geschützte Routen via `middleware.ts`
-- Passwort-Policy: min. 12 Zeichen, Buchstaben + Ziffern
+- Passwort-Policy: min. 6 Zeichen (Admin setzt Passwort; kein Self-Service-Register)
 - Login-Rate-Limit: 5 Fehlversuche / 15 Min. pro E-Mail
 
 ## Multi-Tenant & Datentrennung
 
 Eine Plattform, strikt getrennte Kanzleidaten (`tenant_id` + App-Scope + Postgres RLS auf Fachdaten).  
 Siehe Root [`.cursor/rules/multi-tenant-isolation.mdc`](../../.cursor/rules/multi-tenant-isolation.mdc).
+
+**Zusätzlich:** Innerhalb einer Kanzlei sind Fachinhalte **bereichsgetrennt** (Recht ≠ Steuer).  
+Siehe [`.cursor/rules/area-content-isolation.mdc`](../../.cursor/rules/area-content-isolation.mdc).
 
 - Fachzugriffe über `withTenantDb(tenantId, …)` (`lib/tenant/db.ts`)
 - Session-Helfer: `lib/tenant/session.ts`

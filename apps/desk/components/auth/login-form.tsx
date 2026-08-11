@@ -8,13 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export function LoginForm() {
+export function LoginForm({ brandLabel }: { brandLabel?: string | null }) {
   const [state, formAction, isPending] = useActionState(loginAction, null);
 
   return (
     <div className="surface-card w-full max-w-md p-8">
       <div className="space-y-2 text-center">
-        <BrandWordmark className="text-2xl font-medium" />
+        <BrandWordmark label={brandLabel} className="text-2xl font-medium" />
         <p className="text-[0.68rem] tracking-[0.14em] text-muted-foreground uppercase">
           Kanzlei-Werkzeug
         </p>

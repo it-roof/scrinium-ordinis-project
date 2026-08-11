@@ -29,7 +29,7 @@ function toDocPage(row: DocPageRow): DocPage {
     content: row.content,
     parentId: row.parentId,
     sortOrder: row.sortOrder,
-    department: row.department,
+    module: row.module,
     updatedBy: row.updatedBy,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
@@ -208,7 +208,7 @@ export async function createDocPageRow(
         content: input.content,
         parentId: input.parentId,
         sortOrder: input.sortOrder ?? 0,
-        department: input.department,
+        module: input.module,
         updatedBy: userId,
       })
       .returning();
@@ -267,7 +267,7 @@ export async function updateDocPageRow(
         content: input.content,
         parentId: input.parentId,
         sortOrder: input.sortOrder ?? existing.sortOrder,
-        department: input.department,
+        module: input.module,
         updatedBy: userId,
         updatedAt: new Date().toISOString(),
       })
@@ -451,19 +451,16 @@ export async function getChildCount(
   });
 }
 
-export async function getPagesByDepartment(
+export async function getPagesByModule(
   tenantId: string,
-  department: DocPage["department"]
+  module: DocPage["module"]
 ): Promise<DocPage[]> {
   return withTenantDb(tenantId, async (tx) => {
     const rows = await tx
       .select()
       .from(docPages)
       .where(
-        and(
-          eq(docPages.department, department),
-          eq(docPages.tenantId, tenantId)
-        )
+        and(eq(docPages.module, module), eq(docPages.tenantId, tenantId))
       )
       .orderBy(asc(docPages.sortOrder), asc(docPages.title));
 

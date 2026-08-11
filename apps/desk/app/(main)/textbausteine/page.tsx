@@ -1,12 +1,7 @@
-import { TextBlocksView } from "@/components/text-blocks/text-blocks-view";
-import { requireTenantUser } from "@/lib/tenant/session";
-import { getTextBlocks } from "@/lib/text-blocks/storage";
+import { redirectLegacyFunction } from "@/lib/area/require-function";
 
 export const dynamic = "force-dynamic";
 
-export default async function TextBlocksPage() {
-  const user = await requireTenantUser();
-  const items = await getTextBlocks(user.tenantId);
-
-  return <TextBlocksView initialItems={items} />;
+export default async function LegacyTextBlocksRedirect() {
+  await redirectLegacyFunction("text-blocks", "/textbausteine");
 }

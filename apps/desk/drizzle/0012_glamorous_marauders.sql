@@ -1,0 +1,1 @@
+ALTER TABLE "tenants" ADD COLUMN "enabled_modules" jsonb DEFAULT '["text-blocks","prompts","docs"]'::jsonb NOT NULL;

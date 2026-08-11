@@ -13,6 +13,7 @@ import { toast } from "sonner";
 
 import { PageHeader } from "@/components/layout/page-header";
 import { deletePrompt } from "@/lib/prompts/actions";
+import { useAreaBasePath } from "@/lib/area/use-area-path";
 import { tagKey } from "@/lib/prompts/tag-utils";
 import type { Prompt } from "@/lib/prompts/types";
 import { cn } from "@/lib/utils";
@@ -43,6 +44,8 @@ type PromptsViewProps = {
 };
 
 export function PromptsView({ initialItems }: PromptsViewProps) {
+  const basePath = useAreaBasePath() ?? "";
+  const promptBase = `${basePath}/prompt`;
   const [items, setItems] = useState(initialItems);
   const [search, setSearch] = useState("");
   const [tagFilter, setTagFilter] = useState<string | "all">("all");
@@ -131,7 +134,7 @@ export function PromptsView({ initialItems }: PromptsViewProps) {
           size="lg"
           className="px-5 shadow-sm shadow-primary/20"
         >
-          <Link href="/prompt/neu">
+          <Link href={`${promptBase}/neu`}>
             <PlusIcon data-icon="inline-start" />
             Neuer Prompt
           </Link>
@@ -200,7 +203,7 @@ export function PromptsView({ initialItems }: PromptsViewProps) {
           {items.length === 0 && (
             <EmptyContent>
               <Button asChild size="lg">
-                <Link href="/prompt/neu">
+                <Link href={`${promptBase}/neu`}>
                   <PlusIcon data-icon="inline-start" />
                   Ersten Prompt anlegen
                 </Link>
@@ -260,7 +263,7 @@ export function PromptsView({ initialItems }: PromptsViewProps) {
                     asChild
                     aria-label="Bearbeiten"
                   >
-                    <Link href={`/prompt/${item.id}/bearbeiten`}>
+                    <Link href={`${promptBase}/${item.id}/bearbeiten`}>
                       <PencilIcon />
                     </Link>
                   </Button>

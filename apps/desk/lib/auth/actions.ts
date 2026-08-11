@@ -2,10 +2,13 @@
 
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { isRedirectError } from "next/dist/client/components/redirect-error";
 
 import { authorizeCredentials } from "@/lib/auth/authorize";
 import { getAuthSessionCookieConfig } from "@/lib/auth/cookies";
 import { createUserSession } from "@/lib/auth/sessions";
+import { getRequestHostTenant } from "@/lib/tenant/domain";
+import { isPlatformSuperAdmin } from "@/lib/tenant/session";
 
 export type LoginState = {
   error?: string;
@@ -19,13 +22,22 @@ export async function loginAction(
   const email = formData.get("email");
   const password = formData.get("password");
 
+  let redirectTo = "/";
+
   try {
+    const hostTenant = await getRequestHostTenant();
+
     const user = await authorizeCredentials({
       email: typeof email === "string" ? email : "",
       password: typeof password === "string" ? password : "",
     });
 
     if (!user) {
+      return { error: "E-Mail oder Passwort ist ungültig." };
+    }
+
+    // Custom-Domain: nur User dieses Tenants (gleiche generische Meldung)
+    if (hostTenant && user.tenantId !== hostTenant.id) {
       return { error: "E-Mail oder Passwort ist ungültig." };
     }
 
@@ -37,13 +49,17 @@ export async function loginAction(
       ...sessionCookie.options,
       expires,
     });
+
+    redirectTo = isPlatformSuperAdmin(user) ? "/platform" : "/";
   } catch (error) {
+    if (isRedirectError(error)) {
+      throw error;
+    }
     console.error("[loginAction]", error);
     return {
       error: "Anmeldung fehlgeschlagen. Bitte erneut versuchen.",
     };
   }
 
-  // Cookie + Redirect in derselben Server-Action-Antwort (zuverlässiger als Client-Navigation)
-  redirect("/");
+  redirect(redirectTo);
 }

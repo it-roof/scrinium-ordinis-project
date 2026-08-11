@@ -91,5 +91,5 @@ app/(main)/prompt/
 | | Textbausteine | Prompt |
 |--|---------------|--------|
 | Inhalt | Kanzlei-Formulierungen | KI-Prompts |
-| Kategorisierung | Feste `department`-Bereiche | Freie Tags |
+| Kategorisierung | Feste `module`-Bereiche | Freie Tags |
 | Route | `/textbausteine` | `/prompt` |

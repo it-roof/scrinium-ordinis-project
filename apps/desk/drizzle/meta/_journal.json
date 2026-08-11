@@ -71,6 +71,41 @@
       "when": 1786458902350,
       "tag": "0009_fluffy_sinister_six",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1786478682197,
+      "tag": "0010_strange_gamma_corps",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1786479133969,
+      "tag": "0011_right_rockslide",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1786481003818,
+      "tag": "0012_glamorous_marauders",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1786481351544,
+      "tag": "0013_messy_gladiator",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1786485000000,
+      "tag": "0014_rename_department_to_module",
+      "breakpoints": true
     }
   ]
 }

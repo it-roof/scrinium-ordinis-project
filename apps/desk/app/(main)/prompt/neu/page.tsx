@@ -1,12 +1,7 @@
-import { PromptForm } from "@/components/prompts/prompt-form";
-import { getAllPromptTagNames } from "@/lib/prompts/storage";
-import { requireTenantUser } from "@/lib/tenant/session";
+import { redirectLegacyFunction } from "@/lib/area/require-function";
 
 export const dynamic = "force-dynamic";
 
-export default async function NewPromptPage() {
-  const user = await requireTenantUser();
-  const availableTags = await getAllPromptTagNames(user.tenantId);
-
-  return <PromptForm mode="create" availableTags={availableTags} />;
+export default async function LegacyNewPromptRedirect() {
+  await redirectLegacyFunction("prompts", "/prompt/neu");
 }

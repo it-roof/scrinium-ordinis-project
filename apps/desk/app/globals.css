@@ -163,6 +163,97 @@
       );
   }
 
+  /* Bereich Steuer — Lime */
+  .content-canvas-tax {
+    background-image:
+      radial-gradient(
+        ellipse 80% 65% at 5% 0%,
+        oklch(0.91 0.14 125 / 0.7),
+        transparent 60%
+      ),
+      radial-gradient(
+        ellipse 60% 52% at 100% 8%,
+        oklch(0.93 0.11 135 / 0.48),
+        transparent 55%
+      ),
+      radial-gradient(
+        ellipse 55% 48% at 75% 100%,
+        oklch(0.95 0.08 115 / 0.36),
+        transparent 58%
+      );
+  }
+
+  /* Bereich Recht — Indigo */
+  .content-canvas-legal {
+    background-image:
+      radial-gradient(
+        ellipse 80% 65% at 5% 0%,
+        oklch(0.9 0.1 275 / 0.7),
+        transparent 60%
+      ),
+      radial-gradient(
+        ellipse 60% 52% at 100% 8%,
+        oklch(0.92 0.08 290 / 0.48),
+        transparent 55%
+      ),
+      radial-gradient(
+        ellipse 55% 48% at 75% 100%,
+        oklch(0.94 0.06 265 / 0.36),
+        transparent 58%
+      );
+  }
+
+  /* Bereich Sanierung & Insolvenz — Amber */
+  .content-canvas-restructuring {
+    background-image:
+      radial-gradient(
+        ellipse 80% 65% at 5% 0%,
+        oklch(0.91 0.12 75 / 0.7),
+        transparent 60%
+      ),
+      radial-gradient(
+        ellipse 60% 52% at 100% 8%,
+        oklch(0.93 0.09 55 / 0.48),
+        transparent 55%
+      ),
+      radial-gradient(
+        ellipse 55% 48% at 75% 100%,
+        oklch(0.95 0.07 90 / 0.36),
+        transparent 58%
+      );
+  }
+
+  /* Bereich Beratung — Rose */
+  .content-canvas-consulting {
+    background-image:
+      radial-gradient(
+        ellipse 80% 65% at 5% 0%,
+        oklch(0.9 0.11 15 / 0.7),
+        transparent 60%
+      ),
+      radial-gradient(
+        ellipse 60% 52% at 100% 8%,
+        oklch(0.92 0.09 5 / 0.48),
+        transparent 55%
+      ),
+      radial-gradient(
+        ellipse 55% 48% at 75% 100%,
+        oklch(0.94 0.07 25 / 0.36),
+        transparent 58%
+      );
+  }
+
+  @keyframes area-switcher-in {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
   .sidebar-canvas {
     background-image: linear-gradient(
       165deg,

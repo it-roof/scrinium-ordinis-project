@@ -26,6 +26,7 @@ export function PlatformTenantsView({ tenants }: { tenants: TenantListItem[] }) 
               <tr>
                 <th className="px-4 py-3 font-medium">Name</th>
                 <th className="px-4 py-3 font-medium">Slug</th>
+                <th className="px-4 py-3 font-medium">Domain</th>
                 <th className="px-4 py-3 font-medium">User</th>
                 <th className="px-4 py-3 font-medium" />
               </tr>
@@ -39,6 +40,9 @@ export function PlatformTenantsView({ tenants }: { tenants: TenantListItem[] }) 
                   <td className="px-4 py-3 font-medium">{tenant.name}</td>
                   <td className="px-4 py-3 text-muted-foreground">
                     {tenant.slug}
+                  </td>
+                  <td className="px-4 py-3 text-muted-foreground">
+                    {tenant.customDomain ?? "—"}
                   </td>
                   <td className="px-4 py-3 tabular-nums">{tenant.userCount}</td>
                   <td className="px-4 py-3 text-right">
@@ -54,7 +58,7 @@ export function PlatformTenantsView({ tenants }: { tenants: TenantListItem[] }) 
               {tenants.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={4}
+                    colSpan={5}
                     className="px-4 py-8 text-center text-muted-foreground"
                   >
                     Noch keine Tenants.

@@ -33,13 +33,13 @@ Die Route bleibt deutsch (`/textbausteine`), der Code heißt `text-blocks`.
 | `id` | `uuid` | Primary Key |
 | `title` | `text` | Titel des Bausteins |
 | `content` | `text` | Textinhalt |
-| `department` | `department` enum | Kanzlei-Bereich |
+| `module` | `module` enum | Kanzlei-Bereich |
 | `created_at` | `timestamptz` | Angelegt am |
 | `updated_at` | `timestamptz` | Zuletzt geändert |
 
 Schema-Definition: `lib/db/schema.ts` → `textBlocks`
 
-### Enum `department`
+### Enum `module`
 
 | DB-Wert (Englisch) | UI-Label (Deutsch) |
 |--------------------|--------------------|
@@ -49,20 +49,20 @@ Schema-Definition: `lib/db/schema.ts` → `textBlocks`
 | `restructuring-insolvency` | Sanierung & Insolvenz |
 | `consulting` | Unternehmensberatung |
 
-Labels und Mapping: `lib/text-blocks/types.ts` → `DEPARTMENTS`, `getDepartmentLabel()`
+Labels und Mapping: `lib/text-blocks/types.ts` → `CONTENT_MODULES`, `getModuleLabel()`
 
 ## Code-Struktur
 
 ```
 lib/text-blocks/
-├── types.ts              # TextBlock, TextBlockInput, DEPARTMENTS
+├── types.ts              # TextBlock, TextBlockInput, CONTENT_MODULES
 ├── storage.ts            # DB-Zugriff (Drizzle)
 ├── actions.ts            # Server Actions (CRUD + Auth)
-└── department-styles.ts  # Farben pro Bereich (UI)
+└── module-styles.ts  # Farben pro Bereich (UI)
 
 components/text-blocks/
 ├── text-blocks-view.tsx  # Haupt-UI (Liste, Filter, Dialoge)
-└── department-badge.tsx  # Bereichs-Badge
+└── module-badge.tsx  # Bereichs-Badge
 
 app/(main)/textbausteine/
 └── page.tsx              # Server Component, lädt initiale Daten
@@ -78,7 +78,7 @@ app/(main)/textbausteine/
 
 Alle Actions:
 - Prüfen Session (`Nicht angemeldet.` bei Fehlschlag)
-- Validieren Input (Titel, Inhalt, gültiger `department`)
+- Validieren Input (Titel, Inhalt, gültiger `module`)
 - Rufen `revalidatePath("/textbausteine")` nach Mutation
 
 Storage-Funktionen (nur intern, kein Auth):
@@ -93,7 +93,7 @@ Storage-Funktionen (nur intern, kein Auth):
 ## UI-Funktionen
 
 - **Suche** — Titel und Inhalt (clientseitig)
-- **Bereichsfilter** — Pills mit Zähler pro Department
+- **Bereichsfilter** — Pills mit Zähler pro Modul
 - **CRUD** — Dialog zum Anlegen/Bearbeiten, AlertDialog zum Löschen
 - **Kopieren** — Inhalt in Zwischenablage (`navigator.clipboard`)
 
@@ -104,14 +104,14 @@ Fehler- und Erfolgsmeldungen sind auf Deutsch (Toasts).
 1. `lib/db/schema.ts` anpassen
 2. `pnpm db:generate` → `pnpm db:migrate`
 3. Types und Storage in `lib/text-blocks/` aktualisieren
-4. UI-Labels in `types.ts` / `department-styles.ts` ergänzen
+4. UI-Labels in `types.ts` / `module-styles.ts` ergänzen
 
 Siehe [`lib/db/README.md`](../../lib/db/README.md).
 
 ## Geplant / offen
 
 - [ ] Berechtigungen feiner (z. B. nur Admin darf löschen)
-- [ ] Filter nach User-Bereich (`users.department`)
+- [ ] Filter nach User-Bereich (`users.module`)
 - [ ] Audit-Log (wer hat was geändert)
 - [ ] Export (PDF/Word)
 

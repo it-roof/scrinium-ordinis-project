@@ -4,7 +4,7 @@ Turborepo:
 
 | App | Ordner | Port | Zweck |
 |-----|--------|------|--------|
-| **desk** | `apps/desk` | 3000 | Kanzlei-Werkzeug (Multi-Tenant) |
+| **desk** | `apps/desk` | 3000 | Kanzlei-Werkzeug (Multi-Tenant) — Prod: https://app.scrinium-ordinis.de |
 | **website** | `apps/website` | 3001 | Produkt-Website |
 
 Shared: `packages/brand` (Produktname Scrinium Ordinis, Tenant-Defaults).
@@ -36,10 +36,12 @@ pnpm user:create <email> <passwort> <name> [tenant-slug] [admin|employee]
 
 ## Coolify (Desk)
 
+Produktion: **https://app.scrinium-ordinis.de**
+
 1. Build-Context: **Repository-Root**
 2. Dockerfile: `apps/desk/Dockerfile`
 3. Port: `3000`
-4. Env laut `apps/desk/.env.example` setzen (`DATABASE_URL`, `AUTH_SECRET`, S3, …)
+4. Env laut `apps/desk/.env.example` setzen — mind. `DATABASE_URL`, `AUTH_SECRET`, `AUTH_URL=https://app.scrinium-ordinis.de`, `AUTH_TRUST_HOST=true`, S3
 5. Migrationen **vor** dem Deploy lokal ausführen (`pnpm db:migrate`)
 
 Lokal Image testen:

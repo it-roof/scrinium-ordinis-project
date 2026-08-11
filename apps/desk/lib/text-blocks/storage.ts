@@ -12,7 +12,7 @@ function toTextBlock(row: TextBlockRow): TextBlock {
     id: row.id,
     title: row.title,
     content: row.content,
-    department: row.department,
+    module: row.module,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };
@@ -41,7 +41,7 @@ export async function createTextBlockRow(
         tenantId,
         title: input.title.trim(),
         content: input.content.trim(),
-        department: input.department,
+        module: input.module,
       })
       .returning();
 
@@ -60,7 +60,7 @@ export async function updateTextBlockRow(
       .set({
         title: input.title.trim(),
         content: input.content.trim(),
-        department: input.department,
+        module: input.module,
         updatedAt: new Date().toISOString(),
       })
       .where(and(eq(textBlocks.id, id), eq(textBlocks.tenantId, tenantId)))

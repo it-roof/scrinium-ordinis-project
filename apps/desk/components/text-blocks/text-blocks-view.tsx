@@ -11,16 +11,22 @@ import {
 import { toast } from "sonner";
 
 import { PageHeader } from "@/components/layout/page-header";
-import { DepartmentBadge } from "@/components/text-blocks/department-badge";
+import { useOptionalActiveArea } from "@/components/layout/active-area-provider";
+import { ModuleBadge } from "@/components/text-blocks/module-badge";
 import {
   createTextBlock,
   deleteTextBlock,
   updateTextBlock,
 } from "@/lib/text-blocks/actions";
-import { departmentStyles } from "@/lib/text-blocks/department-styles";
+import { moduleStyles } from "@/lib/text-blocks/module-styles";
 import {
-  DEPARTMENTS,
-  type Department,
+  modulesForActiveArea,
+  itemMatchesActiveArea,
+} from "@/lib/area/active-area";
+import {
+  CONTENT_MODULES,
+  type ContentModule,
+  type ContentModuleOption,
   type TextBlock,
 } from "@/lib/text-blocks/types";
 import { cn } from "@/lib/utils";
@@ -65,49 +71,60 @@ import { Textarea } from "@/components/ui/textarea";
 type FormState = {
   title: string;
   content: string;
-  department: Department;
+  module: ContentModule;
 };
 
 const emptyForm: FormState = {
   title: "",
   content: "",
-  department: "general",
+  module: "general",
 };
 
 type TextBlocksViewProps = {
   initialItems: TextBlock[];
+  modules?: readonly ContentModuleOption[];
 };
 
-export function TextBlocksView({ initialItems }: TextBlocksViewProps) {
+export function TextBlocksView({
+  initialItems,
+  modules = CONTENT_MODULES,
+}: TextBlocksViewProps) {
+  const activeAreaCtx = useOptionalActiveArea();
+  const activeArea = activeAreaCtx?.activeArea ?? "all";
   const [items, setItems] = useState(initialItems);
   const [search, setSearch] = useState("");
-  const [departmentFilter, setDepartmentFilter] = useState<Department | "all">(
-    "all"
-  );
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<TextBlock | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [deleteTarget, setDeleteTarget] = useState<TextBlock | null>(null);
   const [isPending, startTransition] = useTransition();
 
+  const formModules = modulesForActiveArea(modules, activeArea);
+
   const filteredItems = useMemo(() => {
     const query = search.trim().toLowerCase();
 
     return items.filter((item) => {
-      const matchesDepartment =
-        departmentFilter === "all" || item.department === departmentFilter;
+      const matchesModule = itemMatchesActiveArea(
+        item.module,
+        activeArea
+      );
       const matchesSearch =
         !query ||
         item.title.toLowerCase().includes(query) ||
         item.content.toLowerCase().includes(query);
 
-      return matchesDepartment && matchesSearch;
+      return matchesModule && matchesSearch;
     });
-  }, [items, search, departmentFilter]);
+  }, [items, search, activeArea]);
 
   function openCreateDialog() {
     setEditingItem(null);
-    setForm(emptyForm);
+    setForm({
+      ...emptyForm,
+      module:
+        activeArea !== "all" ? activeArea : emptyForm.module,
+    });
     setDialogOpen(true);
   }
 
@@ -116,7 +133,7 @@ export function TextBlocksView({ initialItems }: TextBlocksViewProps) {
     setForm({
       title: item.title,
       content: item.content,
-      department: item.department,
+      module: item.module,
     });
     setDialogOpen(true);
   }
@@ -205,34 +222,6 @@ export function TextBlocksView({ initialItems }: TextBlocksViewProps) {
             className="h-11 rounded-xl border-border/80 bg-background/80 pl-10 shadow-none"
           />
         </div>
-
-        <div className="flex flex-wrap gap-2">
-          <FilterPill
-            active={departmentFilter === "all"}
-            onClick={() => setDepartmentFilter("all")}
-            label="Alle"
-            count={items.length}
-            activeClassName="bg-primary text-primary-foreground shadow-sm shadow-primary/20"
-          />
-          {DEPARTMENTS.map((department) => {
-            const count = items.filter(
-              (item) => item.department === department.value
-            ).length;
-            const styles = departmentStyles[department.value];
-
-            return (
-              <FilterPill
-                key={department.value}
-                active={departmentFilter === department.value}
-                onClick={() => setDepartmentFilter(department.value)}
-                label={department.label}
-                count={count}
-                dotClassName={styles.dot}
-                activeClassName={styles.pill}
-              />
-            );
-          })}
-        </div>
       </div>
 
       <div className="flex items-center justify-between gap-3 text-sm text-muted-foreground">
@@ -259,7 +248,7 @@ export function TextBlocksView({ initialItems }: TextBlocksViewProps) {
             <EmptyDescription className="max-w-sm text-sm leading-relaxed">
               {items.length === 0
                 ? "Lege den ersten Textbaustein an, um wiederkehrende Formulierungen zentral zu verwalten."
-                : "Passe Suche oder Bereichsfilter an."}
+                : "Passe die Suche an oder wechsle den Bereich."}
             </EmptyDescription>
           </EmptyHeader>
           {items.length === 0 && (
@@ -278,8 +267,8 @@ export function TextBlocksView({ initialItems }: TextBlocksViewProps) {
               key={item.id}
               className={cn(
                 "surface-card group overflow-hidden border-l-[3px] transition-shadow hover:shadow-[var(--shadow-elevated)]",
-                departmentStyles[item.department].accent,
-                departmentStyles[item.department].wash
+                moduleStyles[item.module].accent,
+                moduleStyles[item.module].wash
               )}
             >
               <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-start sm:justify-between">
@@ -288,7 +277,7 @@ export function TextBlocksView({ initialItems }: TextBlocksViewProps) {
                     <h2 className="font-heading text-lg font-medium tracking-tight">
                       {item.title}
                     </h2>
-                    <DepartmentBadge department={item.department} />
+                    <ModuleBadge module={item.module} />
                   </div>
                   <p className="line-clamp-3 whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
                     {item.content}
@@ -374,23 +363,23 @@ export function TextBlocksView({ initialItems }: TextBlocksViewProps) {
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="department">Bereich</Label>
+              <Label htmlFor="content-module">Bereich</Label>
               <Select
-                value={form.department}
+                value={form.module}
                 onValueChange={(value) =>
                   setForm((current) => ({
                     ...current,
-                    department: value as Department,
+                    module: value as ContentModule,
                   }))
                 }
               >
-                <SelectTrigger id="department" className="h-11 rounded-xl">
+                <SelectTrigger id="content-module" className="h-11 rounded-xl">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {DEPARTMENTS.map((department) => (
-                    <SelectItem key={department.value} value={department.value}>
-                      {department.label}
+                  {formModules.map((module) => (
+                    <SelectItem key={module.value} value={module.value}>
+                      {module.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -460,49 +449,5 @@ export function TextBlocksView({ initialItems }: TextBlocksViewProps) {
         </AlertDialogContent>
       </AlertDialog>
     </div>
-  );
-}
-
-function FilterPill({
-  active,
-  onClick,
-  label,
-  count,
-  dotClassName,
-  activeClassName = "bg-primary text-primary-foreground shadow-sm",
-}: {
-  active: boolean;
-  onClick: () => void;
-  label: string;
-  count: number;
-  dotClassName?: string;
-  activeClassName?: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-sm transition-all",
-        active
-          ? activeClassName
-          : "bg-background/70 text-muted-foreground ring-1 ring-border/80 hover:bg-background hover:text-foreground"
-      )}
-    >
-      {dotClassName ? (
-        <span className={cn("size-1.5 rounded-full", dotClassName)} />
-      ) : null}
-      <span>{label}</span>
-      <span
-        className={cn(
-          "rounded-full px-1.5 py-0.5 text-[0.65rem] font-medium",
-          active
-            ? "bg-primary-foreground/15 text-primary-foreground"
-            : "bg-muted text-muted-foreground"
-        )}
-      >
-        {count}
-      </span>
-    </button>
   );
 }

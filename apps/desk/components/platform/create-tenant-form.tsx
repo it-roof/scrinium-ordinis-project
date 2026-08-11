@@ -5,6 +5,8 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { createTenantAction } from "@/lib/platform/actions";
+import { TenantModulesFields } from "@/components/platform/tenant-modules-fields";
+import { ALL_APP_MODULE_IDS, type AppModuleId } from "@/lib/modules";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,12 +16,23 @@ export function CreateTenantForm() {
   const [pending, startTransition] = useTransition();
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
+  const [brandName, setBrandName] = useState("");
+  const [customDomain, setCustomDomain] = useState("");
+  const [enabledModules, setEnabledModules] = useState<AppModuleId[]>([
+    ...ALL_APP_MODULE_IDS,
+  ]);
 
   function onSubmit(event: React.FormEvent) {
     event.preventDefault();
 
     startTransition(async () => {
-      const result = await createTenantAction({ name, slug });
+      const result = await createTenantAction({
+        name,
+        slug,
+        brandName,
+        customDomain,
+        enabledModules,
+      });
 
       if (!result.success) {
         toast.error(result.error);
@@ -29,6 +42,9 @@ export function CreateTenantForm() {
       toast.success("Tenant angelegt.");
       setName("");
       setSlug("");
+      setBrandName("");
+      setCustomDomain("");
+      setEnabledModules([...ALL_APP_MODULE_IDS]);
       router.push(`/platform/tenants/${result.tenant.id}`);
       router.refresh();
     });
@@ -68,6 +84,36 @@ export function CreateTenantForm() {
             className="h-10 rounded-none"
           />
         </div>
+        <div className="space-y-2 sm:col-span-2">
+          <Label htmlFor="tenant-brand">
+            App-Label{" "}
+            <span className="font-normal text-muted-foreground">(optional)</span>
+          </Label>
+          <Input
+            id="tenant-brand"
+            value={brandName}
+            onChange={(event) => setBrandName(event.target.value)}
+            placeholder="Optional, sonst Scrinium Ordinis"
+            className="h-10 rounded-none"
+          />
+        </div>
+        <div className="space-y-2 sm:col-span-2">
+          <Label htmlFor="tenant-domain">
+            Domain{" "}
+            <span className="font-normal text-muted-foreground">(optional)</span>
+          </Label>
+          <Input
+            id="tenant-domain"
+            value={customDomain}
+            onChange={(event) => setCustomDomain(event.target.value)}
+            placeholder="orga.dr-schneiderbanger.de"
+            className="h-10 rounded-none"
+          />
+        </div>
+        <TenantModulesFields
+          value={enabledModules}
+          onChange={setEnabledModules}
+        />
       </div>
 
       <Button

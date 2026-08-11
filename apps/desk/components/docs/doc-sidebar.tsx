@@ -4,37 +4,44 @@ import Link from "next/link";
 import { useMemo } from "react";
 import { ChevronRightIcon, FileTextIcon, FolderIcon } from "lucide-react";
 
-import { DepartmentBadge } from "@/components/text-blocks/department-badge";
+import { ModuleBadge } from "@/components/text-blocks/module-badge";
+import {
+  itemMatchesActiveArea,
+  type ActiveArea,
+} from "@/lib/area/active-area";
 import type { DocPageTreeNode } from "@/lib/docs/types";
-import type { Department } from "@/lib/db/schema";
+import type { ContentModule } from "@/lib/db/schema";
 import { cn } from "@/lib/utils";
 
 type DocSidebarProps = {
   tree: DocPageTreeNode[];
   activeSlug?: string;
-  departmentFilter: Department | "all";
+  activeArea: ActiveArea;
+  basePath: string;
 };
 
 export function DocSidebar({
   tree,
   activeSlug,
-  departmentFilter,
+  activeArea,
+  basePath,
 }: DocSidebarProps) {
   const filteredTree = useMemo(() => {
-    if (departmentFilter === "all") return tree;
+    if (activeArea === "all") return tree;
 
     return tree
       .map((node) => ({
         ...node,
-        children: node.children.filter(
-          (child) => child.department === departmentFilter
+        children: node.children.filter((child) =>
+          itemMatchesActiveArea(child.module, activeArea)
         ),
       }))
       .filter(
         (node) =>
-          node.department === departmentFilter || node.children.length > 0
+          itemMatchesActiveArea(node.module, activeArea) ||
+          node.children.length > 0
       );
-  }, [departmentFilter, tree]);
+  }, [activeArea, tree]);
 
   return (
     <nav className="space-y-1">
@@ -46,22 +53,22 @@ export function DocSidebar({
         filteredTree.map((node) => (
           <div key={node.id} className="space-y-1">
             <SidebarLink
-              href={`/dokumentation/${node.slug}`}
+              href={`${basePath}/${node.slug}`}
               active={activeSlug === node.slug}
               icon={node.children.length > 0 ? FolderIcon : FileTextIcon}
               label={node.title}
-              department={node.department}
+              module={node.module}
             />
             {node.children.length > 0 && (
               <div className="ml-3 space-y-1 border-l border-border/70 pl-2">
                 {node.children.map((child) => (
                   <SidebarLink
                     key={child.id}
-                    href={`/dokumentation/${child.slug}`}
+                    href={`${basePath}/${child.slug}`}
                     active={activeSlug === child.slug}
                     icon={FileTextIcon}
                     label={child.title}
-                    department={child.department}
+                    module={child.module}
                     nested
                   />
                 ))}
@@ -79,14 +86,14 @@ function SidebarLink({
   active,
   icon: Icon,
   label,
-  department,
+  module,
   nested = false,
 }: {
   href: string;
   active: boolean;
   icon: typeof FileTextIcon;
   label: string;
-  department: Department;
+  module: ContentModule;
   nested?: boolean;
 }) {
   return (
@@ -103,7 +110,7 @@ function SidebarLink({
       <Icon className="size-4 shrink-0 opacity-70" />
       <span className="min-w-0 flex-1 truncate">{label}</span>
       {!nested && (
-        <DepartmentBadge department={department} className="hidden xl:inline-flex" />
+        <ModuleBadge module={module} className="hidden xl:inline-flex" />
       )}
       <ChevronRightIcon className="size-3.5 shrink-0 opacity-40" />
     </Link>

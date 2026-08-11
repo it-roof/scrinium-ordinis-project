@@ -1,7 +1,7 @@
-import type { Department } from "./types";
+import type { ContentModule } from "./types";
 
-export const departmentStyles: Record<
-  Department,
+export const moduleStyles: Record<
+  ContentModule,
   {
     badge: string;
     accent: string;
@@ -18,11 +18,11 @@ export const departmentStyles: Record<
     wash: "bg-gradient-to-br from-slate-50/80 to-white",
   },
   tax: {
-    badge: "bg-sky-50/90 text-sky-900 ring-sky-200/60",
-    accent: "border-l-sky-400",
-    dot: "bg-sky-500",
-    pill: "bg-sky-600 text-white shadow-sm shadow-sky-600/20",
-    wash: "bg-gradient-to-br from-sky-50/70 via-white to-white",
+    badge: "bg-lime-50/90 text-lime-950 ring-lime-200/60",
+    accent: "border-l-lime-400",
+    dot: "bg-lime-500",
+    pill: "bg-lime-600 text-white shadow-sm shadow-lime-600/20",
+    wash: "bg-gradient-to-br from-lime-50/70 via-white to-white",
   },
   legal: {
     badge: "bg-indigo-50/90 text-indigo-950 ring-indigo-200/60",
@@ -39,10 +39,10 @@ export const departmentStyles: Record<
     wash: "bg-gradient-to-br from-amber-50/55 via-white to-white",
   },
   consulting: {
-    badge: "bg-teal-50/90 text-teal-950 ring-teal-200/60",
-    accent: "border-l-teal-400",
-    dot: "bg-teal-500",
-    pill: "bg-teal-600 text-white shadow-sm shadow-teal-600/20",
-    wash: "bg-gradient-to-br from-teal-50/60 via-white to-white",
+    badge: "bg-rose-50/90 text-rose-950 ring-rose-200/60",
+    accent: "border-l-rose-400",
+    dot: "bg-rose-500",
+    pill: "bg-rose-600 text-white shadow-sm shadow-rose-600/20",
+    wash: "bg-gradient-to-br from-rose-50/60 via-white to-white",
   },
 };

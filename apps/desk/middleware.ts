@@ -8,9 +8,21 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isWartungPage = pathname === "/wartung";
 
+  // Alte /bereich/...-URLs → /...
+  if (pathname === "/bereich" || pathname.startsWith("/bereich/")) {
+    const nextPath =
+      pathname === "/bereich" ? "/" : pathname.replace(/^\/bereich/, "") || "/";
+    return NextResponse.redirect(new URL(nextPath, request.url));
+  }
+
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-pathname", pathname);
+
   if (isMaintenanceMode()) {
     if (isWartungPage) {
-      return NextResponse.next();
+      return NextResponse.next({
+        request: { headers: requestHeaders },
+      });
     }
 
     return NextResponse.redirect(new URL("/wartung", request.url));
@@ -28,14 +40,18 @@ export function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL("/", request.url));
     }
 
-    return NextResponse.next();
+    return NextResponse.next({
+      request: { headers: requestHeaders },
+    });
   }
 
   if (!isLoggedIn) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  return NextResponse.next();
+  return NextResponse.next({
+    request: { headers: requestHeaders },
+  });
 }
 
 export const config = {

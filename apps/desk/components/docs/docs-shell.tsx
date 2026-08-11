@@ -13,13 +13,12 @@ import { toast } from "sonner";
 
 import { DocMarkdown } from "@/components/docs/doc-markdown";
 import { DocSidebar } from "@/components/docs/doc-sidebar";
-import { DepartmentBadge } from "@/components/text-blocks/department-badge";
+import { useOptionalActiveArea } from "@/components/layout/active-area-provider";
+import { ModuleBadge } from "@/components/text-blocks/module-badge";
 import { deleteDocPage } from "@/lib/docs/actions";
-import { departmentStyles } from "@/lib/text-blocks/department-styles";
-import { DEPARTMENTS } from "@/lib/text-blocks/types";
+import { itemMatchesActiveArea } from "@/lib/area/active-area";
+import { useAreaBasePath } from "@/lib/area/use-area-path";
 import type { DocPage, DocPageTreeNode } from "@/lib/docs/types";
-import type { Department } from "@/lib/db/schema";
-import { cn } from "@/lib/utils";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -38,11 +37,15 @@ type DocsShellProps = {
   activePage?: DocPage | null;
 };
 
-export function DocsShell({ tree, activePage }: DocsShellProps) {
+export function DocsShell({
+  tree,
+  activePage,
+}: DocsShellProps) {
+  const activeAreaCtx = useOptionalActiveArea();
+  const activeArea = activeAreaCtx?.activeArea ?? "all";
+  const basePath = useAreaBasePath() ?? "";
+  const docsBase = `${basePath}/dokumentation`;
   const [search, setSearch] = useState("");
-  const [departmentFilter, setDepartmentFilter] = useState<Department | "all">(
-    "all"
-  );
 
   const flatPages = useMemo(() => flattenTree(tree), [tree]);
 
@@ -53,10 +56,11 @@ export function DocsShell({ tree, activePage }: DocsShellProps) {
 
     return flatPages.filter(
       (page) =>
-        page.title.toLowerCase().includes(query) ||
-        page.content.toLowerCase().includes(query)
+        itemMatchesActiveArea(page.module, activeArea) &&
+        (page.title.toLowerCase().includes(query) ||
+          page.content.toLowerCase().includes(query))
     );
-  }, [flatPages, search]);
+  }, [flatPages, search, activeArea]);
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-6 pb-8">
@@ -74,7 +78,7 @@ export function DocsShell({ tree, activePage }: DocsShellProps) {
         </div>
 
         <Button asChild size="lg" className="shrink-0 px-5 shadow-sm shadow-primary/20">
-          <Link href="/dokumentation/neu">
+          <Link href={`${docsBase}/neu`}>
             <PlusIcon data-icon="inline-start" />
             Neue Seite
           </Link>
@@ -92,34 +96,6 @@ export function DocsShell({ tree, activePage }: DocsShellProps) {
           />
         </div>
 
-        <div className="flex flex-wrap gap-2">
-          <FilterPill
-            active={departmentFilter === "all"}
-            onClick={() => setDepartmentFilter("all")}
-            label="Alle"
-            count={flatPages.length}
-            activeClassName="bg-primary text-primary-foreground shadow-sm shadow-primary/20"
-          />
-          {DEPARTMENTS.map((department) => {
-            const count = flatPages.filter(
-              (page) => page.department === department.value
-            ).length;
-            const styles = departmentStyles[department.value];
-
-            return (
-              <FilterPill
-                key={department.value}
-                active={departmentFilter === department.value}
-                onClick={() => setDepartmentFilter(department.value)}
-                label={department.label}
-                count={count}
-                dotClassName={styles.dot}
-                activeClassName={styles.pill}
-              />
-            );
-          })}
-        </div>
-
         {search.trim() && (
           <div className="space-y-2 border-t border-border/70 pt-4">
             <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
@@ -131,7 +107,7 @@ export function DocsShell({ tree, activePage }: DocsShellProps) {
               <div className="flex flex-wrap gap-2">
                 {searchResults.map((page) => (
                   <Button key={page.id} asChild variant="outline" size="sm">
-                    <Link href={`/dokumentation/${page.slug}`}>{page.title}</Link>
+                    <Link href={`${docsBase}/${page.slug}`}>{page.title}</Link>
                   </Button>
                 ))}
               </div>
@@ -148,13 +124,14 @@ export function DocsShell({ tree, activePage }: DocsShellProps) {
           <DocSidebar
             tree={tree}
             activeSlug={activePage?.slug}
-            departmentFilter={departmentFilter}
+            activeArea={activeArea}
+            basePath={docsBase}
           />
         </aside>
 
         <section className="surface-card min-h-[24rem] p-6 md:p-8">
           {activePage ? (
-            <ActivePageContent page={activePage} />
+            <ActivePageContent page={activePage} docsBase={docsBase} />
           ) : (
             <div className="flex h-full min-h-[20rem] flex-col items-center justify-center gap-4 text-center">
               <p className="font-heading text-lg font-medium">
@@ -164,7 +141,7 @@ export function DocsShell({ tree, activePage }: DocsShellProps) {
                 Wähle links eine Seite aus oder lege die erste Dokumentation an.
               </p>
               <Button asChild>
-                <Link href="/dokumentation/neu">
+                <Link href={`${docsBase}/neu`}>
                   <PlusIcon data-icon="inline-start" />
                   Erste Seite anlegen
                 </Link>
@@ -177,12 +154,18 @@ export function DocsShell({ tree, activePage }: DocsShellProps) {
   );
 }
 
-function ActivePageContent({ page }: { page: DocPage }) {
+function ActivePageContent({
+  page,
+  docsBase,
+}: {
+  page: DocPage;
+  docsBase: string;
+}) {
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 border-b border-border/70 pb-5 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-2">
-          <DepartmentBadge department={page.department} />
+          <ModuleBadge module={page.module} />
           <h2 className="font-heading text-2xl font-medium tracking-tight">
             {page.title}
           </h2>
@@ -197,12 +180,12 @@ function ActivePageContent({ page }: { page: DocPage }) {
 
         <div className="flex shrink-0 gap-2">
           <Button asChild variant="outline" size="sm">
-            <Link href={`/dokumentation/${page.slug}/bearbeiten`}>
+            <Link href={`${docsBase}/${page.slug}/bearbeiten`}>
               <PencilIcon data-icon="inline-start" />
               Bearbeiten
             </Link>
           </Button>
-          <DeletePageButton page={page} />
+          <DeletePageButton page={page} docsBase={docsBase} />
         </div>
       </div>
 
@@ -215,7 +198,13 @@ function ActivePageContent({ page }: { page: DocPage }) {
   );
 }
 
-function DeletePageButton({ page }: { page: DocPage }) {
+function DeletePageButton({
+  page,
+  docsBase,
+}: {
+  page: DocPage;
+  docsBase: string;
+}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -231,7 +220,7 @@ function DeletePageButton({ page }: { page: DocPage }) {
 
       toast.success("Seite gelöscht.");
       setOpen(false);
-      router.push("/dokumentation");
+      router.push(docsBase);
       router.refresh();
     });
   }
@@ -277,46 +266,4 @@ function DeletePageButton({ page }: { page: DocPage }) {
 
 function flattenTree(tree: DocPageTreeNode[]): DocPage[] {
   return tree.flatMap((node) => [node, ...node.children]);
-}
-
-function FilterPill({
-  active,
-  onClick,
-  label,
-  count,
-  activeClassName,
-  dotClassName,
-}: {
-  active: boolean;
-  onClick: () => void;
-  label: string;
-  count: number;
-  activeClassName: string;
-  dotClassName?: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm transition-colors",
-        active
-          ? activeClassName
-          : "border-border/80 bg-background text-muted-foreground hover:bg-muted hover:text-foreground"
-      )}
-    >
-      {dotClassName && (
-        <span className={cn("size-2 rounded-full", dotClassName)} />
-      )}
-      <span>{label}</span>
-      <span
-        className={cn(
-          "rounded-full px-1.5 py-0.5 text-xs",
-          active ? "bg-white/20" : "bg-muted text-muted-foreground"
-        )}
-      >
-        {count}
-      </span>
-    </button>
-  );
 }

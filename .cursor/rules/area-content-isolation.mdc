@@ -1,0 +1,36 @@
+---
+description: Fachinhalte sind innerhalb einer Kanzlei strikt nach Bereich (Modul) getrennt
+alwaysApply: true
+---
+
+# Bereichs-Trennung von Fachinhalten
+
+Innerhalb einer Kanzlei (Tenant) sind Inhalte **immer bereichsgetrennt**.  
+Recht und Steuer teilen sich nie dieselbe Inhaltsliste — auch wenn dieselbe Funktion (z. B. Textbausteine) in beiden Modulen verfügbar ist.
+
+## Begriffe
+
+| Begriff | Bedeutung |
+|--------|-----------|
+| **Modul / Bereich** | Fachgebiet: Recht, Steuer, Sanierung, Beratung (`legal`, `tax`, …) |
+| **Funktion** | Werkzeug: Textbausteine, Prompt, Dokumentation |
+| **`module`** | Spalte am Datensatz = Zugehörigkeit zum Bereich (+ optional `general`) |
+
+## Pflicht
+
+- Jede persistente Fach-Entität hat `tenant_id` **und** ein Bereichs-Feld (`module` oder gleichwertig)
+- UI und Queries scopen auf den **aktiven Bereich** (aus der URL `/recht`, `/steuer`, …)
+- Freigeschaltete Module des Tenants bestimmen, welche Bereiche existieren; Funktionen hängen fest am Modul (kein separates Funktions-Flag pro Tenant)
+- Dieselbe Funktion darf in mehreren Modulen vorkommen — Inhalte bleiben trotzdem getrennt über `module`
+
+## Nie
+
+- Eine gemeinsame Inhaltsliste über alle Bereiche einer Kanzlei als Default
+- Bereich nur als UI-Filter ohne Persistenz am Datensatz
+- Annahme „ein Datensatz gilt automatisch für alle Module des Tenants“ (außer explizit `general`, wenn das Produkt das vorsieht)
+
+## Neue Features prüfen
+
+1. Persistenz? → `tenant_id` + Bereichs-Feld
+2. Aktiver Bereich? → aus URL/Session-Kontext, nicht aus unsicherem Client-Input allein
+3. Kann User Bereich A Inhalte von Bereich B sehen? → wenn ja: Blocker

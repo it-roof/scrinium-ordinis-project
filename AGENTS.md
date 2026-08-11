@@ -2,7 +2,7 @@
 
 Dieses Repository ist ein **Turborepo**:
 
-- `apps/desk` — Scrinium Ordinis (Kanzlei-Werkzeug, Multi-Tenant, Port 3000)
+- `apps/desk` — Scrinium Ordinis (Kanzlei-Werkzeug, Multi-Tenant, Port 3000; Prod: https://app.scrinium-ordinis.de)
 - `apps/website` — Scrinium Ordinis (Produkt-Website, Port 3001)
 - `packages/brand` — gemeinsame Brand-Konstanten
 

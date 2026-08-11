@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 
 import { validateUploadFile } from "@/lib/docs/upload-policy";
+import { isAppModuleId } from "@/lib/modules";
+import { getTenantEnabledModules } from "@/lib/tenant/modules";
 import { requireSessionUser } from "@/lib/tenant/session";
 
 import {
@@ -15,6 +17,20 @@ import {
 } from "./storage";
 import type { DocPageInput } from "./types";
 
+async function isAllowedModule(
+  tenantId: string,
+  module: string
+): Promise<boolean> {
+  if (module === "general") {
+    return true;
+  }
+  if (!isAppModuleId(module)) {
+    return false;
+  }
+  const enabled = await getTenantEnabledModules(tenantId);
+  return enabled.includes(module);
+}
+
 function validateInput(input: DocPageInput): string | null {
   const title = input.title.trim();
 
@@ -24,14 +40,12 @@ function validateInput(input: DocPageInput): string | null {
 }
 
 function revalidateDocs(slug?: string) {
-  revalidatePath("/dokumentation");
+  revalidatePath("/", "layout");
 
   if (slug) {
+    // Legacy flat paths still redirected
     revalidatePath(`/dokumentation/${slug}`);
-    revalidatePath(`/dokumentation/${slug}/bearbeiten`);
   }
-
-  revalidatePath("/dokumentation/neu");
 }
 
 export async function createDocPage(input: DocPageInput) {
@@ -40,6 +54,13 @@ export async function createDocPage(input: DocPageInput) {
 
   const error = validateInput(input);
   if (error) return { success: false as const, error };
+
+  if (!(await isAllowedModule(user.tenantId, input.module))) {
+    return {
+      success: false as const,
+      error: "Dieser Bereich ist für die Kanzlei nicht freigeschaltet.",
+    };
+  }
 
   const result = await createDocPageRow(user.tenantId, input, user.id);
 
@@ -61,6 +82,13 @@ export async function updateDocPage(id: string, input: DocPageInput) {
 
   const error = validateInput(input);
   if (error) return { success: false as const, error };
+
+  if (!(await isAllowedModule(user.tenantId, input.module))) {
+    return {
+      success: false as const,
+      error: "Dieser Bereich ist für die Kanzlei nicht freigeschaltet.",
+    };
+  }
 
   const result = await updateDocPageRow(user.tenantId, id, input, user.id);
 

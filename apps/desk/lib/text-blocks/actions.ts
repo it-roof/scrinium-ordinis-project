@@ -3,15 +3,34 @@
 import { revalidatePath } from "next/cache";
 
 import { requireSessionUser } from "@/lib/tenant/session";
+import { getTenantEnabledModules } from "@/lib/tenant/modules";
+import { isAppModuleId } from "@/lib/modules";
 import {
   createTextBlockRow,
   deleteTextBlockRow,
   updateTextBlockRow,
 } from "./storage";
-import { DEPARTMENTS, type Department, type TextBlockInput } from "./types";
+import { CONTENT_MODULES, type ContentModule, type TextBlockInput } from "./types";
 
-function isValidDepartment(value: string): value is Department {
-  return DEPARTMENTS.some((department) => department.value === value);
+function isValidModule(value: string): value is ContentModule {
+  return CONTENT_MODULES.some((entry) => entry.value === value);
+}
+
+async function isAllowedModule(
+  tenantId: string,
+  module: string
+): Promise<boolean> {
+  if (!isValidModule(module)) {
+    return false;
+  }
+  if (module === "general") {
+    return true;
+  }
+  if (!isAppModuleId(module)) {
+    return false;
+  }
+  const enabled = await getTenantEnabledModules(tenantId);
+  return enabled.includes(module);
 }
 
 function validateInput(input: TextBlockInput): string | null {
@@ -20,7 +39,7 @@ function validateInput(input: TextBlockInput): string | null {
 
   if (!title) return "Bitte einen Titel angeben.";
   if (!content) return "Bitte einen Inhalt angeben.";
-  if (!isValidDepartment(input.department)) {
+  if (!isValidModule(input.module)) {
     return "Bitte einen gültigen Bereich wählen.";
   }
 
@@ -34,8 +53,15 @@ export async function createTextBlock(input: TextBlockInput) {
   const error = validateInput(input);
   if (error) return { success: false as const, error };
 
+  if (!(await isAllowedModule(user.tenantId, input.module))) {
+    return {
+      success: false as const,
+      error: "Dieser Bereich ist für die Kanzlei nicht freigeschaltet.",
+    };
+  }
+
   const item = await createTextBlockRow(user.tenantId, input);
-  revalidatePath("/textbausteine");
+  revalidatePath("/", "layout");
 
   return { success: true as const, item };
 }
@@ -47,13 +73,20 @@ export async function updateTextBlock(id: string, input: TextBlockInput) {
   const error = validateInput(input);
   if (error) return { success: false as const, error };
 
+  if (!(await isAllowedModule(user.tenantId, input.module))) {
+    return {
+      success: false as const,
+      error: "Dieser Bereich ist für die Kanzlei nicht freigeschaltet.",
+    };
+  }
+
   const item = await updateTextBlockRow(user.tenantId, id, input);
 
   if (!item) {
     return { success: false as const, error: "Textbaustein nicht gefunden." };
   }
 
-  revalidatePath("/textbausteine");
+  revalidatePath("/", "layout");
 
   return { success: true as const, item };
 }
@@ -68,7 +101,7 @@ export async function deleteTextBlock(id: string) {
     return { success: false as const, error: "Textbaustein nicht gefunden." };
   }
 
-  revalidatePath("/textbausteine");
+  revalidatePath("/", "layout");
 
   return { success: true as const };
 }
