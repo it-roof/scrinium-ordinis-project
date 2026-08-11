@@ -1,11 +1,28 @@
+import { headers } from "next/headers";
+
 const SESSION_COOKIE_NAMES = [
   "authjs.session-token",
   "__Secure-authjs.session-token",
 ] as const;
 
-function useSecureCookies() {
-  const authUrl = process.env.AUTH_URL ?? process.env.NEXTAUTH_URL;
+/**
+ * Muss mit Auth.js übereinstimmen: `useSecureCookies ?? url.protocol === "https:"`.
+ * Hinter Coolify/Proxy zählt `x-forwarded-proto`, nicht nur AUTH_URL/NODE_ENV —
+ * sonst setzt Login z. B. `authjs.session-token`, während `auth()` `__Secure-…` liest.
+ */
+async function useSecureCookies() {
+  const headerStore = await headers();
+  const forwardedProto = headerStore
+    .get("x-forwarded-proto")
+    ?.split(",")[0]
+    ?.trim()
+    .toLowerCase();
 
+  if (forwardedProto === "https" || forwardedProto === "http") {
+    return forwardedProto === "https";
+  }
+
+  const authUrl = process.env.AUTH_URL ?? process.env.NEXTAUTH_URL;
   if (authUrl) {
     return authUrl.startsWith("https://");
   }
@@ -13,8 +30,8 @@ function useSecureCookies() {
   return process.env.NODE_ENV === "production";
 }
 
-export function getAuthSessionCookieConfig() {
-  const secure = useSecureCookies();
+export async function getAuthSessionCookieConfig() {
+  const secure = await useSecureCookies();
 
   return {
     name: secure ? SESSION_COOKIE_NAMES[1] : SESSION_COOKIE_NAMES[0],
@@ -27,8 +44,8 @@ export function getAuthSessionCookieConfig() {
   };
 }
 
-export function hasAuthSessionCookie(
-  cookies: { get: (name: string) => { value: string } | undefined }
-) {
+export function hasAuthSessionCookie(cookies: {
+  get: (name: string) => { value: string } | undefined;
+}) {
   return SESSION_COOKIE_NAMES.some((name) => cookies.get(name));
 }
