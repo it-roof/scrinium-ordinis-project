@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  transpilePackages: ["@orga/brand"],
   experimental: {
     serverActions: {
       // Bilder max. 10 MB, PDFs max. 25 MB (siehe lib/docs/upload-policy.ts)

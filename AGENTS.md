@@ -1,30 +1,14 @@
-<!-- BEGIN:nextjs-agent-rules -->
-# This is NOT the Next.js you know
+# Agent Notes (Monorepo)
 
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
-<!-- END:nextjs-agent-rules -->
+Dieses Repository ist ein **Turborepo**:
 
-## Datenbank (Drizzle)
+- `apps/desk` — internes ORGA.-Werkzeug (Next.js)
+- `apps/website` — noch nicht angelegt (selbst installieren)
+- `packages/brand` — gemeinsame Brand-Konstanten
 
-- PostgreSQL über Drizzle ORM (`lib/db/`)
-- Schema-Änderungen **nur** via `pnpm db:generate` → `pnpm db:migrate`
-- **Nie** `db:push` verwenden
-- Siehe `lib/db/README.md` und `.cursor/rules/drizzle-migrations.mdc`
+Desk-spezifische Regeln: [`apps/desk/AGENTS.md`](apps/desk/AGENTS.md)
 
-## Auth (NextAuth / Auth.js)
-
-- E-Mail + Passwort (Server Action + DB-Sessions)
-- Sessions in PostgreSQL via `@auth/drizzle-adapter`
-- Konfiguration in `lib/auth/`
-- Ersten Benutzer: `pnpm user:create <email> <passwort> <name> [admin|employee]`
-- Geschützte Routen via `middleware.ts`
-- Passwort-Policy: min. 12 Zeichen, Buchstaben + Ziffern
-- Login-Rate-Limit: 5 Fehlversuche / 15 Min. pro E-Mail
-
-## Enterprise Lightweight
-
-Professionelle Standards, minimale Komplexität. Siehe `.cursor/rules/enterprise-lightweight.mdc`.
-
-## Module
-
-Modul-Dokumentation: [`docs/README.md`](docs/README.md) · Erstes Modul: [Textbausteine](docs/modules/text-blocks.md)
+```bash
+pnpm dev:desk
+pnpm build
+```

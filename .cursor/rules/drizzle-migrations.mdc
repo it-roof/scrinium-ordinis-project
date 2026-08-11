@@ -1,18 +1,20 @@
 ---
 description: Drizzle ORM — Schema- und Migrations-Workflow für PostgreSQL
-globs: lib/db/**,drizzle/**,drizzle.config.ts
+globs: apps/desk/lib/db/**,apps/desk/drizzle/**,apps/desk/drizzle.config.ts
 alwaysApply: false
 ---
 
 # Drizzle-Migrationen
 
+Gilt für **`apps/desk`**.
+
 ## Pflicht-Workflow
 
-1. Schema nur in `lib/db/schema.ts` ändern
-2. `pnpm db:generate` — Migration erzeugen
-3. Generiertes SQL in `drizzle/` prüfen
+1. Schema nur in `apps/desk/lib/db/schema.ts` ändern
+2. `pnpm db:generate` — Migration erzeugen (Root-Script)
+3. Generiertes SQL in `apps/desk/drizzle/` prüfen
 4. `pnpm db:migrate` — auf DB anwenden
-5. `drizzle/*.sql` und `drizzle/meta/` committen
+5. `apps/desk/drizzle/*.sql` und `apps/desk/drizzle/meta/` committen
 
 ## Verboten
 
@@ -22,18 +24,18 @@ alwaysApply: false
 
 ## Struktur
 
-- `lib/db/schema.ts` — Tabellen & Enums
-- `lib/db/index.ts` — DB-Client für App-Code
-- `lib/db/migrate.ts` — programmatisches Migrieren
-- `drizzle/` — versionierte SQL-Migrationen
-- `drizzle.config.ts` — Drizzle-Kit-Konfiguration
+- `apps/desk/lib/db/schema.ts` — Tabellen & Enums
+- `apps/desk/lib/db/index.ts` — DB-Client für App-Code
+- `apps/desk/lib/db/migrate.ts` — programmatisches Migrieren
+- `apps/desk/drizzle/` — versionierte SQL-Migrationen
+- `apps/desk/drizzle.config.ts` — Drizzle-Kit-Konfiguration
 
 ## Neue Tabelle / Spalte
 
 ```typescript
-// lib/db/schema.ts erweitern, dann:
+// apps/desk/lib/db/schema.ts erweitern, dann:
 // pnpm db:generate
 // pnpm db:migrate
 ```
 
-Details: `lib/db/README.md`
+Details: `apps/desk/lib/db/README.md`
