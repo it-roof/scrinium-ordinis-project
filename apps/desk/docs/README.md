@@ -1,4 +1,4 @@
-# ORGA. — Modul-Dokumentation
+# Scrinium Ordinis — Modul-Dokumentation
 
 Interne Dokumentation für Entwickler und Agenten. **Code und DB auf Englisch**, **UI auf Deutsch**.
 

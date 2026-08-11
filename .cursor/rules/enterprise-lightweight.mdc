@@ -25,7 +25,10 @@ Grundsatz: **Professionelle Standards, minimale Komplexität.** Jedes Feature mu
 | Redis-Session-Store | DB-Sessions (PostgreSQL) |
 | RBAC-Framework | Einfaches `role`-Feld |
 | Self-Service-Register | Invite-only (`user:create` / später Admin-UI) |
+| Separates Deploy pro Kanzlei | Eine Multi-Tenant-App + Postgres RLS |
 | Vollständiges Audit-System | Später, wenn Modul es braucht |
+
+Multi-Tenant und **strikte Datentrennung:** siehe `.cursor/rules/multi-tenant-isolation.mdc`.
 
 ## Vor Prod-Deploy prüfen
 
@@ -37,6 +40,6 @@ Grundsatz: **Professionelle Standards, minimale Komplexität.** Jedes Feature mu
 ## Neue Features bewerten
 
 1. Braucht es Auth? → Session prüfen
-2. Braucht es Persistenz? → Drizzle + Migration
-3. Braucht es Admin-only? → `role === 'admin'`
+2. Braucht es Persistenz? → Drizzle + Migration + `tenant_id` / RLS
+3. Braucht es Admin-only? → `role === 'admin'` (innerhalb des Tenants)
 4. Kann es warten? → Nicht jetzt bauen

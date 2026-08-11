@@ -5,8 +5,8 @@ import { usePathname } from "next/navigation";
 
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import { BrandWordmark } from "@/components/brand/brand-wordmark";
-import { getPageMeta, navigation } from "@/lib/navigation";
-import { KANZLEI_NAME } from "@/lib/brand";
+import { getPageMeta, navigation, platformNavItem } from "@/lib/navigation";
+import type { PlatformRole, UserRole } from "@/lib/db/schema";
 import { cn } from "@/lib/utils";
 import {
   Sidebar,
@@ -42,11 +42,13 @@ export function AppShell({
   user: {
     name?: string | null;
     email?: string | null;
-    role: "admin" | "employee";
+    role: UserRole;
+    platformRole?: PlatformRole | null;
   };
 }) {
   const pathname = usePathname();
   const page = getPageMeta(pathname);
+  const showPlatform = user.platformRole === "super_admin";
 
   return (
     <TooltipProvider>
@@ -58,11 +60,10 @@ export function AppShell({
           <SidebarHeader className="px-4 py-5">
             <Link href="/" className="group block px-1 py-1">
               <BrandWordmark
-                className="text-[1.2rem] font-medium text-sidebar-foreground"
-                periodClassName="text-sidebar-primary"
+                className="text-[1.05rem] font-medium text-sidebar-foreground"
               />
               <p className="mt-1.5 text-[0.68rem] leading-snug tracking-[0.12em] text-balance text-sidebar-foreground/55 uppercase">
-                {KANZLEI_NAME}
+                Kanzlei-Werkzeug
               </p>
             </Link>
           </SidebarHeader>
@@ -109,6 +110,45 @@ export function AppShell({
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
+
+            {showPlatform ? (
+              <SidebarGroup>
+                <SidebarGroupLabel className="px-3 text-[0.68rem] tracking-[0.16em] text-sidebar-foreground/45 uppercase">
+                  Plattform
+                </SidebarGroupLabel>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={pathname.startsWith(platformNavItem.href)}
+                        tooltip={platformNavItem.label}
+                        className={cn(
+                          "h-10 rounded-full px-3 transition-colors",
+                          platformNavItem.activeClass
+                        )}
+                      >
+                        <Link href={platformNavItem.href}>
+                          <span
+                            className={cn(
+                              "flex size-6 items-center justify-center rounded-full",
+                              pathname.startsWith(platformNavItem.href)
+                                ? platformNavItem.accent
+                                : "bg-white/5 text-inherit"
+                            )}
+                          >
+                            <platformNavItem.icon className="size-3.5" />
+                          </span>
+                          <span className="font-medium">
+                            {platformNavItem.label}
+                          </span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
+            ) : null}
           </SidebarContent>
 
           <SidebarFooter className="space-y-3 border-t border-sidebar-border/80 p-4">

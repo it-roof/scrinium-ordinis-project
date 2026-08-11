@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { auth } from "@/lib/auth";
+import { requireSessionUser } from "@/lib/tenant/session";
 import {
   createPromptRow,
   deletePromptRow,
@@ -21,19 +21,14 @@ function validateInput(input: PromptInput): string | null {
   return null;
 }
 
-async function requireUser() {
-  const session = await auth();
-  return session?.user ?? null;
-}
-
 export async function createPrompt(input: PromptInput) {
-  const user = await requireUser();
+  const user = await requireSessionUser();
   if (!user) return { success: false as const, error: "Nicht angemeldet." };
 
   const error = validateInput(input);
   if (error) return { success: false as const, error };
 
-  const item = await createPromptRow({
+  const item = await createPromptRow(user.tenantId, {
     ...input,
     tags: normalizeTagList(input.tags),
   });
@@ -44,13 +39,13 @@ export async function createPrompt(input: PromptInput) {
 }
 
 export async function updatePrompt(id: string, input: PromptInput) {
-  const user = await requireUser();
+  const user = await requireSessionUser();
   if (!user) return { success: false as const, error: "Nicht angemeldet." };
 
   const error = validateInput(input);
   if (error) return { success: false as const, error };
 
-  const item = await updatePromptRow(id, {
+  const item = await updatePromptRow(user.tenantId, id, {
     ...input,
     tags: normalizeTagList(input.tags),
   });
@@ -66,10 +61,10 @@ export async function updatePrompt(id: string, input: PromptInput) {
 }
 
 export async function deletePrompt(id: string) {
-  const user = await requireUser();
+  const user = await requireSessionUser();
   if (!user) return { success: false as const, error: "Nicht angemeldet." };
 
-  const deleted = await deletePromptRow(id);
+  const deleted = await deletePromptRow(user.tenantId, id);
 
   if (!deleted) {
     return { success: false as const, error: "Prompt nicht gefunden." };

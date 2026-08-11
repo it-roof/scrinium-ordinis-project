@@ -57,7 +57,7 @@ export default function HomePage() {
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-12">
       <PageHeader
-        eyebrow="Internes Kanzlei-Werkzeug"
+        eyebrow="Kanzlei-Werkzeug"
         title={
           <>
             Willkommen bei <BrandWordmark className="font-medium" />

@@ -1,18 +1,15 @@
+import { PRODUCT_WORDMARK } from "@scrinium/brand";
+
 import { cn } from "@/lib/utils";
 
 type BrandWordmarkProps = {
   className?: string;
-  periodClassName?: string;
 };
 
-export function BrandWordmark({
-  className,
-  periodClassName = "text-primary",
-}: BrandWordmarkProps) {
+export function BrandWordmark({ className }: BrandWordmarkProps) {
   return (
-    <span className={cn("font-heading tracking-[0.1em]", className)}>
-      ORGA
-      <span className={periodClassName}>.</span>
+    <span className={cn("font-heading tracking-tight", className)}>
+      {PRODUCT_WORDMARK}
     </span>
   );
 }

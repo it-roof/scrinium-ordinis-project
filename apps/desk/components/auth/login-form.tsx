@@ -4,7 +4,6 @@ import { useActionState, useEffect } from "react";
 
 import { BrandWordmark } from "@/components/brand/brand-wordmark";
 import { loginAction } from "@/lib/auth/actions";
-import { KANZLEI_NAME } from "@/lib/brand";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,7 +22,7 @@ export function LoginForm() {
       <div className="space-y-2 text-center">
         <BrandWordmark className="text-2xl font-medium" />
         <p className="text-[0.68rem] tracking-[0.14em] text-muted-foreground uppercase">
-          {KANZLEI_NAME}
+          Kanzlei-Werkzeug
         </p>
       </div>
 

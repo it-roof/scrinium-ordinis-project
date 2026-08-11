@@ -1,5 +1,5 @@
 {
-  "name": "@orga/desk",
+  "name": "@scrinium/desk",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -11,14 +11,16 @@
     "db:migrate": "drizzle-kit migrate",
     "db:migrate:run": "tsx lib/db/migrate.ts",
     "db:check": "drizzle-kit check",
-    "user:create": "tsx scripts/create-user.ts"
+    "user:create": "tsx scripts/create-user.ts",
+    "tenant:create": "tsx scripts/create-tenant.ts",
+    "platform:grant": "tsx scripts/grant-platform-admin.ts"
   },
   "dependencies": {
     "@auth/drizzle-adapter": "^1.11.2",
     "@aws-sdk/client-s3": "^3.1084.0",
     "@aws-sdk/s3-request-presigner": "^3.1084.0",
     "@base-ui/react": "^1.6.0",
-    "@orga/brand": "workspace:*",
+    "@scrinium/brand": "workspace:*",
     "@tailwindcss/typography": "^0.5.20",
     "bcryptjs": "^3.0.3",
     "class-variance-authority": "^0.7.1",

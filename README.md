@@ -1,13 +1,13 @@
-# ORGA. Monorepo
+# Scrinium Ordinis Monorepo
 
 Turborepo:
 
 | App | Ordner | Port | Zweck |
 |-----|--------|------|--------|
-| **desk** | `apps/desk` | 3000 | Internes Kanzlei-Werkzeug |
-| **website** | `apps/website` | — | noch nicht angelegt (selbst installieren) |
+| **desk** | `apps/desk` | 3000 | Kanzlei-Werkzeug (Multi-Tenant) |
+| **website** | `apps/website` | 3001 | Produkt-Website |
 
-Shared: `packages/brand` (Produktname, Kanzlei-Name).
+Shared: `packages/brand` (Produktname Scrinium Ordinis, Tenant-Defaults).
 
 ## Setup
 
@@ -20,32 +20,33 @@ Env für Desk: `apps/desk/.env.local` (siehe `apps/desk/.env.example`).
 ## Entwicklung
 
 ```bash
-pnpm dev          # alle Apps im Workspace
-pnpm dev:desk     # nur Desk (http://localhost:3000)
+pnpm dev          # Desk + Website
+pnpm dev:desk     # nur Desk → http://localhost:3000
+pnpm dev:website  # nur Website → http://localhost:3001
 pnpm build
 ```
-
-## Website selbst anlegen
-
-```bash
-cd apps
-pnpm create next-app@latest website
-```
-
-Package-Name idealerweise `@orga/website`, dann optional:
-
-```json
-"dev:website": "turbo run dev --filter=@orga/website"
-```
-
-im Root-`package.json` ergänzen.
 
 ## Datenbank (Desk)
 
 ```bash
 pnpm db:generate
-pnpm db:migrate
-pnpm user:create <email> <passwort> <name> [admin|employee]
+pnpm db:migrate   # lokal gegen die Live-DB (nicht im Coolify-Container)
+pnpm user:create <email> <passwort> <name> [tenant-slug] [admin|employee]
+```
+
+## Coolify (Desk)
+
+1. Build-Context: **Repository-Root**
+2. Dockerfile: `apps/desk/Dockerfile`
+3. Port: `3000`
+4. Env laut `apps/desk/.env.example` setzen (`DATABASE_URL`, `AUTH_SECRET`, S3, …)
+5. Migrationen **vor** dem Deploy lokal ausführen (`pnpm db:migrate`)
+
+Lokal Image testen:
+
+```bash
+docker build -f apps/desk/Dockerfile -t scrinium-desk .
+docker run --rm -p 3000:3000 --env-file apps/desk/.env.local scrinium-desk
 ```
 
 ## Docs

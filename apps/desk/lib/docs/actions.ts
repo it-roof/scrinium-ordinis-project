@@ -2,8 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 
-import { auth } from "@/lib/auth";
 import { validateUploadFile } from "@/lib/docs/upload-policy";
+import { requireSessionUser } from "@/lib/tenant/session";
 
 import {
   createDocPageRow,
@@ -23,11 +23,6 @@ function validateInput(input: DocPageInput): string | null {
   return null;
 }
 
-async function requireUser() {
-  const session = await auth();
-  return session?.user ?? null;
-}
-
 function revalidateDocs(slug?: string) {
   revalidatePath("/dokumentation");
 
@@ -40,16 +35,19 @@ function revalidateDocs(slug?: string) {
 }
 
 export async function createDocPage(input: DocPageInput) {
-  const user = await requireUser();
+  const user = await requireSessionUser();
   if (!user) return { success: false as const, error: "Nicht angemeldet." };
 
   const error = validateInput(input);
   if (error) return { success: false as const, error };
 
-  const result = await createDocPageRow(input, user.id);
+  const result = await createDocPageRow(user.tenantId, input, user.id);
 
   if (result.error || !result.page) {
-    return { success: false as const, error: result.error ?? "Speichern fehlgeschlagen." };
+    return {
+      success: false as const,
+      error: result.error ?? "Speichern fehlgeschlagen.",
+    };
   }
 
   revalidateDocs(result.page.slug);
@@ -58,16 +56,19 @@ export async function createDocPage(input: DocPageInput) {
 }
 
 export async function updateDocPage(id: string, input: DocPageInput) {
-  const user = await requireUser();
+  const user = await requireSessionUser();
   if (!user) return { success: false as const, error: "Nicht angemeldet." };
 
   const error = validateInput(input);
   if (error) return { success: false as const, error };
 
-  const result = await updateDocPageRow(id, input, user.id);
+  const result = await updateDocPageRow(user.tenantId, id, input, user.id);
 
   if (result.error || !result.page) {
-    return { success: false as const, error: result.error ?? "Speichern fehlgeschlagen." };
+    return {
+      success: false as const,
+      error: result.error ?? "Speichern fehlgeschlagen.",
+    };
   }
 
   revalidateDocs(result.page.slug);
@@ -76,10 +77,10 @@ export async function updateDocPage(id: string, input: DocPageInput) {
 }
 
 export async function deleteDocPage(id: string) {
-  const user = await requireUser();
+  const user = await requireSessionUser();
   if (!user) return { success: false as const, error: "Nicht angemeldet." };
 
-  const deleted = await deleteDocPageRow(id);
+  const deleted = await deleteDocPageRow(user.tenantId, id);
 
   if (!deleted) {
     return { success: false as const, error: "Seite nicht gefunden." };
@@ -91,7 +92,7 @@ export async function deleteDocPage(id: string) {
 }
 
 export async function uploadDocAsset(formData: FormData) {
-  const user = await requireUser();
+  const user = await requireSessionUser();
   if (!user) return { success: false as const, error: "Nicht angemeldet." };
 
   const file = formData.get("file");
@@ -107,7 +108,7 @@ export async function uploadDocAsset(formData: FormData) {
   }
 
   try {
-    const result = await uploadDocAssetRow(file, user.id);
+    const result = await uploadDocAssetRow(user.tenantId, file, user.id);
 
     if (result.error || !result.asset || !result.markdown) {
       return {
@@ -127,19 +128,19 @@ export async function uploadDocAsset(formData: FormData) {
 }
 
 export async function getDocAssets(ids: string[]) {
-  const user = await requireUser();
+  const user = await requireSessionUser();
   if (!user) return { success: false as const, error: "Nicht angemeldet." };
 
-  const assets = await getDocAssetsByIds(ids);
+  const assets = await getDocAssetsByIds(user.tenantId, ids);
 
   return { success: true as const, assets };
 }
 
 export async function deleteDocAsset(assetId: string, pageId?: string) {
-  const user = await requireUser();
+  const user = await requireSessionUser();
   if (!user) return { success: false as const, error: "Nicht angemeldet." };
 
-  const result = await deleteDocAssetRow(assetId, pageId);
+  const result = await deleteDocAssetRow(user.tenantId, assetId, pageId);
 
   if (result.error) {
     return { success: false as const, error: result.error };

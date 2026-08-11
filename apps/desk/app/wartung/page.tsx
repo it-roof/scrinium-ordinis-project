@@ -1,5 +1,5 @@
 import { BrandWordmark } from "@/components/brand/brand-wordmark";
-import { KANZLEI_NAME } from "@/lib/brand";
+import { PRODUCT_NAME } from "@/lib/brand";
 
 export const dynamic = "force-dynamic";
 
@@ -13,10 +13,10 @@ export default function WartungPage() {
 
       <main className="relative z-10 mx-auto flex w-full max-w-3xl flex-1 flex-col items-center justify-center px-6 py-16 text-center">
         <p className="text-[0.68rem] font-medium tracking-[0.18em] text-muted-foreground uppercase">
-          {KANZLEI_NAME}
+          Kanzlei-Werkzeug
         </p>
 
-        <h1 className="mt-6 font-heading text-5xl font-medium tracking-tight sm:text-6xl md:text-7xl">
+        <h1 className="mt-6 font-heading text-4xl font-medium tracking-tight sm:text-5xl md:text-6xl">
           <BrandWordmark className="font-medium" />
         </h1>
 
@@ -26,13 +26,13 @@ export default function WartungPage() {
           Wartungsmodus
         </p>
         <p className="mt-4 max-w-md text-base leading-relaxed text-muted-foreground sm:text-lg">
-          ORGA. ist vorübergehend nicht erreichbar. Wir arbeiten an einer
-          Verbesserung und sind in Kürze wieder für dich da.
+          {PRODUCT_NAME} ist vorübergehend nicht erreichbar. Wir arbeiten an
+          einer Verbesserung und sind in Kürze wieder für dich da.
         </p>
       </main>
 
       <footer className="relative z-10 px-6 pb-8 text-center text-xs text-muted-foreground">
-        Internes Kanzlei-Werkzeug · {KANZLEI_NAME}
+        {PRODUCT_NAME} · Kanzlei-Werkzeug
       </footer>
     </div>
   );

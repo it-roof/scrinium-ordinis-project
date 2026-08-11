@@ -1,7 +1,7 @@
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 
-import { db } from "@/lib/db";
 import { textBlocks } from "@/lib/db/schema";
+import { withTenantDb } from "@/lib/tenant/db";
 
 import type { TextBlock, TextBlockInput } from "./types";
 
@@ -18,53 +18,68 @@ function toTextBlock(row: TextBlockRow): TextBlock {
   };
 }
 
-export async function getTextBlocks(): Promise<TextBlock[]> {
-  const rows = await db
-    .select()
-    .from(textBlocks)
-    .orderBy(desc(textBlocks.updatedAt));
+export async function getTextBlocks(tenantId: string): Promise<TextBlock[]> {
+  return withTenantDb(tenantId, async (tx) => {
+    const rows = await tx
+      .select()
+      .from(textBlocks)
+      .where(eq(textBlocks.tenantId, tenantId))
+      .orderBy(desc(textBlocks.updatedAt));
 
-  return rows.map(toTextBlock);
+    return rows.map(toTextBlock);
+  });
 }
 
 export async function createTextBlockRow(
+  tenantId: string,
   input: TextBlockInput
 ): Promise<TextBlock> {
-  const [row] = await db
-    .insert(textBlocks)
-    .values({
-      title: input.title.trim(),
-      content: input.content.trim(),
-      department: input.department,
-    })
-    .returning();
+  return withTenantDb(tenantId, async (tx) => {
+    const [row] = await tx
+      .insert(textBlocks)
+      .values({
+        tenantId,
+        title: input.title.trim(),
+        content: input.content.trim(),
+        department: input.department,
+      })
+      .returning();
 
-  return toTextBlock(row);
+    return toTextBlock(row);
+  });
 }
 
 export async function updateTextBlockRow(
+  tenantId: string,
   id: string,
   input: TextBlockInput
 ): Promise<TextBlock | null> {
-  const [row] = await db
-    .update(textBlocks)
-    .set({
-      title: input.title.trim(),
-      content: input.content.trim(),
-      department: input.department,
-      updatedAt: new Date().toISOString(),
-    })
-    .where(eq(textBlocks.id, id))
-    .returning();
+  return withTenantDb(tenantId, async (tx) => {
+    const [row] = await tx
+      .update(textBlocks)
+      .set({
+        title: input.title.trim(),
+        content: input.content.trim(),
+        department: input.department,
+        updatedAt: new Date().toISOString(),
+      })
+      .where(and(eq(textBlocks.id, id), eq(textBlocks.tenantId, tenantId)))
+      .returning();
 
-  return row ? toTextBlock(row) : null;
+    return row ? toTextBlock(row) : null;
+  });
 }
 
-export async function deleteTextBlockRow(id: string): Promise<boolean> {
-  const deleted = await db
-    .delete(textBlocks)
-    .where(eq(textBlocks.id, id))
-    .returning({ id: textBlocks.id });
+export async function deleteTextBlockRow(
+  tenantId: string,
+  id: string
+): Promise<boolean> {
+  return withTenantDb(tenantId, async (tx) => {
+    const deleted = await tx
+      .delete(textBlocks)
+      .where(and(eq(textBlocks.id, id), eq(textBlocks.tenantId, tenantId)))
+      .returning({ id: textBlocks.id });
 
-  return deleted.length > 0;
+    return deleted.length > 0;
+  });
 }

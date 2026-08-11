@@ -2,6 +2,7 @@ import {
   BookOpenIcon,
   FileTextIcon,
   HomeIcon,
+  ShieldIcon,
   SparklesIcon,
   type LucideIcon,
 } from "lucide-react";
@@ -54,7 +55,21 @@ export const navigation: NavItem[] = [
   },
 ];
 
+export const platformNavItem: NavItem = {
+  href: "/platform",
+  label: "Plattform",
+  description: "Tenants und Benutzer verwalten",
+  icon: ShieldIcon,
+  accent: "bg-amber-400/25 text-amber-100",
+  activeClass:
+    "data-[active=true]:bg-amber-400/10 data-[active=true]:shadow-[inset_0_0_0_1px_oklch(0.78_0.1_82/0.28)]",
+};
+
 export function getPageMeta(pathname: string): NavItem {
+  if (pathname.startsWith("/platform")) {
+    return platformNavItem;
+  }
+
   const match =
     navigation.find((item) =>
       item.href === "/" ? pathname === "/" : pathname.startsWith(item.href)

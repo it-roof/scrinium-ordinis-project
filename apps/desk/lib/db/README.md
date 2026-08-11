@@ -25,3 +25,10 @@ PostgreSQL wird über **Drizzle ORM** angebunden. Schema-Änderungen laufen **au
 - `.env.local` mit `DATABASE_URL` für lokale Entwicklung
 - Migrations-Tracking: Schema `drizzle`, Tabelle `__drizzle_migrations`
 - App-Code nutzt `lib/db/index.ts`, nicht direkt SQL für Schema-Änderungen
+
+## Multi-Tenant
+
+- Tabelle `tenants`; Fachdaten + `users` tragen `tenant_id`
+- App-Zugriff immer über Session-`tenantId` und `withTenantDb`
+- Postgres RLS auf Fachtabellen (nicht auf `users`, wegen Login per E-Mail)
+- Seed-Tenant in Migration `0008_…`: Slug `schneiderbanger`

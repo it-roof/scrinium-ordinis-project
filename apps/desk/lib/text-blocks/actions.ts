@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { auth } from "@/lib/auth";
+import { requireSessionUser } from "@/lib/tenant/session";
 import {
   createTextBlockRow,
   deleteTextBlockRow,
@@ -27,32 +27,27 @@ function validateInput(input: TextBlockInput): string | null {
   return null;
 }
 
-async function requireUser() {
-  const session = await auth();
-  return session?.user ?? null;
-}
-
 export async function createTextBlock(input: TextBlockInput) {
-  const user = await requireUser();
+  const user = await requireSessionUser();
   if (!user) return { success: false as const, error: "Nicht angemeldet." };
 
   const error = validateInput(input);
   if (error) return { success: false as const, error };
 
-  const item = await createTextBlockRow(input);
+  const item = await createTextBlockRow(user.tenantId, input);
   revalidatePath("/textbausteine");
 
   return { success: true as const, item };
 }
 
 export async function updateTextBlock(id: string, input: TextBlockInput) {
-  const user = await requireUser();
+  const user = await requireSessionUser();
   if (!user) return { success: false as const, error: "Nicht angemeldet." };
 
   const error = validateInput(input);
   if (error) return { success: false as const, error };
 
-  const item = await updateTextBlockRow(id, input);
+  const item = await updateTextBlockRow(user.tenantId, id, input);
 
   if (!item) {
     return { success: false as const, error: "Textbaustein nicht gefunden." };
@@ -64,10 +59,10 @@ export async function updateTextBlock(id: string, input: TextBlockInput) {
 }
 
 export async function deleteTextBlock(id: string) {
-  const user = await requireUser();
+  const user = await requireSessionUser();
   if (!user) return { success: false as const, error: "Nicht angemeldet." };
 
-  const deleted = await deleteTextBlockRow(id);
+  const deleted = await deleteTextBlockRow(user.tenantId, id);
 
   if (!deleted) {
     return { success: false as const, error: "Textbaustein nicht gefunden." };

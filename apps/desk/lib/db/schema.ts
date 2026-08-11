@@ -20,12 +20,29 @@ export const departmentEnum = pgEnum("department", [
 
 export const roleEnum = pgEnum("user_role", ["admin", "employee"]);
 
+/** Plattform-weit (nicht Kanzlei-Admin). Nur Tenant-/User-Verwaltung, keine Fachdaten anderer Tenants. */
+export const platformRoleEnum = pgEnum("platform_role", ["super_admin"]);
+
+/** Eine Kanzlei = ein Tenant auf der Multi-Tenant-Plattform. */
+export const tenants = pgTable("tenants", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull(),
+  slug: text("slug").notNull().unique(),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+    .notNull()
+    .defaultNow(),
+});
+
 export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id")
+    .notNull()
+    .references(() => tenants.id, { onDelete: "restrict" }),
   email: text("email").notNull().unique(),
   name: text("name").notNull(),
   passwordHash: text("password_hash").notNull(),
   role: roleEnum("role").notNull().default("employee"),
+  platformRole: platformRoleEnum("platform_role"),
   department: departmentEnum("department"),
   emailVerified: timestamp("email_verified", { mode: "date" }),
   image: text("image"),
@@ -82,6 +99,9 @@ export const verificationTokens = pgTable(
 
 export const textBlocks = pgTable("text_blocks", {
   id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id")
+    .notNull()
+    .references(() => tenants.id, { onDelete: "cascade" }),
   title: text("title").notNull(),
   content: text("content").notNull(),
   department: departmentEnum("department").notNull().default("general"),
@@ -95,6 +115,9 @@ export const textBlocks = pgTable("text_blocks", {
 
 export const prompts = pgTable("prompts", {
   id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id")
+    .notNull()
+    .references(() => tenants.id, { onDelete: "cascade" }),
   title: text("title").notNull(),
   content: text("content").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
@@ -105,13 +128,25 @@ export const prompts = pgTable("prompts", {
     .defaultNow(),
 });
 
-export const promptTags = pgTable("prompt_tags", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  name: text("name").notNull().unique(),
-  createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
-    .notNull()
-    .defaultNow(),
-});
+export const promptTags = pgTable(
+  "prompt_tags",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    tenantNameUnique: uniqueIndex("prompt_tags_tenant_name_unique").on(
+      table.tenantId,
+      table.name
+    ),
+  })
+);
 
 export const promptTagAssignments = pgTable(
   "prompt_tag_assignments",
@@ -134,6 +169,9 @@ export const docPages = pgTable(
   "doc_pages",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
     title: text("title").notNull(),
     slug: text("slug").notNull(),
     content: text("content").notNull().default(""),
@@ -153,12 +191,18 @@ export const docPages = pgTable(
       .defaultNow(),
   },
   (table) => ({
-    slugUnique: uniqueIndex("doc_pages_slug_unique").on(table.slug),
+    tenantSlugUnique: uniqueIndex("doc_pages_tenant_slug_unique").on(
+      table.tenantId,
+      table.slug
+    ),
   })
 );
 
 export const docAssets = pgTable("doc_assets", {
   id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id")
+    .notNull()
+    .references(() => tenants.id, { onDelete: "cascade" }),
   storageKey: text("storage_key").notNull().unique(),
   filename: text("filename").notNull(),
   mimeType: text("mime_type").notNull(),
@@ -179,6 +223,8 @@ export const authLoginAttempts = pgTable("auth_login_attempts", {
     .defaultNow(),
 });
 
+export type Tenant = typeof tenants.$inferSelect;
 export type User = typeof users.$inferSelect;
 export type UserRole = (typeof roleEnum.enumValues)[number];
+export type PlatformRole = (typeof platformRoleEnum.enumValues)[number];
 export type Department = (typeof departmentEnum.enumValues)[number];

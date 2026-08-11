@@ -49,5 +49,7 @@ export async function authorizeCredentials(credentials: Record<string, unknown>)
     email: user.email,
     name: user.name,
     role: user.role,
+    tenantId: user.tenantId,
+    platformRole: user.platformRole ?? null,
   };
 }

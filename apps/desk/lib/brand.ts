@@ -3,4 +3,4 @@ export {
   PRODUCT_NAME,
   PRODUCT_TAGLINE,
   PRODUCT_WORDMARK,
-} from "@orga/brand";
+} from "@scrinium/brand";

@@ -1,5 +1,5 @@
 {
-  "name": "@orga/brand",
+  "name": "@scrinium/brand",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -7,6 +7,6 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "lint": "echo \"@orga/brand: no lint\""
+    "lint": "echo \"@scrinium/brand: no lint\""
   }
 }

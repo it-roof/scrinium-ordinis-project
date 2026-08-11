@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 
 import { PromptForm } from "@/components/prompts/prompt-form";
 import { getAllPromptTagNames, getPromptById } from "@/lib/prompts/storage";
+import { requireTenantUser } from "@/lib/tenant/session";
 
 export const dynamic = "force-dynamic";
 
@@ -10,10 +11,11 @@ type EditPromptPageProps = {
 };
 
 export default async function EditPromptPage({ params }: EditPromptPageProps) {
+  const user = await requireTenantUser();
   const { id } = await params;
   const [prompt, availableTags] = await Promise.all([
-    getPromptById(id),
-    getAllPromptTagNames(),
+    getPromptById(user.tenantId, id),
+    getAllPromptTagNames(user.tenantId),
   ]);
 
   if (!prompt) {

@@ -1,4 +1,4 @@
-import { KANZLEI_NAME } from "@/lib/brand";
+import { PRODUCT_NAME, PRODUCT_TAGLINE } from "@/lib/brand";
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import { Toaster } from "sonner";
@@ -39,8 +39,8 @@ const rgo = localFont({
 });
 
 export const metadata: Metadata = {
-  title: `ORGA. – ${KANZLEI_NAME}`,
-  description: "Internes Kanzlei-Werkzeug für Dokumentation und Arbeitsfunktionen",
+  title: PRODUCT_NAME,
+  description: PRODUCT_TAGLINE,
 };
 
 export default function RootLayout({

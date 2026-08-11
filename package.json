@@ -4,13 +4,16 @@
   "packageManager": "pnpm@10.29.1",
   "scripts": {
     "dev": "turbo run dev",
-    "dev:desk": "turbo run dev --filter=@orga/desk",
+    "dev:desk": "turbo run dev --filter=@scrinium/desk",
+    "dev:website": "turbo run dev --filter=@scrinium/website",
     "build": "turbo run build",
     "lint": "turbo run lint",
-    "db:generate": "pnpm --filter @orga/desk db:generate",
-    "db:migrate": "pnpm --filter @orga/desk db:migrate",
-    "db:check": "pnpm --filter @orga/desk db:check",
-    "user:create": "pnpm --filter @orga/desk user:create"
+    "db:generate": "pnpm --filter @scrinium/desk db:generate",
+    "db:migrate": "pnpm --filter @scrinium/desk db:migrate",
+    "db:check": "pnpm --filter @scrinium/desk db:check",
+    "user:create": "pnpm --filter @scrinium/desk user:create",
+    "tenant:create": "pnpm --filter @scrinium/desk tenant:create",
+    "platform:grant": "pnpm --filter @scrinium/desk platform:grant"
   },
   "devDependencies": {
     "turbo": "^2.5.4",

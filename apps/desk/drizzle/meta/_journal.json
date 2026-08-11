@@ -57,6 +57,20 @@
       "when": 1783678065294,
       "tag": "0007_nappy_the_renegades",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1786458235531,
+      "tag": "0008_violet_sheva_callister",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1786458902350,
+      "tag": "0009_fluffy_sinister_six",
+      "breakpoints": true
     }
   ]
 }

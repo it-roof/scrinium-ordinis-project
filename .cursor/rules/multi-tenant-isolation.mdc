@@ -1,0 +1,52 @@
+---
+description: Multi-Tenant-Plattform — strikte Kanzlei-/Mandantentrennung (DSGVO)
+alwaysApply: true
+---
+
+# Multi-Tenant & Datentrennung
+
+Scrinium Ordinis / Desk ist eine **Multi-Tenant-Plattform** für mehrere Kanzleien.
+**Eine App, getrennte Daten.** Keine separaten Installationen pro Kanzlei (außer ein Mandant verlangt später explizit eine dedizierte DB).
+
+## Pflicht (DSGVO / TOMs)
+
+Kanzleidaten sind **strikt getrennt**. Mandant A darf nie Daten von Mandant B sehen oder beeinflussen — auch nicht durch App-Bugs.
+
+## Architektur (fest)
+
+| Schicht | Regel |
+|---------|--------|
+| Datenmodell | Jede Fach-Tabelle hat `tenant_id` (NOT NULL, Index, FK auf `tenants`) |
+| Session | Enthält `tenantId`; nach Login für normale User unveränderbar |
+| App | Jede Query / Server Action **immer** auf Session-`tenantId` scopen |
+| DB | **Postgres RLS** auf Fachtabellen als zweite Linie — vergessener App-Filter darf keine Fremddaten liefern |
+| Auth | Invite-only **innerhalb** einer Kanzlei; kein Cross-Tenant-Zugriff im Alltag |
+
+Hinweis: Tabelle `users` hat bewusst **kein** RLS (Login per E-Mail). Fachdaten (`text_blocks`, `prompts`, …) schon. Zugriff immer über `withTenantDb`.
+
+## Immer
+
+- Neues persistentes Feature → gehört der Tenant dazu? Wenn ja: `tenant_id` + Scope + RLS-Policy mitdenken
+- Auth-Checks in Middleware **und** Server Actions — plus Tenant-Scope
+- Keine „optionalen“ Tenant-Filter, keine Queries ohne Tenant-Bedingung auf Fachdaten
+- Keine Shared-Listen / Admin-Views über alle Kanzleien ohne explizites Super-Admin-Konzept + Audit
+- Schema-Änderungen nur via Drizzle-Migrationen (inkl. RLS-Policies)
+
+## Nie
+
+- Hardcodierte einzelne Kanzlei als Plattform-Identität (z. B. nur „Dr. Schneiderbanger“) in Produktlogik
+- Separates Deployment pro Kanzlei als Standardweg
+- Trust nur auf App-Code ohne DB-Absicherung (RLS)
+
+## Neue Features prüfen
+
+1. Braucht es Persistenz? → `tenant_id` Pflicht
+2. Welcher Tenant? → nur aus der Session, nie aus unsicheren Client-Inputs allein
+3. Ist RLS für die Tabelle bedacht?
+4. Kann ein User einer anderen Kanzlei diese Daten erreichen? → wenn ja: Blocker
+
+## Marken
+
+- **Produkt (Desk + Website):** Scrinium Ordinis
+- Einzelne Kanzleien = Tenants / Kunden, nicht die Produktmarke
+- Plattform-Super-Admin ≠ Tenant (fachlich; technisch ggf. noch nachziehen)
