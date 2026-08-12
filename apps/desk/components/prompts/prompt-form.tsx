@@ -105,6 +105,7 @@ export function PromptForm({
               onChange={setTags}
               suggestions={availableTags}
               disabled={isPending}
+              badgeClassName="bg-violet-100/90 text-violet-900"
             />
           </div>
 

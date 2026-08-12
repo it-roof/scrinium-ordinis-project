@@ -1,4 +1,4 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 
 import { textBlocks } from "@/lib/db/schema";
 import { withTenantDb } from "@/lib/tenant/db";
@@ -18,15 +18,40 @@ function toTextBlock(row: TextBlockRow): TextBlock {
   };
 }
 
-export async function getTextBlocks(tenantId: string): Promise<TextBlock[]> {
+export async function getTextBlocks(
+  tenantId: string,
+  modules?: readonly TextBlock["module"][]
+): Promise<TextBlock[]> {
   return withTenantDb(tenantId, async (tx) => {
     const rows = await tx
       .select()
       .from(textBlocks)
-      .where(eq(textBlocks.tenantId, tenantId))
+      .where(
+        modules && modules.length > 0
+          ? and(
+              eq(textBlocks.tenantId, tenantId),
+              inArray(textBlocks.module, [...modules])
+            )
+          : eq(textBlocks.tenantId, tenantId)
+      )
       .orderBy(desc(textBlocks.updatedAt));
 
     return rows.map(toTextBlock);
+  });
+}
+
+export async function getTextBlockById(
+  tenantId: string,
+  id: string
+): Promise<TextBlock | null> {
+  return withTenantDb(tenantId, async (tx) => {
+    const [row] = await tx
+      .select()
+      .from(textBlocks)
+      .where(and(eq(textBlocks.id, id), eq(textBlocks.tenantId, tenantId)))
+      .limit(1);
+
+    return row ? toTextBlock(row) : null;
   });
 }
 

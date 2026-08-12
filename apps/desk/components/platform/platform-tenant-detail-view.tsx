@@ -5,6 +5,7 @@ import { EditTenantForm } from "@/components/platform/edit-tenant-form";
 import { TenantUsersTable } from "@/components/platform/tenant-users-table";
 import { PageHeader } from "@/components/layout/page-header";
 import type { Tenant } from "@/lib/db/schema";
+import { normalizeEnabledModules } from "@/lib/modules";
 import type { TenantUserItem } from "@/lib/platform/storage";
 
 export function PlatformTenantDetailView({
@@ -14,6 +15,8 @@ export function PlatformTenantDetailView({
   tenant: Tenant;
   users: TenantUserItem[];
 }) {
+  const tenantModules = normalizeEnabledModules(tenant.enabledModules);
+
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-10">
       <PageHeader
@@ -34,7 +37,7 @@ export function PlatformTenantDetailView({
       </PageHeader>
 
       <EditTenantForm
-        key={`${tenant.id}-${tenant.name}-${tenant.slug}-${tenant.brandName ?? ""}-${tenant.customDomain ?? ""}-${(tenant.enabledModules ?? []).join(",")}`}
+        key={`${tenant.id}-${tenant.name}-${tenant.slug}-${tenant.brandName ?? ""}-${tenant.customDomain ?? ""}-${tenantModules.join(",")}`}
         tenant={{
           id: tenant.id,
           name: tenant.name,
@@ -45,9 +48,16 @@ export function PlatformTenantDetailView({
         }}
       />
 
-      <CreateTenantUserForm tenantId={tenant.id} />
+      <CreateTenantUserForm
+        tenantId={tenant.id}
+        tenantModules={tenantModules}
+      />
 
-      <TenantUsersTable tenantId={tenant.id} users={users} />
+      <TenantUsersTable
+        tenantId={tenant.id}
+        tenantModules={tenantModules}
+        users={users}
+      />
     </div>
   );
 }

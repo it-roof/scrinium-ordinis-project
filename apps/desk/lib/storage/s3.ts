@@ -45,7 +45,11 @@ export async function uploadObject(
   );
 }
 
-export async function getObjectSignedUrl(key: string, expiresIn = 300) {
+export async function getObjectSignedUrl(
+  key: string,
+  expiresIn = 300,
+  options?: { downloadFilename?: string }
+) {
   const config = getS3Config();
 
   return getSignedUrl(
@@ -53,9 +57,28 @@ export async function getObjectSignedUrl(key: string, expiresIn = 300) {
     new GetObjectCommand({
       Bucket: config.bucket,
       Key: key,
+      ...(options?.downloadFilename
+        ? {
+            ResponseContentDisposition: contentDispositionAttachment(
+              options.downloadFilename
+            ),
+          }
+        : {}),
     }),
     { expiresIn }
   );
+}
+
+function contentDispositionAttachment(filename: string) {
+  const asciiName = filename
+    .replace(/[^\x20-\x7E]/g, "_")
+    .replace(/["\\]/g, "_");
+  const utf8Name = encodeURIComponent(filename).replace(
+    /['()*]/g,
+    (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`
+  );
+
+  return `attachment; filename="${asciiName || "download"}"; filename*=UTF-8''${utf8Name}`;
 }
 
 export async function deleteObject(key: string) {

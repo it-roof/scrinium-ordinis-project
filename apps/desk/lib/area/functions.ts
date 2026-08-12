@@ -13,6 +13,7 @@ export const AREA_FUNCTION_IDS = [
   "text-blocks",
   "prompts",
   "docs",
+  "templates",
 ] as const;
 
 export type AreaFunctionId = (typeof AREA_FUNCTION_IDS)[number];
@@ -20,7 +21,7 @@ export type AreaFunctionId = (typeof AREA_FUNCTION_IDS)[number];
 /** Welche Funktionen zu welchem Bereich gehören. */
 export const FUNCTIONS_BY_AREA: Record<AppModuleId, AreaFunctionId[]> = {
   legal: ["text-blocks", "prompts"],
-  tax: ["docs"],
+  tax: ["docs", "templates"],
   "restructuring-insolvency": [],
   consulting: [],
 };
@@ -29,6 +30,7 @@ export const FUNCTION_LABELS: Record<AreaFunctionId, string> = {
   "text-blocks": "Textbausteine",
   prompts: "Prompt",
   docs: "Dokumentation",
+  templates: "Vorlagen",
 };
 
 /** @deprecated relative Legacy-Pfade — nutze functionHref(area, id) */
@@ -39,6 +41,7 @@ export const FUNCTION_ROUTES: Record<
   "text-blocks": { href: "/textbausteine", label: "Textbausteine" },
   prompts: { href: "/prompt", label: "Prompt" },
   docs: { href: "/dokumentation", label: "Dokumentation" },
+  templates: { href: "/vorlagen", label: "Vorlagen" },
 };
 
 const SEGMENT_TO_FUNCTION = Object.fromEntries(
@@ -62,6 +65,9 @@ export function functionIdFromPathname(
   }
   if (pathname === "/dokumentation" || pathname.startsWith("/dokumentation/")) {
     return "docs";
+  }
+  if (pathname === "/vorlagen" || pathname.startsWith("/vorlagen/")) {
+    return "templates";
   }
 
   return null;

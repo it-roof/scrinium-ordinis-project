@@ -11,7 +11,7 @@ import { PRODUCT_WORDMARK } from "@/lib/brand";
 import { AppShell } from "@/components/layout/app-shell";
 import { checkDatabaseConnection } from "@/lib/db/health";
 import { getTenantDisplayBrand } from "@/lib/tenant/brand";
-import { getTenantEnabledModules } from "@/lib/tenant/modules";
+import { getUserEffectiveModules } from "@/lib/tenant/modules";
 import { isPlatformSuperAdmin } from "@/lib/tenant/session";
 
 export default async function MainLayout({
@@ -43,7 +43,7 @@ export default async function MainLayout({
         : getTenantDisplayBrand(session.user.tenantId),
       isSuperAdmin
         ? Promise.resolve([])
-        : getTenantEnabledModules(session.user.tenantId),
+        : getUserEffectiveModules(session.user.id, session.user.tenantId),
       checkDatabaseConnection(),
       cookies(),
     ]);

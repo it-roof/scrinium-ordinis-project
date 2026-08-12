@@ -11,11 +11,14 @@ type PageProps = {
 
 export default async function AreaTextBlocksPage({ params }: PageProps) {
   const { area: areaSlug } = await params;
-  const { user, enabledModules } = await requireAreaFunction(
+  const { user, enabledModules, area } = await requireAreaFunction(
     areaSlug,
     "text-blocks"
   );
-  const items = await getTextBlocks(user.tenantId);
+  const items = await getTextBlocks(user.tenantId, [
+    "general",
+    area,
+  ]);
 
   return (
     <TextBlocksView

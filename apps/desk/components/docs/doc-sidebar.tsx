@@ -1,118 +1,116 @@
 "use client";
 
-import Link from "next/link";
 import { useMemo } from "react";
-import { ChevronRightIcon, FileTextIcon, FolderIcon } from "lucide-react";
+import { FileTextIcon } from "lucide-react";
 
-import { ModuleBadge } from "@/components/text-blocks/module-badge";
 import {
-  itemMatchesActiveArea,
+  itemMatchesAreaStrict,
   type ActiveArea,
 } from "@/lib/area/active-area";
-import type { DocPageTreeNode } from "@/lib/docs/types";
-import type { ContentModule } from "@/lib/db/schema";
+import type { DocPage, DocPageTreeNode } from "@/lib/docs/types";
 import { cn } from "@/lib/utils";
 
 type DocSidebarProps = {
   tree: DocPageTreeNode[];
-  activeSlug?: string;
+  activePageId?: string | null;
   activeArea: ActiveArea;
-  basePath: string;
+  onSelect: (page: DocPage) => void;
+  /** Engere Padding für die Master-Detail-Sidebar. */
+  compact?: boolean;
 };
 
+/** Flache Liste — Struktur läuft über Kategorien, nicht über Ordner. */
 export function DocSidebar({
   tree,
-  activeSlug,
+  activePageId,
   activeArea,
-  basePath,
+  onSelect,
+  compact = false,
 }: DocSidebarProps) {
-  const filteredTree = useMemo(() => {
-    if (activeArea === "all") return tree;
+  const pages = useMemo(() => {
+    const flat: DocPage[] = tree.flatMap((node) => [node, ...node.children]);
+    return flat
+      .filter((page) => itemMatchesAreaStrict(page.module, activeArea))
+      .sort((a, b) => a.title.localeCompare(b.title, "de"));
+  }, [tree, activeArea]);
 
-    return tree
-      .map((node) => ({
-        ...node,
-        children: node.children.filter((child) =>
-          itemMatchesActiveArea(child.module, activeArea)
-        ),
-      }))
-      .filter(
-        (node) =>
-          itemMatchesActiveArea(node.module, activeArea) ||
-          node.children.length > 0
-      );
-  }, [activeArea, tree]);
+  if (pages.length === 0) {
+    return (
+      <p
+        className={cn(
+          "py-6 text-sm text-muted-foreground",
+          compact ? "px-3" : "px-0"
+        )}
+      >
+        Noch keine Einträge in diesem Bereich.
+      </p>
+    );
+  }
 
   return (
-    <nav className="space-y-1">
-      {filteredTree.length === 0 ? (
-        <p className="px-2 py-3 text-sm text-muted-foreground">
-          Noch keine Seiten in diesem Bereich.
-        </p>
-      ) : (
-        filteredTree.map((node) => (
-          <div key={node.id} className="space-y-1">
-            <SidebarLink
-              href={`${basePath}/${node.slug}`}
-              active={activeSlug === node.slug}
-              icon={node.children.length > 0 ? FolderIcon : FileTextIcon}
-              label={node.title}
-              module={node.module}
-            />
-            {node.children.length > 0 && (
-              <div className="ml-3 space-y-1 border-l border-border/70 pl-2">
-                {node.children.map((child) => (
-                  <SidebarLink
-                    key={child.id}
-                    href={`${basePath}/${child.slug}`}
-                    active={activeSlug === child.slug}
-                    icon={FileTextIcon}
-                    label={child.title}
-                    module={child.module}
-                    nested
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        ))
-      )}
+    <nav className="flex flex-col" aria-label="Dokumentation">
+      {pages.map((page) => (
+        <div
+          key={page.id}
+          className="border-b border-border/50 last:border-b-0"
+        >
+          <ListItem
+            active={activePageId === page.id}
+            title={page.title}
+            updatedAt={page.updatedAt}
+            compact={compact}
+            onClick={() => onSelect(page)}
+          />
+        </div>
+      ))}
     </nav>
   );
 }
 
-function SidebarLink({
-  href,
+function ListItem({
   active,
-  icon: Icon,
-  label,
-  module,
-  nested = false,
+  title,
+  updatedAt,
+  compact,
+  onClick,
 }: {
-  href: string;
   active: boolean;
-  icon: typeof FileTextIcon;
-  label: string;
-  module: ContentModule;
-  nested?: boolean;
+  title: string;
+  updatedAt: string;
+  compact: boolean;
+  onClick: () => void;
 }) {
   return (
-    <Link
-      href={href}
+    <button
+      type="button"
+      onClick={onClick}
       className={cn(
-        "flex items-center gap-2 rounded-xl px-2.5 py-2 text-sm transition-colors",
+        "flex w-full items-center gap-3 py-3.5 text-left transition-colors",
+        compact ? "px-4 md:px-6" : "px-0 sm:px-1",
         active
-          ? "bg-primary/10 text-foreground shadow-[inset_0_0_0_1px_oklch(0.55_0.15_290/0.18)]"
-          : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
-        nested && "text-[0.92rem]"
+          ? "bg-primary/10 text-foreground"
+          : "text-foreground/90 hover:bg-muted/60"
       )}
     >
-      <Icon className="size-4 shrink-0 opacity-70" />
-      <span className="min-w-0 flex-1 truncate">{label}</span>
-      {!nested && (
-        <ModuleBadge module={module} className="hidden xl:inline-flex" />
-      )}
-      <ChevronRightIcon className="size-3.5 shrink-0 opacity-40" />
-    </Link>
+      <FileTextIcon
+        className={cn(
+          "size-4 shrink-0",
+          active ? "text-primary" : "text-muted-foreground"
+        )}
+      />
+      <span
+        className={cn(
+          "min-w-0 flex-1 truncate text-sm",
+          active ? "font-medium" : "font-normal"
+        )}
+      >
+        {title}
+      </span>
+      <span className="shrink-0 text-[0.7rem] text-muted-foreground">
+        {new Date(updatedAt).toLocaleDateString("de-DE", {
+          dateStyle: "medium",
+        })}
+      </span>
+    </button>
   );
 }

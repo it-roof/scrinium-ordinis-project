@@ -57,6 +57,11 @@ export const users = pgTable("users", {
   role: roleEnum("role").notNull().default("employee"),
   platformRole: platformRoleEnum("platform_role"),
   module: moduleEnum("module"),
+  /**
+   * Optional: erlaubte Fachmodule für diesen User.
+   * null = alle Module der Kanzlei; sonst Schnittmenge mit tenants.enabled_modules.
+   */
+  allowedModules: jsonb("allowed_modules").$type<AppModuleId[] | null>(),
   emailVerified: timestamp("email_verified", { mode: "date" }),
   image: text("image"),
   createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
@@ -211,6 +216,45 @@ export const docPages = pgTable(
   })
 );
 
+export const docTags = pgTable(
+  "doc_tags",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    /** Farbton-Key, z. B. sky / violet — siehe lib/docs/tag-colors.ts */
+    color: text("color").notNull().default("sky"),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    tenantNameUnique: uniqueIndex("doc_tags_tenant_name_unique").on(
+      table.tenantId,
+      table.name
+    ),
+  })
+);
+
+export const docTagAssignments = pgTable(
+  "doc_tag_assignments",
+  {
+    pageId: uuid("page_id")
+      .notNull()
+      .references(() => docPages.id, { onDelete: "cascade" }),
+    tagId: uuid("tag_id")
+      .notNull()
+      .references(() => docTags.id, { onDelete: "cascade" }),
+  },
+  (assignment) => ({
+    compositePk: primaryKey({
+      columns: [assignment.pageId, assignment.tagId],
+    }),
+  })
+);
+
 export const docAssets = pgTable("doc_assets", {
   id: uuid("id").primaryKey().defaultRandom(),
   tenantId: uuid("tenant_id")
@@ -220,6 +264,47 @@ export const docAssets = pgTable("doc_assets", {
   filename: text("filename").notNull(),
   mimeType: text("mime_type").notNull(),
   sizeBytes: integer("size_bytes").notNull(),
+  uploadedBy: uuid("uploaded_by")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+    .notNull()
+    .defaultNow(),
+});
+
+/** Vorlagen (z. B. Vollmacht, Fragebogen) — Katalogeintrag mit einer oder mehreren Dateien. */
+export const templates = pgTable("templates", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id")
+    .notNull()
+    .references(() => tenants.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  description: text("description").notNull().default(""),
+  module: moduleEnum("module").notNull().default("tax"),
+  createdBy: uuid("created_by").references(() => users.id, {
+    onDelete: "set null",
+  }),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
+    .notNull()
+    .defaultNow(),
+});
+
+export const templateFiles = pgTable("template_files", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id")
+    .notNull()
+    .references(() => tenants.id, { onDelete: "cascade" }),
+  templateId: uuid("template_id")
+    .notNull()
+    .references(() => templates.id, { onDelete: "cascade" }),
+  storageKey: text("storage_key").notNull().unique(),
+  filename: text("filename").notNull(),
+  mimeType: text("mime_type").notNull(),
+  sizeBytes: integer("size_bytes").notNull(),
+  sortOrder: integer("sort_order").notNull().default(0),
   uploadedBy: uuid("uploaded_by")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),

@@ -1,7 +1,14 @@
 import { NextResponse } from "next/server";
 
-import { getDocAssetById } from "@/lib/docs/storage";
+import {
+  getDocAssetById,
+  getDocModulesReferencingAsset,
+} from "@/lib/docs/storage";
 import { getObjectSignedUrl } from "@/lib/storage/s3";
+import {
+  assertUserCanAccessAnyContentModule,
+  assertUserCanAccessAreaFunction,
+} from "@/lib/tenant/access";
 import { getSessionUser } from "@/lib/tenant/session";
 
 type RouteContext = {
@@ -20,6 +27,32 @@ export async function GET(_request: Request, context: RouteContext) {
 
   if (!asset) {
     return NextResponse.json({ error: "Datei nicht gefunden." }, { status: 404 });
+  }
+
+  const referencingModules = await getDocModulesReferencingAsset(
+    user.tenantId,
+    id
+  );
+
+  if (referencingModules.length > 0) {
+    const denied = await assertUserCanAccessAnyContentModule(
+      user.id,
+      user.tenantId,
+      referencingModules
+    );
+    if (denied) {
+      return NextResponse.json({ error: denied }, { status: 403 });
+    }
+  } else {
+    // Orphan / Draft-Upload: nur mit Docs-Funktion
+    const denied = await assertUserCanAccessAreaFunction(
+      user.id,
+      user.tenantId,
+      "docs"
+    );
+    if (denied) {
+      return NextResponse.json({ error: denied }, { status: 403 });
+    }
   }
 
   try {

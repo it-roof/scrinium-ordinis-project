@@ -7,6 +7,12 @@ import {
 export type { ContentModule };
 export { CONTENT_MODULES, getModuleLabel };
 
+export type DocTag = {
+  id: string;
+  name: string;
+  color: string;
+};
+
 export type DocPage = {
   id: string;
   title: string;
@@ -15,6 +21,7 @@ export type DocPage = {
   parentId: string | null;
   sortOrder: number;
   module: ContentModule;
+  tags: DocTag[];
   updatedBy: string | null;
   createdAt: string;
   updatedAt: string;
@@ -31,6 +38,7 @@ export type DocPageInput = {
   parentId: string | null;
   sortOrder?: number;
   module: ContentModule;
+  tags: string[];
 };
 
 export type DocAsset = {

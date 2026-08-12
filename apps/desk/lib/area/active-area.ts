@@ -71,6 +71,18 @@ export function itemMatchesActiveArea(
   return module === area || module === "general";
 }
 
+/** Wie itemMatchesActiveArea, aber ohne „Allgemein“ (Bereichs-Inhalte strikt getrennt). */
+export function itemMatchesAreaStrict(
+  module: ContentModule,
+  area: ActiveArea
+): boolean {
+  if (area === "all") {
+    return true;
+  }
+
+  return module === area;
+}
+
 /** Formular-Optionen: im Fach-Bereich nur dieser + Allgemein. */
 export function modulesForActiveArea<T extends { value: ContentModule }>(
   modules: readonly T[],
@@ -83,6 +95,18 @@ export function modulesForActiveArea<T extends { value: ContentModule }>(
   return modules.filter(
     (entry) => entry.value === area || entry.value === "general"
   );
+}
+
+/** Formular-Optionen ohne Allgemein — nur der aktive Fach-Bereich. */
+export function modulesForAreaStrict<T extends { value: ContentModule }>(
+  modules: readonly T[],
+  area: ActiveArea
+): T[] {
+  if (area === "all") {
+    return modules.filter((entry) => entry.value !== "general");
+  }
+
+  return modules.filter((entry) => entry.value === area);
 }
 
 /** Client-seitig Cookie setzen (nicht httpOnly — bewusst lesbar für UI). */

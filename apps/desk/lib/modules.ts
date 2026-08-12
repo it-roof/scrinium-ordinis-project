@@ -12,7 +12,7 @@ export const APP_MODULES = [
     label: "Steuer",
     chipColor: "bg-lime-400",
     startDescription:
-      "Dokumentation und Prozesse für die Steuerberatung.",
+      "Dokumentation und Vorlagen für die Steuerberatung.",
   },
   {
     id: "restructuring-insolvency",
@@ -51,6 +51,34 @@ export function normalizeEnabledModules(input: unknown): AppModuleId[] {
   }
 
   return [...unique];
+}
+
+/**
+ * User-Modul-Allowlist: null = alle Tenant-Module erben.
+ * Leeres Array = kein Fachbereich.
+ */
+export function normalizeOptionalAllowedModules(
+  input: unknown
+): AppModuleId[] | null {
+  if (input === null || input === undefined) {
+    return null;
+  }
+  if (!Array.isArray(input)) {
+    return null;
+  }
+  return normalizeEnabledModules(input);
+}
+
+/** Schnittmenge Tenant-Freigabe ∩ optionaler User-Allowlist. */
+export function intersectModules(
+  tenantModules: readonly AppModuleId[],
+  userAllowed: AppModuleId[] | null
+): AppModuleId[] {
+  if (userAllowed === null) {
+    return [...tenantModules];
+  }
+  const allowed = new Set(userAllowed);
+  return tenantModules.filter((id) => allowed.has(id));
 }
 
 export function isModuleEnabled(

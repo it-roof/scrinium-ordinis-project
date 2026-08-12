@@ -6,6 +6,7 @@ import { tenants, users, type UserRole } from "@/lib/db/schema";
 import {
   ALL_APP_MODULE_IDS,
   normalizeEnabledModules,
+  normalizeOptionalAllowedModules,
   type AppModuleId,
 } from "@/lib/modules";
 
@@ -24,6 +25,8 @@ export type TenantUserItem = {
   name: string;
   role: UserRole;
   platformRole: string | null;
+  /** null = alle Tenant-Module. */
+  allowedModules: AppModuleId[] | null;
   createdAt: string;
 };
 
@@ -143,6 +146,7 @@ export async function listUsersForTenant(
       name: users.name,
       role: users.role,
       platformRole: users.platformRole,
+      allowedModules: users.allowedModules,
       createdAt: users.createdAt,
     })
     .from(users)
@@ -155,6 +159,7 @@ export async function listUsersForTenant(
     name: row.name,
     role: row.role,
     platformRole: row.platformRole,
+    allowedModules: normalizeOptionalAllowedModules(row.allowedModules),
     createdAt: row.createdAt,
   }));
 }
@@ -165,6 +170,7 @@ export async function createTenantUserRow(input: {
   name: string;
   password: string;
   role: UserRole;
+  allowedModules?: AppModuleId[] | null;
 }) {
   const passwordHash = await hashPassword(input.password);
 
@@ -176,12 +182,15 @@ export async function createTenantUserRow(input: {
       name: input.name.trim(),
       passwordHash,
       role: input.role,
+      allowedModules:
+        input.allowedModules === undefined ? null : input.allowedModules,
     })
     .returning({
       id: users.id,
       email: users.email,
       name: users.name,
       role: users.role,
+      allowedModules: users.allowedModules,
     });
 
   return user;
@@ -193,18 +202,24 @@ export async function updateTenantUserRow(input: {
   email: string;
   name: string;
   role: UserRole;
+  allowedModules?: AppModuleId[] | null;
   password?: string;
 }) {
   const values: {
     email: string;
     name: string;
     role: UserRole;
+    allowedModules?: AppModuleId[] | null;
     passwordHash?: string;
   } = {
     email: input.email.trim().toLowerCase(),
     name: input.name.trim(),
     role: input.role,
   };
+
+  if (input.allowedModules !== undefined) {
+    values.allowedModules = input.allowedModules;
+  }
 
   if (input.password) {
     values.passwordHash = await hashPassword(input.password);
@@ -220,6 +235,7 @@ export async function updateTenantUserRow(input: {
       name: users.name,
       role: users.role,
       tenantId: users.tenantId,
+      allowedModules: users.allowedModules,
     });
 
   return user ?? null;

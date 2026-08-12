@@ -1,40 +1,23 @@
 "use client";
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useMemo, useRef, useState, useTransition } from "react";
-import {
-  ArrowLeftIcon,
-  FileUpIcon,
-  ImageIcon,
-  Loader2Icon,
-} from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { useMemo, useState, useTransition } from "react";
+import { ArrowLeftIcon, XIcon } from "lucide-react";
 import { toast } from "sonner";
 
-import { DocEmbeddedAssets } from "@/components/docs/doc-embedded-assets";
 import { DocMarkdown } from "@/components/docs/doc-markdown";
-import {
-  createDocPage,
-  updateDocPage,
-  uploadDocAsset,
-} from "@/lib/docs/actions";
-import type { DocPage, DocPageInput } from "@/lib/docs/types";
-import { CONTENT_MODULES, type ContentModuleOption } from "@/lib/text-blocks/types";
+import { PromptTagsInput } from "@/components/prompts/prompt-tags-input";
+import { createDocPage, updateDocPage } from "@/lib/docs/actions";
+import { createDocTagToneResolver } from "@/lib/docs/tag-colors";
+import type { DocPage, DocPageInput, DocTag } from "@/lib/docs/types";
 import type { ContentModule } from "@/lib/db/schema";
-import { modulesForActiveArea } from "@/lib/area/active-area";
+import { isAppModuleId } from "@/lib/modules";
 import { useAreaBasePath } from "@/lib/area/use-area-path";
 import { useOptionalActiveArea } from "@/components/layout/active-area-provider";
-import { PageHeader } from "@/components/layout/page-header";
+import { parseAreaFromPathname } from "@/lib/area/paths";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 
@@ -42,50 +25,49 @@ type DocFormProps = {
   mode: "create" | "edit";
   pageId?: string;
   initialValues?: DocPageInput;
-  rootPages: DocPage[];
-  currentSlug?: string;
-  modules?: readonly ContentModuleOption[];
+  knownTags?: DocTag[];
+  /** Im dritten Doku-Bereich eingebettet (ohne eigene Vollseiten-Header). */
+  embedded?: boolean;
+  onClose?: () => void;
+  onSuccess?: (page: DocPage) => void;
 };
 
 export function DocForm({
   mode,
   pageId,
   initialValues,
-  rootPages,
-  currentSlug,
-  modules = CONTENT_MODULES,
+  knownTags = [],
+  embedded = false,
+  onClose,
+  onSuccess,
 }: DocFormProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const activeAreaCtx = useOptionalActiveArea();
   const basePath = useAreaBasePath() ?? "";
   const docsBase = `${basePath}/dokumentation`;
-  const imageInputRef = useRef<HTMLInputElement>(null);
-  const pdfInputRef = useRef<HTMLInputElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const areaFromPath = parseAreaFromPathname(pathname);
+  const lockedModule: ContentModule =
+    areaFromPath && isAppModuleId(areaFromPath)
+      ? areaFromPath
+      : activeAreaCtx?.activeArea && activeAreaCtx.activeArea !== "all"
+        ? activeAreaCtx.activeArea
+        : (initialValues?.module ?? "tax");
 
   const [title, setTitle] = useState(initialValues?.title ?? "");
   const [content, setContent] = useState(initialValues?.content ?? "");
-  const [module, setModule] = useState<ContentModule>(() => {
-    if (initialValues?.module) return initialValues.module;
-    const area = activeAreaCtx?.activeArea;
-    if (area && area !== "all") return area;
-    return "general";
-  });
-  const [parentId, setParentId] = useState<string>(
-    initialValues?.parentId ?? "none"
-  );
+  const [tags, setTags] = useState<string[]>(initialValues?.tags ?? []);
   const [preview, setPreview] = useState(false);
   const [isPending, startTransition] = useTransition();
-  const [isUploading, startUpload] = useTransition();
 
-  const formModules = modulesForActiveArea(
-    modules,
-    activeAreaCtx?.activeArea ?? "all"
+  const tagSuggestions = useMemo(
+    () => knownTags.map((tag) => tag.name),
+    [knownTags]
   );
-
-  const parentOptions = useMemo(
-    () => rootPages.filter((page) => page.id !== pageId),
-    [pageId, rootPages]
+  const badgeClassForTag = useMemo(
+    () => createDocTagToneResolver(knownTags),
+    [knownTags]
   );
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -94,8 +76,9 @@ export function DocForm({
     const input: DocPageInput = {
       title,
       content,
-      module,
-      parentId: parentId === "none" ? null : parentId,
+      module: lockedModule,
+      parentId: null,
+      tags,
     };
 
     startTransition(async () => {
@@ -112,171 +95,130 @@ export function DocForm({
       toast.success(
         mode === "edit" ? "Seite aktualisiert." : "Seite angelegt."
       );
-      router.push(`${docsBase}/${result.page.slug}`);
+
+      if (onSuccess) {
+        onSuccess(result.page);
+        return;
+      }
+
+      router.push(docsBase);
       router.refresh();
     });
   }
 
-  function insertMarkdown(snippet: string) {
-    const textarea = textareaRef.current;
-
-    if (!textarea) {
-      setContent((current) => `${current}\n\n${snippet}`.trim());
+  function handleCancel() {
+    if (onClose) {
+      onClose();
       return;
     }
-
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const next = `${content.slice(0, start)}${snippet}${content.slice(end)}`;
-
-    setContent(next);
-
-    requestAnimationFrame(() => {
-      textarea.focus();
-      const cursor = start + snippet.length;
-      textarea.setSelectionRange(cursor, cursor);
-    });
-  }
-
-  function handleUpload(file: File) {
-    const formData = new FormData();
-    formData.set("file", file);
-
-    startUpload(async () => {
-      const result = await uploadDocAsset(formData);
-
-      if (!result.success) {
-        toast.error(result.error);
-        return;
-      }
-
-      insertMarkdown(result.markdown);
-      toast.success("Datei hochgeladen und eingefügt.");
-    });
+    router.push(docsBase);
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 pb-8">
-      <Button
-        asChild
-        variant="ghost"
-        size="sm"
-        className="w-fit px-0 text-muted-foreground hover:text-foreground"
-      >
-        <Link href={currentSlug ? `${docsBase}/${currentSlug}` : docsBase}>
-          <ArrowLeftIcon data-icon="inline-start" />
-          Zurück
-        </Link>
-      </Button>
-
-      <PageHeader
-        eyebrow={mode === "edit" ? "Bearbeiten" : "Neu anlegen"}
-        title={mode === "edit" ? "Seite bearbeiten" : "Neue Dokumentationsseite"}
-        description="Markdown-Text mit Bildern und PDFs — Uploads landen im privaten Object Storage."
-      />
+    <div
+      className={cn(
+        "flex min-h-0 flex-1 flex-col",
+        !embedded && "mx-auto w-full max-w-6xl gap-6 pb-8"
+      )}
+    >
+      {embedded ? (
+        <div className="shrink-0 space-y-3 border-b border-border/60 px-4 py-4 md:px-8">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="-ml-2 mb-2 lg:hidden"
+                onClick={handleCancel}
+              >
+                <ArrowLeftIcon data-icon="inline-start" />
+                Zur Liste
+              </Button>
+              <h2 className="font-heading text-xl font-medium tracking-tight">
+                {mode === "edit" ? "Seite bearbeiten" : "Neuer Eintrag"}
+              </h2>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Einfacher Text — ohne Dateianhänge.
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              className="shrink-0 text-muted-foreground hover:text-foreground"
+              onClick={handleCancel}
+              aria-label="Schließen"
+            >
+              <XIcon className="size-4" />
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="w-fit px-0 text-muted-foreground hover:text-foreground"
+            onClick={handleCancel}
+          >
+            <ArrowLeftIcon data-icon="inline-start" />
+            Zurück
+          </Button>
+          <div className="space-y-2 border-b border-border/70 pb-6">
+            <p className="text-[0.68rem] font-medium tracking-[0.16em] text-muted-foreground uppercase">
+              {mode === "edit" ? "Bearbeiten" : "Neu anlegen"}
+            </p>
+            <h1 className="font-heading text-2xl font-medium tracking-tight">
+              {mode === "edit" ? "Seite bearbeiten" : "Neue Dokumentationsseite"}
+            </h1>
+            <p className="max-w-xl text-sm text-muted-foreground">
+              Einfacher Text — ohne Dateianhänge.
+            </p>
+          </div>
+        </>
+      )}
 
       <form
         onSubmit={handleSubmit}
-        className="surface-card flex min-h-0 flex-1 flex-col overflow-hidden"
+        className={cn(
+          "flex min-h-0 flex-1 flex-col overflow-hidden",
+          !embedded && "surface-card"
+        )}
       >
-        <div className="space-y-6 p-6">
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="grid gap-2">
-              <Label htmlFor="title">Titel</Label>
-              <Input
-                id="title"
-                value={title}
-                onChange={(event) => setTitle(event.target.value)}
-                placeholder="z. B. Onboarding neue Mitarbeiter"
-                className="h-11 rounded-xl"
-                required
-              />
-            </div>
-
-            <div className="grid gap-2">
-              <Label>Bereich</Label>
-              <Select
-                value={module}
-                onValueChange={(value) => setModule(value as ContentModule)}
-              >
-                <SelectTrigger className="h-11 rounded-xl">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {formModules.map((entry) => (
-                    <SelectItem key={entry.value} value={entry.value}>
-                      {entry.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+        <div
+          className={cn(
+            "min-h-0 flex-1 space-y-6 overflow-y-auto",
+            embedded ? "px-4 py-5 md:px-8" : "p-6"
+          )}
+        >
+          <div className="grid gap-2">
+            <Label htmlFor="title">Titel</Label>
+            <Input
+              id="title"
+              value={title}
+              onChange={(event) => setTitle(event.target.value)}
+              placeholder="z. B. Onboarding neue Mitarbeiter"
+              className="h-11 rounded-xl"
+              required
+            />
           </div>
 
           <div className="grid gap-2">
-            <Label>Übergeordnete Seite (max. 2 Ebenen)</Label>
-            <Select value={parentId} onValueChange={setParentId}>
-              <SelectTrigger className="h-11 rounded-xl">
-                <SelectValue placeholder="Keine (Root-Seite)" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">Keine (Root-Seite / Ordner)</SelectItem>
-                {parentOptions.map((page) => (
-                  <SelectItem key={page.id} value={page.id}>
-                    {page.title}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Label>Kategorie</Label>
+            <PromptTagsInput
+              value={tags}
+              onChange={setTags}
+              suggestions={tagSuggestions}
+              disabled={isPending}
+              itemLabel="Kategorie"
+              badgeClassForTag={badgeClassForTag}
+            />
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <input
-              ref={imageInputRef}
-              type="file"
-              accept="image/jpeg,image/png,image/webp,image/gif"
-              className="hidden"
-              onChange={(event) => {
-                const file = event.target.files?.[0];
-                if (file) handleUpload(file);
-                event.target.value = "";
-              }}
-            />
-            <input
-              ref={pdfInputRef}
-              type="file"
-              accept="application/pdf"
-              className="hidden"
-              onChange={(event) => {
-                const file = event.target.files?.[0];
-                if (file) handleUpload(file);
-                event.target.value = "";
-              }}
-            />
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={isUploading}
-              onClick={() => imageInputRef.current?.click()}
-            >
-              {isUploading ? (
-                <Loader2Icon className="animate-spin" data-icon="inline-start" />
-              ) : (
-                <ImageIcon data-icon="inline-start" />
-              )}
-              Bild hochladen
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={isUploading}
-              onClick={() => pdfInputRef.current?.click()}
-            >
-              <FileUpIcon data-icon="inline-start" />
-              PDF hochladen
-            </Button>
+          <div className="flex items-center justify-between gap-2">
+            <Label htmlFor="content">Inhalt</Label>
             <Button
               type="button"
               variant="ghost"
@@ -287,16 +229,16 @@ export function DocForm({
             </Button>
           </div>
 
-          <DocEmbeddedAssets
-            content={content}
-            pageId={pageId}
-            onContentChange={setContent}
-          />
-
           <div className="grid min-h-0 flex-1 gap-2">
-            <Label htmlFor="content">Inhalt (Markdown)</Label>
             {preview ? (
-              <div className="min-h-[min(60dvh,40rem)] rounded-xl border border-border/80 bg-muted/20 p-5">
+              <div
+                className={cn(
+                  "rounded-xl border border-border/80 bg-muted/20 p-5",
+                  embedded
+                    ? "min-h-[min(50dvh,28rem)]"
+                    : "min-h-[min(60dvh,40rem)]"
+                )}
+              >
                 {content.trim() ? (
                   <DocMarkdown content={content} />
                 ) : (
@@ -305,26 +247,36 @@ export function DocForm({
               </div>
             ) : (
               <Textarea
-                ref={textareaRef}
                 id="content"
                 value={content}
                 onChange={(event) => setContent(event.target.value)}
-                placeholder="# Überschrift&#10;&#10;Dein Text…"
+                placeholder="Text eingeben…"
                 className={cn(
-                  "min-h-[min(60dvh,40rem)] resize-y rounded-xl font-mono text-sm leading-relaxed"
+                  "resize-y rounded-xl text-sm leading-relaxed",
+                  embedded
+                    ? "min-h-[min(50dvh,28rem)]"
+                    : "min-h-[min(60dvh,40rem)]"
                 )}
               />
             )}
           </div>
         </div>
 
-        <div className="mt-auto flex flex-col-reverse gap-2 border-t border-border/70 bg-muted/30 p-4 sm:flex-row sm:justify-end">
-          <Button variant="outline" asChild disabled={isPending}>
-            <Link href={currentSlug ? `${docsBase}/${currentSlug}` : docsBase}>
-              Abbrechen
-            </Link>
+        <div
+          className={cn(
+            "mt-auto flex flex-col-reverse gap-2 border-t border-border/70 bg-muted/30 p-4 sm:flex-row sm:justify-end",
+            embedded && "px-4 md:px-8"
+          )}
+        >
+          <Button
+            type="button"
+            variant="outline"
+            disabled={isPending}
+            onClick={handleCancel}
+          >
+            Abbrechen
           </Button>
-          <Button type="submit" disabled={isPending || isUploading}>
+          <Button type="submit" disabled={isPending}>
             {isPending ? "Speichern…" : mode === "edit" ? "Speichern" : "Anlegen"}
           </Button>
         </div>

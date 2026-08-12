@@ -13,10 +13,10 @@ import {
   slugForArea,
 } from "@/lib/area/paths";
 import type { AppModuleId } from "@/lib/modules";
-import { getTenantEnabledModules } from "@/lib/tenant/modules";
+import { getUserEffectiveModules } from "@/lib/tenant/modules";
 import { requireTenantUser } from "@/lib/tenant/session";
 
-/** Bereich aus URL-Slug laden und Tenant-Freigabe prüfen. */
+/** Bereich aus URL-Slug laden und Tenant-/User-Freigabe prüfen. */
 export async function requireAreaFromSlug(areaSlug: string): Promise<{
   user: Awaited<ReturnType<typeof requireTenantUser>>;
   area: AppModuleId;
@@ -30,7 +30,7 @@ export async function requireAreaFromSlug(areaSlug: string): Promise<{
     notFound();
   }
 
-  const enabledModules = await getTenantEnabledModules(user.tenantId);
+  const enabledModules = await getUserEffectiveModules(user.id, user.tenantId);
 
   if (!enabledModules.includes(area)) {
     redirect("/");
@@ -71,7 +71,7 @@ export async function redirectLegacyFunction(
   suffix = ""
 ) {
   const user = await requireTenantUser();
-  const enabledModules = await getTenantEnabledModules(user.tenantId);
+  const enabledModules = await getUserEffectiveModules(user.id, user.tenantId);
   const cookieStore = await cookies();
   const raw = cookieStore.get(ACTIVE_AREA_COOKIE)?.value;
 

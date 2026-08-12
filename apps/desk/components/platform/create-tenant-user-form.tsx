@@ -4,19 +4,30 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
+import { UserModulesFields } from "@/components/platform/user-modules-fields";
 import { createTenantUserAction } from "@/lib/platform/actions";
 import type { UserRole } from "@/lib/db/schema";
+import type { AppModuleId } from "@/lib/modules";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export function CreateTenantUserForm({ tenantId }: { tenantId: string }) {
+export function CreateTenantUserForm({
+  tenantId,
+  tenantModules,
+}: {
+  tenantId: string;
+  tenantModules: AppModuleId[];
+}) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<UserRole>("admin");
+  const [role, setRole] = useState<UserRole>("employee");
+  const [allowedModules, setAllowedModules] = useState<AppModuleId[] | null>(
+    null
+  );
 
   function onSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -28,6 +39,7 @@ export function CreateTenantUserForm({ tenantId }: { tenantId: string }) {
         name,
         password,
         role,
+        allowedModules,
       });
 
       if (!result.success) {
@@ -39,7 +51,8 @@ export function CreateTenantUserForm({ tenantId }: { tenantId: string }) {
       setEmail("");
       setName("");
       setPassword("");
-      setRole("admin");
+      setRole("employee");
+      setAllowedModules(null);
       router.refresh();
     });
   }
@@ -100,6 +113,12 @@ export function CreateTenantUserForm({ tenantId }: { tenantId: string }) {
             <option value="employee">Mitarbeiter</option>
           </select>
         </div>
+
+        <UserModulesFields
+          tenantModules={tenantModules}
+          value={allowedModules}
+          onChange={setAllowedModules}
+        />
       </div>
 
       <Button

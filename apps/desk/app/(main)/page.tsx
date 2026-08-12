@@ -7,13 +7,13 @@ import {
 } from "@/lib/area/active-area";
 import { areaBasePath } from "@/lib/area/paths";
 import { requireTenantUser } from "@/lib/tenant/session";
-import { getTenantEnabledModules } from "@/lib/tenant/modules";
+import { getUserEffectiveModules } from "@/lib/tenant/modules";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   const user = await requireTenantUser();
-  const enabledModules = await getTenantEnabledModules(user.tenantId);
+  const enabledModules = await getUserEffectiveModules(user.id, user.tenantId);
   const preferred = (await cookies()).get(ACTIVE_AREA_COOKIE)?.value;
   const area = parseActiveArea(preferred, enabledModules);
 
@@ -27,7 +27,7 @@ export default async function HomePage() {
         Kein Bereich freigeschaltet
       </h1>
       <p className="text-sm text-muted-foreground">
-        Für diese Kanzlei sind noch keine Fach-Bereiche verfügbar. Bitte einen
+        Für deinen Zugang sind noch keine Fach-Bereiche verfügbar. Bitte einen
         Administrator kontaktieren.
       </p>
     </div>

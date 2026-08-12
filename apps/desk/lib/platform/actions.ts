@@ -21,7 +21,9 @@ import {
 } from "@/lib/tenant/domain";
 import { requirePlatformAdminAction } from "@/lib/tenant/session";
 import {
+  intersectModules,
   normalizeEnabledModules,
+  normalizeOptionalAllowedModules,
   type AppModuleId,
 } from "@/lib/modules";
 
@@ -29,6 +31,25 @@ const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 function normalizeSlug(value: string) {
   return value.trim().toLowerCase();
+}
+
+async function resolveUserAllowedModules(
+  tenantId: string,
+  input: unknown
+): Promise<AppModuleId[] | null> {
+  const requested = normalizeOptionalAllowedModules(input);
+  if (requested === null) {
+    return null;
+  }
+
+  const [tenant] = await db
+    .select({ enabledModules: tenants.enabledModules })
+    .from(tenants)
+    .where(eq(tenants.id, tenantId))
+    .limit(1);
+
+  const tenantModules = normalizeEnabledModules(tenant?.enabledModules);
+  return intersectModules(tenantModules, requested);
 }
 
 function normalizeBrandName(value: string | undefined) {
@@ -242,6 +263,7 @@ export async function createTenantUserAction(input: {
   name: string;
   password: string;
   role: UserRole;
+  allowedModules?: AppModuleId[] | null;
 }) {
   const admin = await requirePlatformAdminAction();
   if (!admin) {
@@ -281,12 +303,18 @@ export async function createTenantUserAction(input: {
     return { success: false as const, error: "E-Mail ist bereits vergeben." };
   }
 
+  const allowedModules = await resolveUserAllowedModules(
+    input.tenantId,
+    input.allowedModules
+  );
+
   const user = await createTenantUserRow({
     tenantId: input.tenantId,
     email,
     name,
     password: input.password,
     role,
+    allowedModules,
   });
 
   revalidatePath("/platform");
@@ -301,6 +329,7 @@ export async function updateTenantUserAction(input: {
   email: string;
   name: string;
   role: UserRole;
+  allowedModules?: AppModuleId[] | null;
   password?: string;
 }) {
   const admin = await requirePlatformAdminAction();
@@ -348,12 +377,18 @@ export async function updateTenantUserAction(input: {
     return { success: false as const, error: "E-Mail ist bereits vergeben." };
   }
 
+  const allowedModules = await resolveUserAllowedModules(
+    input.tenantId,
+    input.allowedModules
+  );
+
   const updated = await updateTenantUserRow({
     id: input.id,
     tenantId: input.tenantId,
     email,
     name,
     role,
+    allowedModules,
     password: password || undefined,
   });
 

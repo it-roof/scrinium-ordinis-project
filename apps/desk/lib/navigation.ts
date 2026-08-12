@@ -1,5 +1,6 @@
 import {
   BookOpenIcon,
+  FileStackIcon,
   FileTextIcon,
   HomeIcon,
   ShieldIcon,
@@ -59,6 +60,15 @@ export const navigation: NavItem[] = [
     accent: "bg-teal-400/25 text-teal-100",
     activeClass:
       "data-[active=true]:bg-teal-400/10 data-[active=true]:shadow-[inset_0_0_0_1px_oklch(0.7_0.12_180/0.25)]",
+  },
+  {
+    href: "/vorlagen",
+    label: "Vorlagen",
+    description: "Formulare und Dateivorlagen",
+    icon: FileStackIcon,
+    accent: "bg-lime-400/25 text-lime-100",
+    activeClass:
+      "data-[active=true]:bg-lime-400/10 data-[active=true]:shadow-[inset_0_0_0_1px_oklch(0.75_0.14_125/0.25)]",
   },
 ];
 

@@ -3,8 +3,10 @@
 import { revalidatePath } from "next/cache";
 
 import { validateUploadFile } from "@/lib/docs/upload-policy";
-import { isAppModuleId } from "@/lib/modules";
-import { getTenantEnabledModules } from "@/lib/tenant/modules";
+import {
+  assertUserCanAccessAreaFunction,
+  assertUserCanAccessContentModule,
+} from "@/lib/tenant/access";
 import { requireSessionUser } from "@/lib/tenant/session";
 
 import {
@@ -12,24 +14,12 @@ import {
   deleteDocAssetRow,
   deleteDocPageRow,
   getDocAssetsByIds,
+  getDocPageById,
   updateDocPageRow,
   uploadDocAssetRow,
 } from "./storage";
 import type { DocPageInput } from "./types";
-
-async function isAllowedModule(
-  tenantId: string,
-  module: string
-): Promise<boolean> {
-  if (module === "general") {
-    return true;
-  }
-  if (!isAppModuleId(module)) {
-    return false;
-  }
-  const enabled = await getTenantEnabledModules(tenantId);
-  return enabled.includes(module);
-}
+import { normalizeTagList } from "@/lib/prompts/tag-utils";
 
 function validateInput(input: DocPageInput): string | null {
   const title = input.title.trim();
@@ -43,7 +33,6 @@ function revalidateDocs(slug?: string) {
   revalidatePath("/", "layout");
 
   if (slug) {
-    // Legacy flat paths still redirected
     revalidatePath(`/dokumentation/${slug}`);
   }
 }
@@ -55,14 +44,21 @@ export async function createDocPage(input: DocPageInput) {
   const error = validateInput(input);
   if (error) return { success: false as const, error };
 
-  if (!(await isAllowedModule(user.tenantId, input.module))) {
-    return {
-      success: false as const,
-      error: "Dieser Bereich ist für die Kanzlei nicht freigeschaltet.",
-    };
+  const denied = await assertUserCanAccessContentModule(
+    user.id,
+    user.tenantId,
+    input.module
+  );
+  if (denied) {
+    return { success: false as const, error: denied };
   }
 
-  const result = await createDocPageRow(user.tenantId, input, user.id);
+  const normalized: DocPageInput = {
+    ...input,
+    tags: normalizeTagList(input.tags ?? []),
+  };
+
+  const result = await createDocPageRow(user.tenantId, normalized, user.id);
 
   if (result.error || !result.page) {
     return {
@@ -83,14 +79,35 @@ export async function updateDocPage(id: string, input: DocPageInput) {
   const error = validateInput(input);
   if (error) return { success: false as const, error };
 
-  if (!(await isAllowedModule(user.tenantId, input.module))) {
-    return {
-      success: false as const,
-      error: "Dieser Bereich ist für die Kanzlei nicht freigeschaltet.",
-    };
+  const existing = await getDocPageById(user.tenantId, id);
+  if (!existing) {
+    return { success: false as const, error: "Seite nicht gefunden." };
   }
 
-  const result = await updateDocPageRow(user.tenantId, id, input, user.id);
+  const existingDenied = await assertUserCanAccessContentModule(
+    user.id,
+    user.tenantId,
+    existing.module
+  );
+  if (existingDenied) {
+    return { success: false as const, error: existingDenied };
+  }
+
+  const targetDenied = await assertUserCanAccessContentModule(
+    user.id,
+    user.tenantId,
+    input.module
+  );
+  if (targetDenied) {
+    return { success: false as const, error: targetDenied };
+  }
+
+  const normalized: DocPageInput = {
+    ...input,
+    tags: normalizeTagList(input.tags ?? []),
+  };
+
+  const result = await updateDocPageRow(user.tenantId, id, normalized, user.id);
 
   if (result.error || !result.page) {
     return {
@@ -108,6 +125,20 @@ export async function deleteDocPage(id: string) {
   const user = await requireSessionUser();
   if (!user) return { success: false as const, error: "Nicht angemeldet." };
 
+  const existing = await getDocPageById(user.tenantId, id);
+  if (!existing) {
+    return { success: false as const, error: "Seite nicht gefunden." };
+  }
+
+  const denied = await assertUserCanAccessContentModule(
+    user.id,
+    user.tenantId,
+    existing.module
+  );
+  if (denied) {
+    return { success: false as const, error: denied };
+  }
+
   const deleted = await deleteDocPageRow(user.tenantId, id);
 
   if (!deleted) {
@@ -122,6 +153,15 @@ export async function deleteDocPage(id: string) {
 export async function uploadDocAsset(formData: FormData) {
   const user = await requireSessionUser();
   if (!user) return { success: false as const, error: "Nicht angemeldet." };
+
+  const denied = await assertUserCanAccessAreaFunction(
+    user.id,
+    user.tenantId,
+    "docs"
+  );
+  if (denied) {
+    return { success: false as const, error: denied };
+  }
 
   const file = formData.get("file");
 
@@ -159,6 +199,15 @@ export async function getDocAssets(ids: string[]) {
   const user = await requireSessionUser();
   if (!user) return { success: false as const, error: "Nicht angemeldet." };
 
+  const denied = await assertUserCanAccessAreaFunction(
+    user.id,
+    user.tenantId,
+    "docs"
+  );
+  if (denied) {
+    return { success: false as const, error: denied };
+  }
+
   const assets = await getDocAssetsByIds(user.tenantId, ids);
 
   return { success: true as const, assets };
@@ -167,6 +216,30 @@ export async function getDocAssets(ids: string[]) {
 export async function deleteDocAsset(assetId: string, pageId?: string) {
   const user = await requireSessionUser();
   if (!user) return { success: false as const, error: "Nicht angemeldet." };
+
+  const denied = await assertUserCanAccessAreaFunction(
+    user.id,
+    user.tenantId,
+    "docs"
+  );
+  if (denied) {
+    return { success: false as const, error: denied };
+  }
+
+  if (pageId) {
+    const page = await getDocPageById(user.tenantId, pageId);
+    if (!page) {
+      return { success: false as const, error: "Seite nicht gefunden." };
+    }
+    const pageDenied = await assertUserCanAccessContentModule(
+      user.id,
+      user.tenantId,
+      page.module
+    );
+    if (pageDenied) {
+      return { success: false as const, error: pageDenied };
+    }
+  }
 
   const result = await deleteDocAssetRow(user.tenantId, assetId, pageId);
 

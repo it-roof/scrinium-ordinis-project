@@ -4,21 +4,42 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
+import { UserModulesFields } from "@/components/platform/user-modules-fields";
 import {
   deleteTenantUserAction,
   updateTenantUserAction,
 } from "@/lib/platform/actions";
 import type { UserRole } from "@/lib/db/schema";
+import { APP_MODULES, type AppModuleId } from "@/lib/modules";
 import type { TenantUserItem } from "@/lib/platform/storage";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+function modulesLabel(
+  allowedModules: AppModuleId[] | null,
+  tenantModules: AppModuleId[]
+) {
+  if (allowedModules === null) {
+    return "Alle";
+  }
+  if (allowedModules.length === 0) {
+    return "Keine";
+  }
+  const labels = APP_MODULES.filter(
+    (module) =>
+      allowedModules.includes(module.id) && tenantModules.includes(module.id)
+  ).map((module) => module.label);
+  return labels.length > 0 ? labels.join(", ") : "Keine";
+}
+
 export function TenantUsersTable({
   tenantId,
+  tenantModules,
   users,
 }: {
   tenantId: string;
+  tenantModules: AppModuleId[];
   users: TenantUserItem[];
 }) {
   const router = useRouter();
@@ -38,6 +59,7 @@ export function TenantUsersTable({
               <th className="px-4 py-3 font-medium">Name</th>
               <th className="px-4 py-3 font-medium">E-Mail</th>
               <th className="px-4 py-3 font-medium">Rolle</th>
+              <th className="px-4 py-3 font-medium">Module</th>
               <th className="px-4 py-3 font-medium">Plattform</th>
               <th className="px-4 py-3 font-medium" />
             </tr>
@@ -48,6 +70,7 @@ export function TenantUsersTable({
                 key={user.id}
                 user={user}
                 tenantId={tenantId}
+                tenantModules={tenantModules}
                 isEditing={editingId === user.id}
                 pending={pending}
                 onEdit={() => setEditingId(user.id)}
@@ -62,7 +85,7 @@ export function TenantUsersTable({
             {users.length === 0 ? (
               <tr>
                 <td
-                  colSpan={5}
+                  colSpan={6}
                   className="px-4 py-8 text-center text-muted-foreground"
                 >
                   Noch keine Benutzer in diesem Tenant.
@@ -79,6 +102,7 @@ export function TenantUsersTable({
 function UserRow({
   user,
   tenantId,
+  tenantModules,
   isEditing,
   pending,
   onEdit,
@@ -88,6 +112,7 @@ function UserRow({
 }: {
   user: TenantUserItem;
   tenantId: string;
+  tenantModules: AppModuleId[];
   isEditing: boolean;
   pending: boolean;
   onEdit: () => void;
@@ -99,12 +124,16 @@ function UserRow({
   const [email, setEmail] = useState(user.email);
   const [role, setRole] = useState<UserRole>(user.role);
   const [password, setPassword] = useState("");
+  const [allowedModules, setAllowedModules] = useState<AppModuleId[] | null>(
+    user.allowedModules
+  );
 
   function resetFields() {
     setName(user.name);
     setEmail(user.email);
     setRole(user.role);
     setPassword("");
+    setAllowedModules(user.allowedModules);
   }
 
   function onSave(event: React.FormEvent) {
@@ -117,6 +146,7 @@ function UserRow({
         name,
         email,
         role,
+        allowedModules,
         password: password || undefined,
       });
 
@@ -158,7 +188,7 @@ function UserRow({
   if (isEditing) {
     return (
       <tr className="border-b border-border/50 last:border-0 bg-muted/20">
-        <td colSpan={5} className="px-4 py-4">
+        <td colSpan={6} className="px-4 py-4">
           <form onSubmit={onSave} className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
@@ -212,6 +242,12 @@ function UserRow({
                   className="h-10 rounded-none"
                 />
               </div>
+
+              <UserModulesFields
+                tenantModules={tenantModules}
+                value={allowedModules}
+                onChange={setAllowedModules}
+              />
             </div>
             <div className="flex flex-wrap gap-2">
               <Button
@@ -254,6 +290,9 @@ function UserRow({
       <td className="px-4 py-3 font-medium">{user.name}</td>
       <td className="px-4 py-3 text-muted-foreground">{user.email}</td>
       <td className="px-4 py-3">{user.role}</td>
+      <td className="px-4 py-3 text-muted-foreground">
+        {modulesLabel(user.allowedModules, tenantModules)}
+      </td>
       <td className="px-4 py-3 text-muted-foreground">
         {user.platformRole ?? "—"}
       </td>

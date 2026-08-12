@@ -166,7 +166,7 @@ export function DocEmbeddedAssets({
             </AlertDialogTitle>
             <AlertDialogDescription>
               „{deleteTarget?.filename}" wird aus dem Storage entfernt und der
-              Verweis im Markdown-Text gelöscht.
+              Verweis im Text gelöscht.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

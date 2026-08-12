@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { assertUserCanAccessAreaFunction } from "@/lib/tenant/access";
 import { requireSessionUser } from "@/lib/tenant/session";
 import {
   createPromptRow,
@@ -21,9 +22,16 @@ function validateInput(input: PromptInput): string | null {
   return null;
 }
 
+async function assertPromptsAccess(userId: string, tenantId: string) {
+  return assertUserCanAccessAreaFunction(userId, tenantId, "prompts");
+}
+
 export async function createPrompt(input: PromptInput) {
   const user = await requireSessionUser();
   if (!user) return { success: false as const, error: "Nicht angemeldet." };
+
+  const denied = await assertPromptsAccess(user.id, user.tenantId);
+  if (denied) return { success: false as const, error: denied };
 
   const error = validateInput(input);
   if (error) return { success: false as const, error };
@@ -40,6 +48,9 @@ export async function createPrompt(input: PromptInput) {
 export async function updatePrompt(id: string, input: PromptInput) {
   const user = await requireSessionUser();
   if (!user) return { success: false as const, error: "Nicht angemeldet." };
+
+  const denied = await assertPromptsAccess(user.id, user.tenantId);
+  if (denied) return { success: false as const, error: denied };
 
   const error = validateInput(input);
   if (error) return { success: false as const, error };
@@ -61,6 +72,9 @@ export async function updatePrompt(id: string, input: PromptInput) {
 export async function deletePrompt(id: string) {
   const user = await requireSessionUser();
   if (!user) return { success: false as const, error: "Nicht angemeldet." };
+
+  const denied = await assertPromptsAccess(user.id, user.tenantId);
+  if (denied) return { success: false as const, error: denied };
 
   const deleted = await deletePromptRow(user.tenantId, id);
 

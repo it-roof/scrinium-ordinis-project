@@ -1,9 +1,16 @@
-import { and, asc, eq, ilike, inArray, isNull, or } from "drizzle-orm";
+import { and, asc, eq, ilike, inArray, isNull, or, sql } from "drizzle-orm";
 
-import { docAssets, docPages } from "@/lib/db/schema";
+import {
+  docAssets,
+  docPages,
+  docTagAssignments,
+  docTags,
+} from "@/lib/db/schema";
+import { normalizeTagList, tagKey } from "@/lib/prompts/tag-utils";
 import { deleteObject, uploadObject } from "@/lib/storage/s3";
 import { withTenantDb } from "@/lib/tenant/db";
 
+import { pickNextDocTagTone } from "./tag-colors";
 import { buildUniqueSlug, slugifyTitle } from "./slug";
 import {
   buildMarkdownSnippet,
@@ -15,13 +22,19 @@ import type {
   DocPage,
   DocPageInput,
   DocPageTreeNode,
+  DocTag,
 } from "./types";
 
 type DocPageRow = typeof docPages.$inferSelect;
 type DocAssetRow = typeof docAssets.$inferSelect;
+type TagRow = typeof docTags.$inferSelect;
 type TenantTx = Parameters<Parameters<typeof withTenantDb>[1]>[0];
 
-function toDocPage(row: DocPageRow): DocPage {
+function toDocTag(row: TagRow): DocTag {
+  return { id: row.id, name: row.name, color: row.color };
+}
+
+function toDocPage(row: DocPageRow, tags: DocTag[] = []): DocPage {
   return {
     id: row.id,
     title: row.title,
@@ -30,6 +43,7 @@ function toDocPage(row: DocPageRow): DocPage {
     parentId: row.parentId,
     sortOrder: row.sortOrder,
     module: row.module,
+    tags,
     updatedBy: row.updatedBy,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
@@ -87,15 +101,174 @@ async function validateParent(
   return null;
 }
 
-export async function getDocPages(tenantId: string): Promise<DocPage[]> {
+async function loadTagsByPageIds(
+  tx: TenantTx,
+  pageIds: string[]
+): Promise<Map<string, DocTag[]>> {
+  const tagMap = new Map<string, DocTag[]>();
+  if (pageIds.length === 0) return tagMap;
+
+  const rows = await tx
+    .select({
+      pageId: docTagAssignments.pageId,
+      tag: docTags,
+    })
+    .from(docTagAssignments)
+    .innerJoin(docTags, eq(docTagAssignments.tagId, docTags.id))
+    .where(inArray(docTagAssignments.pageId, pageIds))
+    .orderBy(asc(docTags.name));
+
+  for (const row of rows) {
+    const current = tagMap.get(row.pageId) ?? [];
+    current.push(toDocTag(row.tag));
+    tagMap.set(row.pageId, current);
+  }
+
+  return tagMap;
+}
+
+async function findTagByName(
+  tx: TenantTx,
+  tenantId: string,
+  name: string
+): Promise<TagRow | null> {
+  const [row] = await tx
+    .select()
+    .from(docTags)
+    .where(
+      and(
+        eq(docTags.tenantId, tenantId),
+        sql`lower(${docTags.name}) = ${tagKey(name)}`
+      )
+    )
+    .limit(1);
+
+  return row ?? null;
+}
+
+async function upsertTags(
+  tx: TenantTx,
+  tenantId: string,
+  tagNames: string[]
+): Promise<DocTag[]> {
+  const normalizedNames = normalizeTagList(tagNames);
+  const tags: DocTag[] = [];
+
+  const existingColors = await tx
+    .select({ color: docTags.color })
+    .from(docTags)
+    .where(eq(docTags.tenantId, tenantId));
+  const usedColors = existingColors.map((row) => row.color);
+
+  for (const name of normalizedNames) {
+    const existing = await findTagByName(tx, tenantId, name);
+    if (existing) {
+      tags.push(toDocTag(existing));
+      continue;
+    }
+
+    const color = pickNextDocTagTone(usedColors);
+    usedColors.push(color);
+
+    const [created] = await tx
+      .insert(docTags)
+      .values({ tenantId, name, color })
+      .onConflictDoNothing({
+        target: [docTags.tenantId, docTags.name],
+      })
+      .returning();
+
+    if (created) {
+      tags.push(toDocTag(created));
+      continue;
+    }
+
+    const fallback = await findTagByName(tx, tenantId, name);
+    if (fallback) {
+      tags.push(toDocTag(fallback));
+    }
+  }
+
+  return tags;
+}
+
+async function syncDocPageTags(
+  tx: TenantTx,
+  tenantId: string,
+  pageId: string,
+  tagNames: string[]
+) {
+  const tags = await upsertTags(tx, tenantId, tagNames);
+
+  await tx
+    .delete(docTagAssignments)
+    .where(eq(docTagAssignments.pageId, pageId));
+
+  if (tags.length > 0) {
+    await tx.insert(docTagAssignments).values(
+      tags.map((tag) => ({
+        pageId,
+        tagId: tag.id,
+      }))
+    );
+  }
+
+  await tx
+    .delete(docTags)
+    .where(
+      and(
+        eq(docTags.tenantId, tenantId),
+        sql`not exists (
+          select 1
+          from ${docTagAssignments}
+          where ${docTagAssignments.tagId} = ${docTags.id}
+        )`
+      )
+    );
+}
+
+export async function getDocTags(tenantId: string): Promise<DocTag[]> {
+  return withTenantDb(tenantId, async (tx) => {
+    const rows = await tx
+      .select()
+      .from(docTags)
+      .where(eq(docTags.tenantId, tenantId))
+      .orderBy(asc(docTags.name));
+
+    return rows.map(toDocTag);
+  });
+}
+
+/** @deprecated Prefer getDocTags — nur Namen für Vorschläge. */
+export async function getDocTagNames(tenantId: string): Promise<string[]> {
+  const tags = await getDocTags(tenantId);
+  return tags.map((tag) => tag.name);
+}
+
+export async function getDocPages(
+  tenantId: string,
+  modules?: readonly DocPage["module"][]
+): Promise<DocPage[]> {
   return withTenantDb(tenantId, async (tx) => {
     const rows = await tx
       .select()
       .from(docPages)
-      .where(eq(docPages.tenantId, tenantId))
+      .where(
+        modules && modules.length > 0
+          ? and(
+              eq(docPages.tenantId, tenantId),
+              inArray(docPages.module, [...modules])
+            )
+          : eq(docPages.tenantId, tenantId)
+      )
       .orderBy(asc(docPages.sortOrder), asc(docPages.title));
 
-    return rows.map(toDocPage);
+    const tagMap = await loadTagsByPageIds(
+      tx,
+      rows.map((row) => row.id)
+    );
+
+    return rows.map((row) => toDocPage(row, tagMap.get(row.id) ?? []));
   });
 }
 
@@ -120,8 +293,11 @@ export function buildDocPageTree(pages: DocPage[]): DocPageTreeNode[] {
   }));
 }
 
-export async function getDocPageTree(tenantId: string): Promise<DocPageTreeNode[]> {
-  const pages = await getDocPages(tenantId);
+export async function getDocPageTree(
+  tenantId: string,
+  modules?: readonly DocPage["module"][]
+): Promise<DocPageTreeNode[]> {
+  const pages = await getDocPages(tenantId, modules);
   return buildDocPageTree(pages);
 }
 
@@ -136,7 +312,9 @@ export async function getDocPageBySlug(
       .where(and(eq(docPages.slug, slug), eq(docPages.tenantId, tenantId)))
       .limit(1);
 
-    return row ? toDocPage(row) : null;
+    if (!row) return null;
+    const tagMap = await loadTagsByPageIds(tx, [row.id]);
+    return toDocPage(row, tagMap.get(row.id) ?? []);
   });
 }
 
@@ -151,7 +329,9 @@ export async function getDocPageById(
       .where(and(eq(docPages.id, id), eq(docPages.tenantId, tenantId)))
       .limit(1);
 
-    return row ? toDocPage(row) : null;
+    if (!row) return null;
+    const tagMap = await loadTagsByPageIds(tx, [row.id]);
+    return toDocPage(row, tagMap.get(row.id) ?? []);
   });
 }
 
@@ -178,7 +358,12 @@ export async function searchDocPages(
       )
       .orderBy(asc(docPages.title));
 
-    return rows.map(toDocPage);
+    const tagMap = await loadTagsByPageIds(
+      tx,
+      rows.map((row) => row.id)
+    );
+
+    return rows.map((row) => toDocPage(row, tagMap.get(row.id) ?? []));
   });
 }
 
@@ -213,7 +398,9 @@ export async function createDocPageRow(
       })
       .returning();
 
-    return { page: toDocPage(row) };
+    await syncDocPageTags(tx, tenantId, row.id, input.tags);
+    const tagMap = await loadTagsByPageIds(tx, [row.id]);
+    return { page: toDocPage(row, tagMap.get(row.id) ?? []) };
   });
 }
 
@@ -274,7 +461,9 @@ export async function updateDocPageRow(
       .where(and(eq(docPages.id, id), eq(docPages.tenantId, tenantId)))
       .returning();
 
-    return { page: toDocPage(row) };
+    await syncDocPageTags(tx, tenantId, row.id, input.tags);
+    const tagMap = await loadTagsByPageIds(tx, [row.id]);
+    return { page: toDocPage(row, tagMap.get(row.id) ?? []) };
   });
 }
 
@@ -300,7 +489,12 @@ export async function getRootDocPages(tenantId: string): Promise<DocPage[]> {
       .where(and(isNull(docPages.parentId), eq(docPages.tenantId, tenantId)))
       .orderBy(asc(docPages.sortOrder), asc(docPages.title));
 
-    return rows.map(toDocPage);
+    const tagMap = await loadTagsByPageIds(
+      tx,
+      rows.map((row) => row.id)
+    );
+
+    return rows.map((row) => toDocPage(row, tagMap.get(row.id) ?? []));
   });
 }
 
@@ -316,6 +510,27 @@ export async function getDocAssetById(
       .limit(1);
 
     return row ? toDocAsset(row) : null;
+  });
+}
+
+/** Module der Seiten, die diese Datei im Inhalt referenzieren. */
+export async function getDocModulesReferencingAsset(
+  tenantId: string,
+  assetId: string
+): Promise<DocPage["module"][]> {
+  return withTenantDb(tenantId, async (tx) => {
+    const needle = `/api/docs/files/${assetId}`;
+    const rows = await tx
+      .select({ module: docPages.module })
+      .from(docPages)
+      .where(
+        and(
+          eq(docPages.tenantId, tenantId),
+          ilike(docPages.content, `%${needle}%`)
+        )
+      );
+
+    return [...new Set(rows.map((row) => row.module))];
   });
 }
 
@@ -464,6 +679,11 @@ export async function getPagesByModule(
       )
       .orderBy(asc(docPages.sortOrder), asc(docPages.title));
 
-    return rows.map(toDocPage);
+    const tagMap = await loadTagsByPageIds(
+      tx,
+      rows.map((row) => row.id)
+    );
+
+    return rows.map((row) => toDocPage(row, tagMap.get(row.id) ?? []));
   });
 }

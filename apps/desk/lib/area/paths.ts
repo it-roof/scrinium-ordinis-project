@@ -46,6 +46,7 @@ export const FUNCTION_PATH_SEGMENTS: Record<AreaFunctionId, string> = {
   "text-blocks": "textbausteine",
   prompts: "prompt",
   docs: "dokumentation",
+  templates: "vorlagen",
 };
 
 export function functionHref(
