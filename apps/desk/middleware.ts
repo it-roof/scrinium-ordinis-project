@@ -36,13 +36,26 @@ export function middleware(request: NextRequest) {
   const isLoggedIn = hasAuthSessionCookie(request.cookies);
 
   if (isLoginPage) {
-    if (isLoggedIn) {
-      return NextResponse.redirect(new URL("/", request.url));
-    }
-
-    return NextResponse.next({
+    // Kein Redirect anhand Cookie allein — sonst Loop hinter Coolify, wenn
+    // Cookie-Name und auth() nicht übereinstimmen. Die Login-Page prüft auth().
+    const response = NextResponse.next({
       request: { headers: requestHeaders },
     });
+
+    // Verwaise Session-Cookies (Secure vs. non-Secure) wegräumen, wenn die
+    // Login-Page gerendert wird — nur wenn wir nicht sicher eingeloggt sind.
+    // auth() läuft erst in der Page; hier löschen wir beide Varianten nicht,
+    // sondern nur wenn beide gleichzeitig existieren (Mismatch).
+    const hasPlain = Boolean(request.cookies.get("authjs.session-token"));
+    const hasSecure = Boolean(
+      request.cookies.get("__Secure-authjs.session-token")
+    );
+    if (hasPlain && hasSecure) {
+      response.cookies.delete("authjs.session-token");
+      response.cookies.delete("__Secure-authjs.session-token");
+    }
+
+    return response;
   }
 
   if (!isLoggedIn) {

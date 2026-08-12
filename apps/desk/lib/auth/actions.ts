@@ -5,7 +5,10 @@ import { redirect } from "next/navigation";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
 
 import { authorizeCredentials } from "@/lib/auth/authorize";
-import { getAuthSessionCookieConfig } from "@/lib/auth/cookies";
+import {
+  clearAuthSessionCookies,
+  getAuthSessionCookieConfig,
+} from "@/lib/auth/cookies";
 import { createUserSession } from "@/lib/auth/sessions";
 import { getRequestHostTenant } from "@/lib/tenant/domain";
 import { isPlatformSuperAdmin } from "@/lib/tenant/session";
@@ -44,6 +47,9 @@ export async function loginAction(
     const { sessionToken, expires } = await createUserSession(user.id);
     const sessionCookie = await getAuthSessionCookieConfig();
     const cookieStore = await cookies();
+
+    // Alte Secure-/Non-Secure-Cookies wegräumen (Coolify-Proxy)
+    await clearAuthSessionCookies();
 
     cookieStore.set(sessionCookie.name, sessionToken, {
       ...sessionCookie.options,

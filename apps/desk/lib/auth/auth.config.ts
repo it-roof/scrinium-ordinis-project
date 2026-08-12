@@ -1,7 +1,10 @@
 import type { NextAuthConfig } from "next-auth";
 
+import { useSecureCookiesSync } from "@/lib/auth/cookies";
 import { SESSION_MAX_AGE_SECONDS } from "@/lib/auth/sessions";
 import type { PlatformRole, UserRole } from "@/lib/db/schema";
+
+const useSecureCookies = useSecureCookiesSync();
 
 export const authConfig = {
   pages: {
@@ -10,6 +13,20 @@ export const authConfig = {
   session: {
     strategy: "database",
     maxAge: SESSION_MAX_AGE_SECONDS,
+  },
+  useSecureCookies,
+  cookies: {
+    sessionToken: {
+      name: useSecureCookies
+        ? "__Secure-authjs.session-token"
+        : "authjs.session-token",
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: useSecureCookies,
+      },
+    },
   },
   callbacks: {
     authorized({ auth, request: { nextUrl } }) {
