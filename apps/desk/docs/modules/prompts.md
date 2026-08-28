@@ -1,6 +1,6 @@
 # Modul: Prompt
 
-> **Code-Name:** `prompts` · **UI-Name:** Prompt · **Route:** `/prompt`
+> **Code-Name:** `prompts` · **UI-Name:** Prompt-Bibliothek · **Route:** `/prompt`
 
 Gespeicherte KI-Prompt-Texte — anlegen, taggen, suchen, bearbeiten und mit einem Klick kopieren.
 

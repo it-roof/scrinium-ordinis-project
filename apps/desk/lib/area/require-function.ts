@@ -13,6 +13,7 @@ import {
   slugForArea,
 } from "@/lib/area/paths";
 import type { AppModuleId } from "@/lib/modules";
+import { assertUserCanAccessAreaFunction } from "@/lib/tenant/access";
 import { getUserEffectiveModules } from "@/lib/tenant/modules";
 import { requireTenantUser } from "@/lib/tenant/session";
 
@@ -62,6 +63,15 @@ export async function requireAreaFunction(
     redirect(ctx.basePath);
   }
 
+  const denied = await assertUserCanAccessAreaFunction(
+    ctx.user.id,
+    ctx.user.tenantId,
+    functionId
+  );
+  if (denied) {
+    redirect(ctx.basePath);
+  }
+
   return ctx;
 }
 
@@ -89,6 +99,15 @@ export async function redirectLegacyFunction(
 
   if (!area) {
     redirect("/");
+  }
+
+  const functionDenied = await assertUserCanAccessAreaFunction(
+    user.id,
+    user.tenantId,
+    functionId
+  );
+  if (functionDenied) {
+    redirect(areaBasePath(area));
   }
 
   redirect(`${areaBasePath(area)}${suffix}`);

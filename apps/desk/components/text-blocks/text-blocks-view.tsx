@@ -12,6 +12,7 @@ import { toast } from "sonner";
 
 import { PageHeader } from "@/components/layout/page-header";
 import { useOptionalActiveArea } from "@/components/layout/active-area-provider";
+import { PromptTagsInput } from "@/components/prompts/prompt-tags-input";
 import { ModuleBadge } from "@/components/text-blocks/module-badge";
 import {
   createTextBlock,
@@ -23,6 +24,7 @@ import {
   modulesForActiveArea,
   itemMatchesActiveArea,
 } from "@/lib/area/active-area";
+import { tagKey } from "@/lib/prompts/tag-utils";
 import {
   CONTENT_MODULES,
   type ContentModule,
@@ -40,6 +42,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -72,27 +75,32 @@ type FormState = {
   title: string;
   content: string;
   module: ContentModule;
+  tags: string[];
 };
 
 const emptyForm: FormState = {
   title: "",
   content: "",
   module: "general",
+  tags: [],
 };
 
 type TextBlocksViewProps = {
   initialItems: TextBlock[];
   modules?: readonly ContentModuleOption[];
+  tagSuggestions?: string[];
 };
 
 export function TextBlocksView({
   initialItems,
   modules = CONTENT_MODULES,
+  tagSuggestions = [],
 }: TextBlocksViewProps) {
   const activeAreaCtx = useOptionalActiveArea();
   const activeArea = activeAreaCtx?.activeArea ?? "all";
   const [items, setItems] = useState(initialItems);
   const [search, setSearch] = useState("");
+  const [tagFilter, setTagFilter] = useState<string | "all">("all");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<TextBlock | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
@@ -101,29 +109,65 @@ export function TextBlocksView({
 
   const formModules = modulesForActiveArea(modules, activeArea);
 
+  const suggestionPool = useMemo(() => {
+    const fromItems = items.flatMap((item) => item.tags.map((tag) => tag.name));
+    return [...new Set([...tagSuggestions, ...fromItems])].sort((a, b) =>
+      a.localeCompare(b, "de")
+    );
+  }, [items, tagSuggestions]);
+
+  const visibleItems = useMemo(
+    () => items.filter((item) => itemMatchesActiveArea(item.module, activeArea)),
+    [items, activeArea]
+  );
+
+  const tagOptions = useMemo(() => {
+    const counts = new Map<string, number>();
+
+    for (const item of visibleItems) {
+      for (const tag of item.tags) {
+        const key = tagKey(tag.name);
+        counts.set(key, (counts.get(key) ?? 0) + 1);
+      }
+    }
+
+    return [...counts.entries()]
+      .map(([key, count]) => {
+        const label =
+          visibleItems
+            .flatMap((item) => item.tags)
+            .find((tag) => tagKey(tag.name) === key)?.name ?? key;
+
+        return { key, label, count };
+      })
+      .sort((left, right) => left.label.localeCompare(right.label, "de"));
+  }, [visibleItems]);
+
   const filteredItems = useMemo(() => {
     const query = search.trim().toLowerCase();
 
-    return items.filter((item) => {
-      const matchesModule = itemMatchesActiveArea(
-        item.module,
-        activeArea
-      );
-      const matchesSearch =
-        !query ||
-        item.title.toLowerCase().includes(query) ||
-        item.content.toLowerCase().includes(query);
+    return visibleItems.filter((item) => {
+      const matchesTag =
+        tagFilter === "all" ||
+        item.tags.some((tag) => tagKey(tag.name) === tagFilter);
 
-      return matchesModule && matchesSearch;
+      if (!matchesTag) return false;
+
+      if (!query) return true;
+
+      return (
+        item.title.toLowerCase().includes(query) ||
+        item.content.toLowerCase().includes(query) ||
+        item.tags.some((tag) => tag.name.toLowerCase().includes(query))
+      );
     });
-  }, [items, search, activeArea]);
+  }, [visibleItems, search, tagFilter]);
 
   function openCreateDialog() {
     setEditingItem(null);
     setForm({
       ...emptyForm,
-      module:
-        activeArea !== "all" ? activeArea : emptyForm.module,
+      module: activeArea !== "all" ? activeArea : emptyForm.module,
     });
     setDialogOpen(true);
   }
@@ -134,6 +178,7 @@ export function TextBlocksView({
       title: item.title,
       content: item.content,
       module: item.module,
+      tags: item.tags.map((tag) => tag.name),
     });
     setDialogOpen(true);
   }
@@ -200,7 +245,7 @@ export function TextBlocksView({
       <PageHeader
         eyebrow="Wissensbasis"
         title="Textbausteine"
-        description="Wiederverwendbare Texte für Schreiben, E-Mails und Vorlagen — strukturiert nach Kanzlei-Bereichen."
+        description="Wiederverwendbare Texte für Schreiben, E-Mails und Vorlagen — mit Tags organisieren."
       >
         <Button
           onClick={openCreateDialog}
@@ -218,10 +263,32 @@ export function TextBlocksView({
           <Input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Suchen nach Titel oder Inhalt…"
+            placeholder="Suchen nach Titel, Tag oder Inhalt…"
             className="h-11 rounded-xl border-border/80 bg-background/80 pl-10 shadow-none"
           />
         </div>
+
+        {tagOptions.length > 0 ? (
+          <div className="flex flex-wrap gap-2">
+            <TagFilterPill
+              active={tagFilter === "all"}
+              onClick={() => setTagFilter("all")}
+              label="Alle"
+              count={visibleItems.length}
+              activeClassName="bg-primary text-primary-foreground shadow-sm shadow-primary/20"
+            />
+            {tagOptions.map((tag) => (
+              <TagFilterPill
+                key={tag.key}
+                active={tagFilter === tag.key}
+                onClick={() => setTagFilter(tag.key)}
+                label={tag.label}
+                count={tag.count}
+                activeClassName="bg-sky-600 text-white shadow-sm shadow-sky-600/20"
+              />
+            ))}
+          </div>
+        ) : null}
       </div>
 
       <div className="flex items-center justify-between gap-3 text-sm text-muted-foreground">
@@ -241,17 +308,17 @@ export function TextBlocksView({
               <SearchIcon className="size-5" />
             </EmptyMedia>
             <EmptyTitle className="font-heading text-lg">
-              {items.length === 0
+              {visibleItems.length === 0
                 ? "Noch keine Textbausteine"
                 : "Keine Treffer"}
             </EmptyTitle>
             <EmptyDescription className="max-w-sm text-sm leading-relaxed">
-              {items.length === 0
+              {visibleItems.length === 0
                 ? "Lege den ersten Textbaustein an, um wiederkehrende Formulierungen zentral zu verwalten."
-                : "Passe die Suche an oder wechsle den Bereich."}
+                : "Passe die Suche oder den Tag-Filter an."}
             </EmptyDescription>
           </EmptyHeader>
-          {items.length === 0 && (
+          {visibleItems.length === 0 && (
             <EmptyContent>
               <Button onClick={openCreateDialog} size="lg">
                 <PlusIcon data-icon="inline-start" />
@@ -273,11 +340,26 @@ export function TextBlocksView({
             >
               <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-start sm:justify-between">
                 <div className="min-w-0 flex-1 space-y-3">
-                  <div className="flex flex-wrap items-center gap-2.5">
-                    <h2 className="font-heading text-lg font-medium tracking-tight">
-                      {item.title}
-                    </h2>
-                    <ModuleBadge module={item.module} />
+                  <div className="space-y-2">
+                    <div className="flex flex-wrap items-center gap-2.5">
+                      <h2 className="font-heading text-lg font-medium tracking-tight">
+                        {item.title}
+                      </h2>
+                      <ModuleBadge module={item.module} />
+                    </div>
+                    {item.tags.length > 0 ? (
+                      <div className="flex flex-wrap gap-1.5">
+                        {item.tags.map((tag) => (
+                          <Badge
+                            key={tag.id}
+                            variant="secondary"
+                            className="rounded-lg bg-sky-100/90 text-sky-900"
+                          >
+                            {tag.name}
+                          </Badge>
+                        ))}
+                      </div>
+                    ) : null}
                   </div>
                   <p className="line-clamp-3 whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
                     {item.content}
@@ -339,13 +421,13 @@ export function TextBlocksView({
                 {editingItem ? "Textbaustein bearbeiten" : "Neuer Textbaustein"}
               </DialogTitle>
               <DialogDescription className="text-sm leading-relaxed">
-                Titel, Bereich und Textinhalt für die spätere Wiederverwendung
+                Titel, Tags und Textinhalt für die spätere Wiederverwendung
                 festlegen.
               </DialogDescription>
             </DialogHeader>
           </div>
 
-          <div className="grid gap-5 px-6 py-5">
+          <div className="grid max-h-[70vh] gap-5 overflow-y-auto px-6 py-5">
             <div className="grid gap-2">
               <Label htmlFor="title">Titel</Label>
               <Input
@@ -384,6 +466,19 @@ export function TextBlocksView({
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="grid gap-2">
+              <Label>Tags</Label>
+              <PromptTagsInput
+                value={form.tags}
+                onChange={(tags) =>
+                  setForm((current) => ({ ...current, tags }))
+                }
+                suggestions={suggestionPool}
+                disabled={isPending}
+                badgeClassName="bg-sky-100/90 text-sky-900"
+              />
             </div>
 
             <div className="grid gap-2">
@@ -449,5 +544,42 @@ export function TextBlocksView({
         </AlertDialogContent>
       </AlertDialog>
     </div>
+  );
+}
+
+function TagFilterPill({
+  active,
+  onClick,
+  label,
+  count,
+  activeClassName,
+}: {
+  active: boolean;
+  onClick: () => void;
+  label: string;
+  count: number;
+  activeClassName: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm transition-colors",
+        active
+          ? activeClassName
+          : "border-border/80 bg-background text-muted-foreground hover:bg-muted hover:text-foreground"
+      )}
+    >
+      <span>{label}</span>
+      <span
+        className={cn(
+          "rounded-full px-1.5 py-0.5 text-xs",
+          active ? "bg-white/20" : "bg-muted text-muted-foreground"
+        )}
+      >
+        {count}
+      </span>
+    </button>
   );
 }

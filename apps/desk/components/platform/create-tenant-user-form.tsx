@@ -9,22 +9,72 @@ import { createTenantUserAction } from "@/lib/platform/actions";
 import type { UserRole } from "@/lib/db/schema";
 import type { AppModuleId } from "@/lib/modules";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export function CreateTenantUserForm({
+export function CreateTenantUserDialog({
+  open,
+  onOpenChange,
   tenantId,
   tenantModules,
+  defaultRole = "employee",
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  tenantId: string;
+  tenantModules: AppModuleId[];
+  defaultRole?: UserRole;
+}) {
+  const isFirstUser = defaultRole === "admin";
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[min(90vh,40rem)] overflow-y-auto sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Benutzer anlegen</DialogTitle>
+          <DialogDescription>
+            {isFirstUser
+              ? "Der erste Zugang sollte ein Kanzlei-Admin sein. Der Benutzer sieht nur Daten dieser Kanzlei."
+              : "Der Zugang gilt nur für diese Kanzlei."}
+          </DialogDescription>
+        </DialogHeader>
+        <CreateTenantUserForm
+          key={open ? "open" : "closed"}
+          tenantId={tenantId}
+          tenantModules={tenantModules}
+          defaultRole={defaultRole}
+          onSuccess={() => onOpenChange(false)}
+        />
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function CreateTenantUserForm({
+  tenantId,
+  tenantModules,
+  defaultRole,
+  onSuccess,
 }: {
   tenantId: string;
   tenantModules: AppModuleId[];
+  defaultRole: UserRole;
+  onSuccess?: () => void;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<UserRole>("employee");
+  const [role, setRole] = useState<UserRole>(defaultRole);
   const [allowedModules, setAllowedModules] = useState<AppModuleId[] | null>(
     null
   );
@@ -48,26 +98,13 @@ export function CreateTenantUserForm({
       }
 
       toast.success("Benutzer angelegt.");
-      setEmail("");
-      setName("");
-      setPassword("");
-      setRole("employee");
-      setAllowedModules(null);
+      onSuccess?.();
       router.refresh();
     });
   }
 
   return (
-    <form onSubmit={onSubmit} className="surface-card space-y-4 p-6">
-      <div>
-        <h2 className="font-heading text-lg font-medium tracking-tight">
-          Benutzer einladen
-        </h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Neuer User gehört nur zu diesem Tenant.
-        </p>
-      </div>
-
+    <form onSubmit={onSubmit} className="space-y-4">
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="user-name">Name</Label>
@@ -76,6 +113,7 @@ export function CreateTenantUserForm({
             value={name}
             onChange={(event) => setName(event.target.value)}
             required
+            autoFocus
             className="h-10 rounded-none"
           />
         </div>
@@ -121,13 +159,15 @@ export function CreateTenantUserForm({
         />
       </div>
 
-      <Button
-        type="submit"
-        disabled={pending}
-        className="h-10 rounded-none px-4"
-      >
-        {pending ? "Wird angelegt…" : "Benutzer anlegen"}
-      </Button>
+      <DialogFooter>
+        <Button
+          type="submit"
+          disabled={pending}
+          className="h-10 rounded-none px-4"
+        >
+          {pending ? "Wird angelegt…" : "Benutzer anlegen"}
+        </Button>
+      </DialogFooter>
     </form>
   );
 }

@@ -1,74 +1,126 @@
-import Link from "next/link";
+"use client";
 
-import { CreateTenantForm } from "@/components/platform/create-tenant-form";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { Building2Icon, ChevronRightIcon, PlusIcon } from "lucide-react";
+
+import { CreateTenantDialog } from "@/components/platform/create-tenant-form";
 import { PageHeader } from "@/components/layout/page-header";
+import { Button } from "@/components/ui/button";
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
 import type { TenantListItem } from "@/lib/platform/storage";
 
+function userCountLabel(count: number) {
+  if (count === 1) {
+    return "1 Benutzer";
+  }
+  return `${count} Benutzer`;
+}
+
 export function PlatformTenantsView({ tenants }: { tenants: TenantListItem[] }) {
+  const router = useRouter();
+  const [createOpen, setCreateOpen] = useState(false);
+
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-10">
+    <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-8">
       <PageHeader
-        eyebrow="Plattform"
-        title="Super-Admin"
-        description="Kanzleien (Tenants) verwalten. Kein Zugriff auf Fachdaten anderer Mandanten."
-      />
+        title="Kanzleien"
+        description="Mandanten der Plattform. Öffne eine Kanzlei, um Benutzer und Module zu verwalten."
+      >
+        <Button
+          onClick={() => setCreateOpen(true)}
+          className="h-10 rounded-none px-4"
+        >
+          <PlusIcon data-icon="inline-start" />
+          Neue Kanzlei
+        </Button>
+      </PageHeader>
 
-      <CreateTenantForm />
-
-      <section className="space-y-4">
-        <h2 className="font-heading text-xl font-medium tracking-tight">
-          Kanzleien
-        </h2>
-
+      {tenants.length === 0 ? (
+        <Empty className="border border-dashed">
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <Building2Icon />
+            </EmptyMedia>
+            <EmptyTitle>Noch keine Kanzlei</EmptyTitle>
+            <EmptyDescription>
+              Lege die erste Kanzlei an. Anschließend kannst du Benutzer
+              einladen.
+            </EmptyDescription>
+          </EmptyHeader>
+          <EmptyContent>
+            <Button
+              onClick={() => setCreateOpen(true)}
+              className="h-10 rounded-none px-4"
+            >
+              <PlusIcon data-icon="inline-start" />
+              Erste Kanzlei anlegen
+            </Button>
+          </EmptyContent>
+        </Empty>
+      ) : (
         <div className="surface-card overflow-hidden">
           <table className="w-full text-left text-sm">
             <thead className="border-b border-border/70 bg-muted/40 text-[0.7rem] tracking-[0.14em] text-muted-foreground uppercase">
               <tr>
                 <th className="px-4 py-3 font-medium">Name</th>
-                <th className="px-4 py-3 font-medium">Slug</th>
+                <th className="px-4 py-3 font-medium">Kurzname</th>
                 <th className="px-4 py-3 font-medium">Domain</th>
-                <th className="px-4 py-3 font-medium">User</th>
-                <th className="px-4 py-3 font-medium" />
+                <th className="px-4 py-3 font-medium">Benutzer</th>
+                <th className="px-4 py-3 font-medium">
+                  <span className="sr-only">Öffnen</span>
+                </th>
               </tr>
             </thead>
             <tbody>
               {tenants.map((tenant) => (
                 <tr
                   key={tenant.id}
-                  className="border-b border-border/50 last:border-0"
+                  className="cursor-pointer border-b border-border/50 last:border-0 hover:bg-muted/30"
+                  onClick={() => router.push(`/platform/tenants/${tenant.id}`)}
                 >
-                  <td className="px-4 py-3 font-medium">{tenant.name}</td>
+                  <td className="px-4 py-3 font-medium">
+                    <Link
+                      href={`/platform/tenants/${tenant.id}`}
+                      className="hover:underline"
+                    >
+                      {tenant.name}
+                    </Link>
+                  </td>
                   <td className="px-4 py-3 text-muted-foreground">
                     {tenant.slug}
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">
                     {tenant.customDomain ?? "—"}
                   </td>
-                  <td className="px-4 py-3 tabular-nums">{tenant.userCount}</td>
+                  <td className="px-4 py-3 text-muted-foreground tabular-nums">
+                    {userCountLabel(tenant.userCount)}
+                  </td>
                   <td className="px-4 py-3 text-right">
                     <Link
                       href={`/platform/tenants/${tenant.id}`}
-                      className="text-sm font-medium text-sky-700 hover:underline"
+                      className="inline-flex items-center gap-1 text-sm font-medium text-sky-700 hover:underline"
                     >
                       Öffnen
+                      <ChevronRightIcon className="size-4" />
                     </Link>
                   </td>
                 </tr>
               ))}
-              {tenants.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={5}
-                    className="px-4 py-8 text-center text-muted-foreground"
-                  >
-                    Noch keine Tenants.
-                  </td>
-                </tr>
-              ) : null}
             </tbody>
           </table>
         </div>
-      </section>
+      )}
+
+      <CreateTenantDialog open={createOpen} onOpenChange={setCreateOpen} />
     </div>
   );
 }

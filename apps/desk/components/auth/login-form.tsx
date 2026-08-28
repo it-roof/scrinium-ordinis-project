@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
 
 import { BrandWordmark } from "@/components/brand/brand-wordmark";
@@ -34,7 +35,15 @@ export function LoginForm({ brandLabel }: { brandLabel?: string | null }) {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="password">Passwort</Label>
+          <div className="flex items-center justify-between gap-3">
+            <Label htmlFor="password">Passwort</Label>
+            <Link
+              href="/passwort-vergessen"
+              className="text-xs text-muted-foreground hover:text-foreground hover:underline"
+            >
+              Passwort vergessen?
+            </Link>
+          </div>
           <Input
             id="password"
             name="password"

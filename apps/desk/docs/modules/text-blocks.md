@@ -2,7 +2,7 @@
 
 > **Code-Name:** `text-blocks` · **UI-Name:** Textbausteine · **Route:** `/textbausteine`
 
-Wiederverwendbare Texte für Schreiben, E-Mails und Vorlagen — zentral verwaltet und nach Kanzlei-Bereichen strukturiert.
+Wiederverwendbare Texte für Schreiben, E-Mails und Vorlagen — zentral verwaltet, bereichsgetrennt und mit Tags organisiert.
 
 ## Zweck
 
@@ -39,6 +39,15 @@ Die Route bleibt deutsch (`/textbausteine`), der Code heißt `text-blocks`.
 
 Schema-Definition: `lib/db/schema.ts` → `textBlocks`
 
+### Tabellen `text_block_tags` / `text_block_tag_assignments`
+
+| Tabelle | Zweck |
+|---------|--------|
+| `text_block_tags` | Tag-Katalog pro Tenant (`tenant_id`, `name`, Unique) + RLS |
+| `text_block_tag_assignments` | M:N Textbaustein ↔ Tag |
+
+Tags sind tenant-weit (wie Prompt-Tags); Inhalte bleiben über `module` bereichsgetrennt.
+
 ### Enum `module`
 
 | DB-Wert (Englisch) | UI-Label (Deutsch) |
@@ -47,7 +56,8 @@ Schema-Definition: `lib/db/schema.ts` → `textBlocks`
 | `tax` | Steuerberatung |
 | `legal` | Recht |
 | `restructuring-insolvency` | Sanierung & Insolvenz |
-| `consulting` | Unternehmensberatung |
+| `consulting` | Beratung (Legacy, kein aktiver Bereich) |
+| `administration` | Verwaltung |
 
 Labels und Mapping: `lib/text-blocks/types.ts` → `CONTENT_MODULES`, `getModuleLabel()`
 

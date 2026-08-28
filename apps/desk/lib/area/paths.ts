@@ -7,13 +7,14 @@ export const AREA_SLUGS: Record<AppModuleId, string> = {
   legal: "recht",
   tax: "steuer",
   "restructuring-insolvency": "sanierung-insolvenz",
-  consulting: "beratung",
+  administration: "verwaltung",
 };
 
 /** Alte / alternative Slugs → Bereich. */
 export const AREA_SLUG_ALIASES: Record<string, AppModuleId> = {
   steuerberatung: "tax",
-  unternehmensberatung: "consulting",
+  beratung: "administration",
+  unternehmensberatung: "administration",
 };
 
 const SLUG_TO_AREA = {
@@ -43,8 +44,13 @@ export function areaBasePath(area: AppModuleId): string {
 }
 
 export const FUNCTION_PATH_SEGMENTS: Record<AreaFunctionId, string> = {
+  inbox: "eingang",
+  clients: "mandanten",
+  matters: "akten",
   "text-blocks": "textbausteine",
   prompts: "prompt",
+  "prompt-kit": "prompt-baukasten",
+  letters: "schreiben",
   docs: "dokumentation",
   templates: "vorlagen",
 };

@@ -1,6 +1,9 @@
 import { TextBlocksView } from "@/components/text-blocks/text-blocks-view";
 import { requireAreaFunction } from "@/lib/area/require-function";
-import { getTextBlocks } from "@/lib/text-blocks/storage";
+import {
+  getAllTextBlockTagNames,
+  getTextBlocks,
+} from "@/lib/text-blocks/storage";
 import { filterModulesForEnabled } from "@/lib/text-blocks/types";
 
 export const dynamic = "force-dynamic";
@@ -15,15 +18,16 @@ export default async function AreaTextBlocksPage({ params }: PageProps) {
     areaSlug,
     "text-blocks"
   );
-  const items = await getTextBlocks(user.tenantId, [
-    "general",
-    area,
+  const [items, tagSuggestions] = await Promise.all([
+    getTextBlocks(user.tenantId, ["general", area]),
+    getAllTextBlockTagNames(user.tenantId),
   ]);
 
   return (
     <TextBlocksView
       initialItems={items}
       modules={filterModulesForEnabled(enabledModules)}
+      tagSuggestions={tagSuggestions}
     />
   );
 }

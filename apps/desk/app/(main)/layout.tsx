@@ -10,8 +10,12 @@ import { parseAreaFromPathname } from "@/lib/area/paths";
 import { PRODUCT_WORDMARK } from "@/lib/brand";
 import { AppShell } from "@/components/layout/app-shell";
 import { checkDatabaseConnection } from "@/lib/db/health";
+import { countInboxItems } from "@/lib/letters/storage";
 import { getTenantDisplayBrand } from "@/lib/tenant/brand";
-import { getUserEffectiveModules } from "@/lib/tenant/modules";
+import {
+  getUserAllowedFunctions,
+  getUserEffectiveModules,
+} from "@/lib/tenant/modules";
 import { isPlatformSuperAdmin } from "@/lib/tenant/session";
 
 export default async function MainLayout({
@@ -36,8 +40,14 @@ export default async function MainLayout({
     redirect("/");
   }
 
-  const [brandLabel, enabledModules, dbConnected, cookieStore] =
-    await Promise.all([
+  const [
+    brandLabel,
+    enabledModules,
+    dbConnected,
+    cookieStore,
+    inboxCount,
+    allowedFunctions,
+  ] = await Promise.all([
       isSuperAdmin
         ? Promise.resolve(PRODUCT_WORDMARK)
         : getTenantDisplayBrand(session.user.tenantId),
@@ -46,6 +56,12 @@ export default async function MainLayout({
         : getUserEffectiveModules(session.user.id, session.user.tenantId),
       checkDatabaseConnection(),
       cookies(),
+      isSuperAdmin
+        ? Promise.resolve(0)
+        : countInboxItems(session.user.tenantId, session.user.id),
+      isSuperAdmin
+        ? Promise.resolve(null)
+        : getUserAllowedFunctions(session.user.id, session.user.tenantId),
     ]);
 
   const areaFromPath = parseAreaFromPathname(pathname);
@@ -64,6 +80,8 @@ export default async function MainLayout({
       allowedAreas={enabledModules}
       initialActiveArea={initialActiveArea}
       dbConnected={dbConnected}
+      inboxCount={inboxCount}
+      allowedFunctions={allowedFunctions}
     >
       {children}
     </AppShell>

@@ -10,6 +10,7 @@ import {
   getTextBlockById,
   updateTextBlockRow,
 } from "./storage";
+import { normalizeTagList } from "@/lib/prompts/tag-utils";
 import { CONTENT_MODULES, type ContentModule, type TextBlockInput } from "./types";
 
 function isValidModule(value: string): value is ContentModule {
@@ -29,23 +30,31 @@ function validateInput(input: TextBlockInput): string | null {
   return null;
 }
 
+function normalizedInput(input: TextBlockInput): TextBlockInput {
+  return {
+    ...input,
+    tags: normalizeTagList(input.tags),
+  };
+}
+
 export async function createTextBlock(input: TextBlockInput) {
   const user = await requireSessionUser();
   if (!user) return { success: false as const, error: "Nicht angemeldet." };
 
-  const error = validateInput(input);
+  const payload = normalizedInput(input);
+  const error = validateInput(payload);
   if (error) return { success: false as const, error };
 
   const denied = await assertUserCanAccessContentModule(
     user.id,
     user.tenantId,
-    input.module
+    payload.module
   );
   if (denied) {
     return { success: false as const, error: denied };
   }
 
-  const item = await createTextBlockRow(user.tenantId, input);
+  const item = await createTextBlockRow(user.tenantId, payload);
   revalidatePath("/", "layout");
 
   return { success: true as const, item };
@@ -55,7 +64,8 @@ export async function updateTextBlock(id: string, input: TextBlockInput) {
   const user = await requireSessionUser();
   if (!user) return { success: false as const, error: "Nicht angemeldet." };
 
-  const error = validateInput(input);
+  const payload = normalizedInput(input);
+  const error = validateInput(payload);
   if (error) return { success: false as const, error };
 
   const existing = await getTextBlockById(user.tenantId, id);
@@ -75,13 +85,13 @@ export async function updateTextBlock(id: string, input: TextBlockInput) {
   const targetDenied = await assertUserCanAccessContentModule(
     user.id,
     user.tenantId,
-    input.module
+    payload.module
   );
   if (targetDenied) {
     return { success: false as const, error: targetDenied };
   }
 
-  const item = await updateTextBlockRow(user.tenantId, id, input);
+  const item = await updateTextBlockRow(user.tenantId, id, payload);
 
   if (!item) {
     return { success: false as const, error: "Textbaustein nicht gefunden." };

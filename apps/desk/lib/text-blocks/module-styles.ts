@@ -45,4 +45,11 @@ export const moduleStyles: Record<
     pill: "bg-rose-600 text-white shadow-sm shadow-rose-600/20",
     wash: "bg-gradient-to-br from-rose-50/60 via-white to-white",
   },
+  administration: {
+    badge: "bg-rose-50/90 text-rose-950 ring-rose-200/60",
+    accent: "border-l-rose-400",
+    dot: "bg-rose-500",
+    pill: "bg-rose-600 text-white shadow-sm shadow-rose-600/20",
+    wash: "bg-gradient-to-br from-rose-50/60 via-white to-white",
+  },
 };

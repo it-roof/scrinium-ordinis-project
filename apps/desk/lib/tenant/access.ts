@@ -1,6 +1,9 @@
 import { homeAreaForFunction, type AreaFunctionId } from "@/lib/area/functions";
 import { isAppModuleId, type AppModuleId } from "@/lib/modules";
-import { getUserEffectiveModules } from "@/lib/tenant/modules";
+import {
+  getUserAllowedFunctions,
+  getUserEffectiveModules,
+} from "@/lib/tenant/modules";
 
 export type ContentModuleId = "general" | AppModuleId;
 
@@ -59,7 +62,21 @@ export async function assertUserCanAccessAreaFunction(
   if (!home) {
     return DENIED;
   }
-  return assertUserCanAccessContentModule(userId, tenantId, home);
+  const moduleDenied = await assertUserCanAccessContentModule(
+    userId,
+    tenantId,
+    home
+  );
+  if (moduleDenied) {
+    return moduleDenied;
+  }
+
+  const allowedFunctions = await getUserAllowedFunctions(userId, tenantId);
+  if (allowedFunctions !== null && !allowedFunctions.includes(functionId)) {
+    return DENIED;
+  }
+
+  return null;
 }
 
 export async function assertUserCanAccessAnyContentModule(

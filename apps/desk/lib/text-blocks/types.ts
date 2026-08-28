@@ -4,15 +4,22 @@ export const CONTENT_MODULES = [
   { value: "tax", label: "Steuer" },
   { value: "restructuring-insolvency", label: "Sanierung & Insolvenz" },
   { value: "consulting", label: "Beratung" },
+  { value: "administration", label: "Verwaltung" },
 ] as const;
 
 export type ContentModule = (typeof CONTENT_MODULES)[number]["value"];
+
+export type TextBlockTag = {
+  id: string;
+  name: string;
+};
 
 export type TextBlock = {
   id: string;
   title: string;
   content: string;
   module: ContentModule;
+  tags: TextBlockTag[];
   createdAt: string;
   updatedAt: string;
 };
@@ -21,6 +28,7 @@ export type TextBlockInput = {
   title: string;
   content: string;
   module: ContentModule;
+  tags: string[];
 };
 
 export type ContentModuleOption = (typeof CONTENT_MODULES)[number];

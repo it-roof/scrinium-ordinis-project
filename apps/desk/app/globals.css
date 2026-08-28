@@ -223,8 +223,8 @@
       );
   }
 
-  /* Bereich Beratung — Rose */
-  .content-canvas-consulting {
+  /* Bereich Verwaltung — Rose */
+  .content-canvas-administration {
     background-image:
       radial-gradient(
         ellipse 80% 65% at 5% 0%,
@@ -254,7 +254,8 @@
     }
   }
 
-  .sidebar-canvas {
+  .sidebar-canvas,
+  .sidebar-canvas [data-sidebar="sidebar"] {
     background-image: linear-gradient(
       165deg,
       oklch(0.22 0.05 258) 0%,
@@ -288,13 +289,11 @@
     background: var(--card);
     box-shadow: var(--shadow-soft);
     transition:
-      transform 200ms ease,
       box-shadow 200ms ease,
       border-color 200ms ease;
   }
 
   .feature-card:hover {
-    transform: translateY(-2px);
     box-shadow: var(--shadow-elevated);
   }
 

@@ -1,8 +1,14 @@
 import {
   BookOpenIcon,
+  UserRoundIcon,
+  FilePenLineIcon,
   FileStackIcon,
   FileTextIcon,
+  FolderOpenIcon,
   HomeIcon,
+  InboxIcon,
+  ScaleIcon,
+  SettingsIcon,
   ShieldIcon,
   SparklesIcon,
   type LucideIcon,
@@ -27,12 +33,39 @@ export type NavItem = {
 export const navigation: NavItem[] = [
   {
     href: "/",
-    label: "Start",
-    description: "Startseite des gewählten Bereichs",
+    label: "Schreibtisch",
+    description: "Schreibtisch des gewählten Bereichs",
     icon: HomeIcon,
     accent: "bg-violet-400/25 text-violet-100",
     activeClass:
       "data-[active=true]:bg-violet-400/10 data-[active=true]:shadow-[inset_0_0_0_1px_oklch(0.7_0.12_290/0.22)]",
+  },
+  {
+    href: "/eingang",
+    label: "Eingang",
+    description: "Zugewiesene Aufgaben und Freigaben",
+    icon: InboxIcon,
+    accent: "bg-amber-400/25 text-amber-100",
+    activeClass:
+      "data-[active=true]:bg-amber-400/10 data-[active=true]:shadow-[inset_0_0_0_1px_oklch(0.78_0.12_85/0.25)]",
+  },
+  {
+    href: "/mandanten",
+    label: "Mandanten",
+    description: "Firmen und Privatpersonen",
+    icon: UserRoundIcon,
+    accent: "bg-cyan-400/25 text-cyan-100",
+    activeClass:
+      "data-[active=true]:bg-cyan-400/10 data-[active=true]:shadow-[inset_0_0_0_1px_oklch(0.7_0.1_200/0.25)]",
+  },
+  {
+    href: "/akten",
+    label: "Akten",
+    description: "Alle Akten im Überblick",
+    icon: FolderOpenIcon,
+    accent: "bg-sky-400/25 text-sky-100",
+    activeClass:
+      "data-[active=true]:bg-sky-400/10 data-[active=true]:shadow-[inset_0_0_0_1px_oklch(0.7_0.1_220/0.25)]",
   },
   {
     href: "/textbausteine",
@@ -45,12 +78,30 @@ export const navigation: NavItem[] = [
   },
   {
     href: "/prompt",
-    label: "Prompt",
+    label: "Prompt-Bibliothek",
     description: "Gespeicherte KI-Prompts",
     icon: SparklesIcon,
     accent: "bg-violet-400/25 text-violet-100",
     activeClass:
       "data-[active=true]:bg-violet-400/10 data-[active=true]:shadow-[inset_0_0_0_1px_oklch(0.7_0.12_290/0.25)]",
+  },
+  {
+    href: "/prompt-baukasten",
+    label: "Sachverhalt verarbeiten",
+    description: "Fallschilderung eingeben und daraus einen KI-Prompt erzeugen",
+    icon: ScaleIcon,
+    accent: "bg-indigo-400/25 text-indigo-100",
+    activeClass:
+      "data-[active=true]:bg-indigo-400/10 data-[active=true]:shadow-[inset_0_0_0_1px_oklch(0.7_0.12_275/0.25)]",
+  },
+  {
+    href: "/schreiben",
+    label: "Schreiben erstellen",
+    description: "Entwürfe mit Platzhaltern, PDF und Word",
+    icon: FilePenLineIcon,
+    accent: "bg-rose-400/25 text-rose-100",
+    activeClass:
+      "data-[active=true]:bg-rose-400/10 data-[active=true]:shadow-[inset_0_0_0_1px_oklch(0.7_0.12_20/0.25)]",
   },
   {
     href: "/dokumentation",
@@ -75,16 +126,50 @@ export const navigation: NavItem[] = [
 export const platformNavItem: NavItem = {
   href: "/platform",
   label: "Plattform",
-  description: "Tenants und Benutzer verwalten",
+  description: "Kanzleien und Benutzer verwalten",
   icon: ShieldIcon,
   accent: "bg-amber-400/25 text-amber-100",
   activeClass:
     "data-[active=true]:bg-amber-400/10 data-[active=true]:shadow-[inset_0_0_0_1px_oklch(0.78_0.1_82/0.28)]",
 };
 
+export const settingsNavItem: NavItem = {
+  href: "/einstellungen",
+  label: "Einstellungen",
+  description: "",
+  icon: SettingsIcon,
+  accent: "bg-slate-400/25 text-slate-100",
+  activeClass:
+    "data-[active=true]:bg-slate-400/10 data-[active=true]:shadow-[inset_0_0_0_1px_oklch(0.7_0.02_250/0.25)]",
+};
+
 export function getPageMeta(pathname: string): NavItem {
+  if (pathname.startsWith("/einstellungen")) {
+    return {
+      ...settingsNavItem,
+      areaHref: "/einstellungen",
+      areaLabel: "Konto",
+      pageLabel: "Einstellungen",
+      description: "",
+    };
+  }
+
+  if (pathname.startsWith("/platform/tenants/")) {
+    return {
+      ...platformNavItem,
+      areaHref: "/platform",
+      areaLabel: "Kanzleien",
+      pageLabel: "Details",
+      description: "",
+    };
+  }
+
   if (pathname.startsWith("/platform")) {
-    return platformNavItem;
+    return {
+      ...platformNavItem,
+      label: "Kanzleien",
+      description: "Mandanten der Plattform",
+    };
   }
 
   const segments = pathname.split("/").filter(Boolean);
@@ -95,33 +180,39 @@ export function getPageMeta(pathname: string): NavItem {
     const areaLabel =
       APP_MODULES.find((module) => module.id === area)?.label ??
       slugForArea(area);
+    const pageSegment = segments[1];
     const bySegment = navigation.find(
-      (item) => item.href === `/${segments[1]}`
+      (item) => item.href === `/${pageSegment}`
     );
     if (bySegment) {
+      const isMatterDetail =
+        pageSegment === "akten" && segments.length >= 3;
+      const pageLabel = isMatterDetail ? "Akte" : bySegment.label;
       return {
         ...bySegment,
-        label: `${areaLabel} / ${bySegment.label}`,
+        label: `${areaLabel} / ${pageLabel}`,
         description: "",
         areaHref: areaBasePath(area),
         areaLabel,
-        pageLabel: bySegment.label,
+        pageLabel,
       };
     }
   }
 
-  // /recht → Startseite (Bereich)
+  // /recht → Schreibtisch (Bereich)
   if (segments.length === 1 && areaFromSlug(segments[0])) {
     return {
       ...navigation[0],
-      label: "Startseite",
+      label: "Schreibtisch",
       description: "",
     };
   }
 
   const match =
     navigation.find((item) =>
-      item.href === "/" ? pathname === "/" : pathname.startsWith(item.href)
+      item.href === "/"
+        ? pathname === "/"
+        : pathname === item.href || pathname.startsWith(`${item.href}/`)
     ) ?? navigation[0];
 
   return match;

@@ -8,7 +8,12 @@ Interne Dokumentation für Entwickler und Agenten. **Code und DB auf Englisch**,
 |-------|---------|-------|--------|
 | [Textbausteine](./modules/text-blocks.md) | Textbausteine | `/textbausteine` | ✅ aktiv |
 | [Dokumentation](./modules/documentation.md) | Dokumentation | `/dokumentation` | ✅ aktiv |
-| [Prompt](./modules/prompts.md) | Prompt | `/prompt` | ✅ aktiv |
+| [Prompt](./modules/prompts.md) | Prompt-Bibliothek | `/prompt` | ✅ aktiv |
+| [Prompt-Baukasten](./modules/prompt-kit.md) | Sachverhalt verarbeiten | `/recht/prompt-baukasten` | ✅ aktiv |
+| [Schreiben](./modules/letters.md) | Schreiben | `/recht/schreiben` | ✅ aktiv |
+| [Arbeitsbereich](./modules/workspace.md) | Eingang / Mandanten / Akten | `/recht/eingang`, `/recht/mandanten` | ✅ aktiv |
+| [SMTP-Einstellungen](./modules/smtp-settings.md) | Einstellungen (SMTP) | `/einstellungen` | ✅ aktiv |
+| [Konto-Einstellungen](./modules/settings.md) | Einstellungen (Konto) | `/einstellungen` | ✅ aktiv |
 
 ## Konventionen
 

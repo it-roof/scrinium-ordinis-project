@@ -1,0 +1,1 @@
+ALTER TABLE "letters" ADD COLUMN "assignment_note" text DEFAULT '' NOT NULL;

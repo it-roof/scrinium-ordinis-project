@@ -19,3 +19,12 @@ export const SITE_TAGLINE = PRODUCT_TAGLINE;
 /** Seed / Default-Tenant (erste Kunden-Kanzlei auf der Plattform) */
 export const DEFAULT_TENANT_NAME = "Dr. Schneiderbanger & Kollegen";
 export const DEFAULT_TENANT_SLUG = "schneiderbanger";
+
+/** Produkt-Support (IT Roof) — Desk-Header */
+export const SUPPORT_CONTACT = {
+  name: "Jason Kleuster",
+  company: "IT Roof",
+  phone: "0175 8793838",
+  phoneHref: "tel:+491758793838",
+  email: "jason.kleuster@it-roof.com",
+} as const;

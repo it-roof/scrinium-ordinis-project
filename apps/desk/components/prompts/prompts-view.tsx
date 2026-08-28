@@ -126,7 +126,7 @@ export function PromptsView({ initialItems }: PromptsViewProps) {
     <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-8">
       <PageHeader
         eyebrow="KI & Automatisierung"
-        title="Prompt"
+        title="Prompt-Bibliothek"
         description="Gespeicherte Prompt-Texte für wiederkehrende Aufgaben — mit Tags organisieren und mit einem Klick kopieren."
       >
         <Button

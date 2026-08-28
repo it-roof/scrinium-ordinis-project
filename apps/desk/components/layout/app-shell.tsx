@@ -11,14 +11,17 @@ import {
   useOptionalActiveArea,
 } from "@/components/layout/active-area-provider";
 import { AreaSwitcher } from "@/components/layout/area-switcher";
-import { DbConnectionStatus } from "@/components/layout/db-connection-status";
+import { HeaderUtilityNav } from "@/components/layout/header-utility-nav";
 import {
   AREA_ACCENT_DOT,
   canvasClassForArea,
 } from "@/lib/area/canvas";
 import { areaBasePath } from "@/lib/area/paths";
-import { getPageMeta, platformNavItem, type NavItem } from "@/lib/navigation";
-import { navigationForArea } from "@/lib/area/functions";
+import { getPageMeta, platformNavItem, settingsNavItem, type NavItem } from "@/lib/navigation";
+import {
+  navigationGroupsForArea,
+  type AreaFunctionId,
+} from "@/lib/area/functions";
 import type { ActiveArea } from "@/lib/area/active-area";
 import type { AppModuleId } from "@/lib/modules";
 import type { PlatformRole, UserRole } from "@/lib/db/schema";
@@ -49,6 +52,8 @@ export function AppShell({
   allowedAreas,
   initialActiveArea,
   dbConnected,
+  inboxCount = 0,
+  allowedFunctions = null,
 }: {
   children: React.ReactNode;
   user: {
@@ -62,6 +67,8 @@ export function AppShell({
   allowedAreas: AppModuleId[];
   initialActiveArea: ActiveArea;
   dbConnected: boolean;
+  inboxCount?: number;
+  allowedFunctions?: AreaFunctionId[] | null;
 }) {
   const pathname = usePathname();
   const page = getPageMeta(pathname);
@@ -71,8 +78,7 @@ export function AppShell({
     <TooltipProvider>
       <SidebarProvider>
         <Sidebar
-          variant="inset"
-          className="sidebar-canvas border-r-0 text-sidebar-foreground"
+          className="sidebar-canvas border-r border-sidebar-border/40 text-sidebar-foreground"
         >
           <SidebarHeader className="px-4 py-5">
             {isSuperAdmin ? (
@@ -91,21 +97,25 @@ export function AppShell({
           </SidebarHeader>
 
           <SidebarContent className="px-2">
-            <SidebarGroup>
-              <SidebarGroupLabel className="px-3 text-[0.68rem] tracking-[0.16em] text-sidebar-foreground/45 uppercase">
-                {isSuperAdmin ? "Verwaltung" : "Funktionen"}
-              </SidebarGroupLabel>
-              <SidebarGroupContent>
-                {isSuperAdmin ? (
+            {isSuperAdmin ? (
+              <SidebarGroup>
+                <SidebarGroupLabel className="px-3 text-[0.68rem] tracking-[0.16em] text-sidebar-foreground/45 uppercase">
+                  Verwaltung
+                </SidebarGroupLabel>
+                <SidebarGroupContent>
                   <SidebarNavItems
                     items={[platformNavItem]}
                     pathname={pathname}
                   />
-                ) : (
-                  <TenantFunctionNav pathname={pathname} />
-                )}
-              </SidebarGroupContent>
-            </SidebarGroup>
+                </SidebarGroupContent>
+              </SidebarGroup>
+            ) : (
+              <TenantFunctionNav
+                pathname={pathname}
+                inboxCount={inboxCount}
+                allowedFunctions={allowedFunctions}
+              />
+            )}
           </SidebarContent>
 
           <SidebarFooter className="space-y-3 border-t border-sidebar-border/80 p-4">
@@ -117,6 +127,35 @@ export function AppShell({
                 {user.email}
               </p>
             </div>
+            {!isSuperAdmin ? (
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={pathname.startsWith("/einstellungen")}
+                    tooltip={settingsNavItem.label}
+                    className={cn(
+                      "h-10 rounded-full px-3 transition-colors",
+                      settingsNavItem.activeClass
+                    )}
+                  >
+                    <Link href="/einstellungen">
+                      <span
+                        className={cn(
+                          "flex size-6 items-center justify-center rounded-full",
+                          pathname.startsWith("/einstellungen")
+                            ? settingsNavItem.accent
+                            : "bg-white/5 text-inherit"
+                        )}
+                      >
+                        <settingsNavItem.icon className="size-3.5" />
+                      </span>
+                      <span className="font-medium">{settingsNavItem.label}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            ) : null}
             <SignOutButton />
           </SidebarFooter>
           <SidebarRail />
@@ -168,11 +207,12 @@ function AreaContentInset({
       ? "bg-amber-400"
       : "bg-violet-400"
     : AREA_ACCENT_DOT[activeArea];
+  const showAccentDot = !page.href.startsWith("/einstellungen");
 
   return (
     <SidebarInset
       className={cn(
-        "md:rounded-none transition-[background-image] duration-300",
+        "transition-[background-image] duration-300",
         isSuperAdmin ? "content-canvas" : canvasClassForArea(activeArea)
       )}
     >
@@ -183,12 +223,14 @@ function AreaContentInset({
             orientation="vertical"
             className="hidden h-4 sm:block"
           />
-          <span
-            className={cn(
-              "hidden size-2 shrink-0 rounded-full sm:block",
-              accentDot
-            )}
-          />
+          {showAccentDot ? (
+            <span
+              className={cn(
+                "hidden size-2 shrink-0 rounded-full sm:block",
+                accentDot
+              )}
+            />
+          ) : null}
           <div className="min-w-0">
             <p className="truncate font-heading text-sm font-medium tracking-tight">
               {page.areaHref && page.areaLabel && page.pageLabel ? (
@@ -217,7 +259,7 @@ function AreaContentInset({
           {showAreaSwitcher ? <AreaSwitcher /> : null}
         </div>
         <div className="justify-self-end">
-          <DbConnectionStatus connected={dbConnected} />
+          <HeaderUtilityNav dbConnected={dbConnected} />
         </div>
       </header>
 
@@ -250,22 +292,52 @@ function TenantBrandHome({ brandLabel }: { brandLabel: string }) {
   );
 }
 
-function TenantFunctionNav({ pathname }: { pathname: string }) {
+function TenantFunctionNav({
+  pathname,
+  inboxCount,
+  allowedFunctions,
+}: {
+  pathname: string;
+  inboxCount: number;
+  allowedFunctions: AreaFunctionId[] | null;
+}) {
   const { activeArea } = useActiveArea();
+  const groups = navigationGroupsForArea(activeArea, allowedFunctions);
+
   return (
-    <SidebarNavItems
-      items={navigationForArea(activeArea)}
-      pathname={pathname}
-    />
+    <>
+      {groups.map((group) => (
+        <SidebarGroup key={group.label || "pinned"}>
+          {group.label ? (
+            <SidebarGroupLabel className="px-3 text-[0.68rem] tracking-[0.16em] text-sidebar-foreground/45 uppercase">
+              {group.label}
+            </SidebarGroupLabel>
+          ) : null}
+          <SidebarGroupContent>
+            <SidebarNavItems
+              items={group.items}
+              pathname={pathname}
+              inboxCount={inboxCount}
+            />
+          </SidebarGroupContent>
+        </SidebarGroup>
+      ))}
+    </>
   );
+}
+
+function isInboxNavHref(href: string) {
+  return href === "/eingang" || href.endsWith("/eingang");
 }
 
 function SidebarNavItems({
   items,
   pathname,
+  inboxCount = 0,
 }: {
   items: NavItem[];
   pathname: string;
+  inboxCount?: number;
 }) {
   return (
     <SidebarMenu>
@@ -276,29 +348,49 @@ function SidebarNavItems({
             ? pathname === "/"
             : isAreaStart
               ? pathname === item.href
-              : pathname.startsWith(item.href);
+              : pathname === item.href ||
+                pathname.startsWith(`${item.href}/`);
+        const showInboxCount = isInboxNavHref(item.href) && inboxCount > 0;
 
         return (
           <SidebarMenuItem key={item.href}>
             <SidebarMenuButton
               asChild
               isActive={isActive}
-              tooltip={item.label}
+              tooltip={
+                showInboxCount
+                  ? `${item.label} (${inboxCount})`
+                  : item.label
+              }
               className={cn(
                 "h-10 rounded-full px-3 transition-colors",
                 item.activeClass
               )}
             >
-              <Link href={item.href}>
+              <Link href={item.href} className="w-full">
                 <span
                   className={cn(
-                    "flex size-6 items-center justify-center rounded-full",
+                    "flex size-6 shrink-0 items-center justify-center rounded-full",
                     isActive ? item.accent : "bg-white/5 text-inherit"
                   )}
                 >
                   <item.icon className="size-3.5" />
                 </span>
-                <span className="font-medium">{item.label}</span>
+                <span className="min-w-0 flex-1 truncate font-medium">
+                  {item.label}
+                </span>
+                {showInboxCount ? (
+                  <div
+                    className={cn(
+                      "ml-auto flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full px-1.5 text-[0.68rem] font-semibold tabular-nums",
+                      isActive
+                        ? "bg-amber-400/30 text-amber-50"
+                        : "bg-amber-400/20 text-amber-100/90"
+                    )}
+                  >
+                    {inboxCount}
+                  </div>
+                ) : null}
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>

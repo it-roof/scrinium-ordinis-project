@@ -5,7 +5,7 @@ export const APP_MODULES = [
     label: "Recht",
     chipColor: "bg-indigo-400",
     startDescription:
-      "Textbausteine und Prompts für die Rechtsberatung.",
+      "Eingang, Mandanten, Akten und Werkzeuge für die Rechtsberatung.",
   },
   {
     id: "tax",
@@ -22,8 +22,8 @@ export const APP_MODULES = [
       "Für diesen Bereich sind noch keine Funktionen freigeschaltet.",
   },
   {
-    id: "consulting",
-    label: "Beratung",
+    id: "administration",
+    label: "Verwaltung",
     chipColor: "bg-rose-400",
     startDescription:
       "Für diesen Bereich sind noch keine Funktionen freigeschaltet.",

@@ -90,11 +90,10 @@ export function EditTenantForm({
     <form onSubmit={onSubmit} className="surface-card space-y-4 p-6">
       <div>
         <h2 className="font-heading text-lg font-medium tracking-tight">
-          Kanzlei bearbeiten
+          Einstellungen
         </h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Name, Slug, App-Label, Domain und Module. Fachdaten anderer Kanzleien
-          bleiben unberührt.
+          Name, Kurzname, App-Label, Domain und Module dieser Kanzlei.
         </p>
       </div>
 
@@ -110,7 +109,7 @@ export function EditTenantForm({
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="edit-tenant-slug">Slug</Label>
+          <Label htmlFor="edit-tenant-slug">Kurzname</Label>
           <Input
             id="edit-tenant-slug"
             value={slug}

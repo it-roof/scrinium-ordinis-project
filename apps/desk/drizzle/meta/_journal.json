@@ -134,6 +134,111 @@
       "when": 1786494441470,
       "tag": "0018_red_christian_walker",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1787842564419,
+      "tag": "0019_yummy_satana",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1787843482949,
+      "tag": "0020_mixed_psylocke",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1787847138503,
+      "tag": "0021_slow_starfox",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1787852744313,
+      "tag": "0022_curly_rumiko_fujikawa",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1787855508143,
+      "tag": "0023_absurd_vivisector",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1787868992955,
+      "tag": "0024_violet_sebastian_shaw",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1787869621730,
+      "tag": "0025_unknown_valeria_richards",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1787870636237,
+      "tag": "0026_panoramic_meggan",
+      "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1787872273007,
+      "tag": "0027_handy_prima",
+      "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1787872401500,
+      "tag": "0028_gigantic_kang",
+      "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1787872732832,
+      "tag": "0029_dashing_changeling",
+      "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1787874000000,
+      "tag": "0030_person_first_last_name",
+      "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1787874066261,
+      "tag": "0031_orange_plazm",
+      "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1787875861449,
+      "tag": "0032_material_wolf_cub",
+      "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1787876226737,
+      "tag": "0033_exotic_katie_power",
+      "breakpoints": true
     }
   ]
 }

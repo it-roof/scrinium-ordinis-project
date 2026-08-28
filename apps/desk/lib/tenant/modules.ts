@@ -1,6 +1,10 @@
 import { cache } from "react";
 import { and, eq } from "drizzle-orm";
 
+import {
+  normalizeOptionalAllowedFunctions,
+  type AreaFunctionId,
+} from "@/lib/area/functions";
 import { db } from "@/lib/db";
 import { tenants, users } from "@/lib/db/schema";
 import {
@@ -46,5 +50,28 @@ export const getUserEffectiveModules = cache(
       tenantModules,
       normalizeOptionalAllowedModules(row.allowedModules)
     );
+  }
+);
+
+/**
+ * Optionale Funktions-Allowlist des Users.
+ * null = alle Funktionen der freigeschalteten Bereiche.
+ */
+export const getUserAllowedFunctions = cache(
+  async (
+    userId: string,
+    tenantId: string
+  ): Promise<AreaFunctionId[] | null> => {
+    const [row] = await db
+      .select({ allowedFunctions: users.allowedFunctions })
+      .from(users)
+      .where(and(eq(users.id, userId), eq(users.tenantId, tenantId)))
+      .limit(1);
+
+    if (!row) {
+      return null;
+    }
+
+    return normalizeOptionalAllowedFunctions(row.allowedFunctions);
   }
 );

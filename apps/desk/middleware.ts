@@ -33,9 +33,12 @@ export function middleware(request: NextRequest) {
   }
 
   const isLoginPage = pathname === "/login";
+  const isPasswordResetPage =
+    pathname === "/passwort-vergessen" ||
+    pathname === "/passwort-zuruecksetzen";
   const isLoggedIn = hasAuthSessionCookie(request.cookies);
 
-  if (isLoginPage) {
+  if (isLoginPage || isPasswordResetPage) {
     // Kein Redirect anhand Cookie allein — sonst Loop hinter Coolify, wenn
     // Cookie-Name und auth() nicht übereinstimmen. Die Login-Page prüft auth().
     const response = NextResponse.next({

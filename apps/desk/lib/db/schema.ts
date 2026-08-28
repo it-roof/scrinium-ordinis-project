@@ -1,5 +1,6 @@
 import {
   type AnyPgColumn,
+  index,
   integer,
   jsonb,
   pgEnum,
@@ -20,12 +21,24 @@ export const moduleEnum = pgEnum("module", [
   "legal",
   "restructuring-insolvency",
   "consulting",
+  "administration",
 ]);
 
 export const roleEnum = pgEnum("user_role", ["admin", "employee"]);
 
+/** Mandant: Firma oder Privatperson. */
+export const clientKindEnum = pgEnum("client_kind", ["company", "person"]);
+
 /** Plattform-weit (nicht Kanzlei-Admin). Nur Tenant-/User-Verwaltung, keine Fachdaten anderer Tenants. */
 export const platformRoleEnum = pgEnum("platform_role", ["super_admin"]);
+
+/** Workflow-Status für Schreiben (Delegation / Freigabe / Versand). */
+export const letterStatusEnum = pgEnum("letter_status", [
+  "entwurf",
+  "zur_pruefung",
+  "freigegeben",
+  "versendet",
+]);
 
 /** Eine Kanzlei = ein Tenant auf der Multi-Tenant-Plattform. */
 export const tenants = pgTable("tenants", {
@@ -62,6 +75,11 @@ export const users = pgTable("users", {
    * null = alle Module der Kanzlei; sonst Schnittmenge mit tenants.enabled_modules.
    */
   allowedModules: jsonb("allowed_modules").$type<AppModuleId[] | null>(),
+  /**
+   * Optional: erlaubte App-Funktionen (z. B. Prompt-Bibliothek nur für Anwälte).
+   * null = alle Funktionen der freigeschalteten Bereiche; sonst Allowlist.
+   */
+  allowedFunctions: jsonb("allowed_functions").$type<string[] | null>(),
   emailVerified: timestamp("email_verified", { mode: "date" }),
   image: text("image"),
   createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
@@ -130,6 +148,43 @@ export const textBlocks = pgTable("text_blocks", {
     .notNull()
     .defaultNow(),
 });
+
+export const textBlockTags = pgTable(
+  "text_block_tags",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    tenantNameUnique: uniqueIndex("text_block_tags_tenant_name_unique").on(
+      table.tenantId,
+      table.name
+    ),
+  })
+);
+
+export const textBlockTagAssignments = pgTable(
+  "text_block_tag_assignments",
+  {
+    textBlockId: uuid("text_block_id")
+      .notNull()
+      .references(() => textBlocks.id, { onDelete: "cascade" }),
+    tagId: uuid("tag_id")
+      .notNull()
+      .references(() => textBlockTags.id, { onDelete: "cascade" }),
+  },
+  (assignment) => ({
+    compositePk: primaryKey({
+      columns: [assignment.textBlockId, assignment.tagId],
+    }),
+  })
+);
 
 export const prompts = pgTable("prompts", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -321,8 +376,236 @@ export const authLoginAttempts = pgTable("auth_login_attempts", {
     .defaultNow(),
 });
 
+/** Einmal-Token für Passwort-Reset per E-Mail-Link. Nur Hash speichern. */
+export const passwordResetTokens = pgTable(
+  "password_reset_tokens",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    tokenHash: text("token_hash").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true, mode: "string" })
+      .notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    tokenHashUnique: uniqueIndex("password_reset_tokens_token_hash_unique").on(
+      table.tokenHash
+    ),
+    userIdIdx: index("password_reset_tokens_user_id_idx").on(table.userId),
+  })
+);
+
+/**
+ * Persönliche SMTP-Zugangsdaten pro Benutzer (Versand „als ich selbst“).
+ * Felder optional — schrittweises Ausfüllen. Passwort nur verschlüsselt.
+ * App filtert immer auf Session-user_id.
+ */
+export const userSmtpSettings = pgTable(
+  "user_smtp_settings",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    host: text("host"),
+    port: integer("port"),
+    username: text("username"),
+    passwordEncrypted: text("password_encrypted"),
+    fromName: text("from_name"),
+    fromEmail: text("from_email"),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    userIdUnique: uniqueIndex("user_smtp_settings_user_id_unique").on(
+      table.userId
+    ),
+    tenantIdIdx: index("user_smtp_settings_tenant_id_idx").on(table.tenantId),
+  })
+);
+
+/** Mandant = Firma oder Privatperson (Stammdaten, bereichsgetrennt). */
+export const clients = pgTable(
+  "clients",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    module: moduleEnum("module").notNull().default("legal"),
+    kind: clientKindEnum("kind").notNull().default("company"),
+    /**
+     * Anzeigename: Firmenname bzw. „Vorname Nachname“ bei Privatperson
+     * (für Liste/Suche, wird bei Privatperson aus Vor-/Nachname gesetzt).
+     */
+    name: text("name").notNull(),
+    salutation: text("salutation").notNull().default(""),
+    firstName: text("first_name").notNull().default(""),
+    lastName: text("last_name").notNull().default(""),
+    street: text("street").notNull().default(""),
+    postalCode: text("postal_code").notNull().default(""),
+    city: text("city").notNull().default(""),
+    country: text("country").notNull().default("Deutschland"),
+    email: text("email").notNull().default(""),
+    phone: text("phone").notNull().default(""),
+    mobile: text("mobile").notNull().default(""),
+    notes: text("notes").notNull().default(""),
+    createdBy: uuid("created_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    tenantIdIdx: index("clients_tenant_id_idx").on(table.tenantId),
+    moduleIdx: index("clients_module_idx").on(table.module),
+    kindIdx: index("clients_kind_idx").on(table.kind),
+  })
+);
+
+/** Kontaktperson einer Firma (nur bei clients.kind = company). */
+export const clientPersons = pgTable(
+  "client_persons",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    clientId: uuid("client_id")
+      .notNull()
+      .references(() => clients.id, { onDelete: "cascade" }),
+    /** Anrede, z. B. Herr / Frau */
+    salutation: text("salutation").notNull().default(""),
+    firstName: text("first_name").notNull().default(""),
+    lastName: text("last_name").notNull().default(""),
+    /** Rolle / Funktion in der Firma, z. B. Geschäftsführer */
+    role: text("role").notNull().default(""),
+    street: text("street").notNull().default(""),
+    postalCode: text("postal_code").notNull().default(""),
+    city: text("city").notNull().default(""),
+    country: text("country").notNull().default("Deutschland"),
+    email: text("email").notNull().default(""),
+    phone: text("phone").notNull().default(""),
+    mobile: text("mobile").notNull().default(""),
+    notes: text("notes").notNull().default(""),
+    createdBy: uuid("created_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    tenantIdIdx: index("client_persons_tenant_id_idx").on(table.tenantId),
+    clientIdIdx: index("client_persons_client_id_idx").on(table.clientId),
+  })
+);
+
+/** Akte / Mandat — mehrere pro Mandant (Firma oder Privatperson). */
+export const matters = pgTable(
+  "matters",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    module: moduleEnum("module").notNull().default("legal"),
+    clientId: uuid("client_id")
+      .notNull()
+      .references(() => clients.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    reference: text("reference").notNull().default(""),
+    notes: text("notes").notNull().default(""),
+    createdBy: uuid("created_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    tenantIdIdx: index("matters_tenant_id_idx").on(table.tenantId),
+    clientIdIdx: index("matters_client_id_idx").on(table.clientId),
+    moduleIdx: index("matters_module_idx").on(table.module),
+  })
+);
+
+/** Anwaltsschreiben / E-Mail / Vermerk — Textentwurf mit Export PDF/Word. */
+export const letters = pgTable(
+  "letters",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    module: moduleEnum("module").notNull().default("legal"),
+    matterId: uuid("matter_id").references(() => matters.id, {
+      onDelete: "set null",
+    }),
+    createdBy: uuid("created_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    /** Aktuell zuständig — Anwalt oder Mitarbeiter (bidirektional). */
+    assignedTo: uuid("assigned_to").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    status: letterStatusEnum("status").notNull().default("entwurf"),
+    title: text("title").notNull(),
+    /** schreiben | email | vermerk */
+    kind: text("kind").notNull().default("schreiben"),
+    subject: text("subject").notNull().default(""),
+    salutation: text("salutation").notNull().default(""),
+    body: text("body").notNull().default(""),
+    closing: text("closing").notNull().default(""),
+    /** Empfänger für E-Mail-Versand (optional). */
+    recipientEmail: text("recipient_email").notNull().default(""),
+    /** Anweisung an die zugewiesene Person (Delegierung). */
+    assignmentNote: text("assignment_note").notNull().default(""),
+    sentAt: timestamp("sent_at", { withTimezone: true, mode: "string" }),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    tenantIdIdx: index("letters_tenant_id_idx").on(table.tenantId),
+    assignedToIdx: index("letters_assigned_to_idx").on(table.assignedTo),
+    statusIdx: index("letters_status_idx").on(table.status),
+    matterIdIdx: index("letters_matter_id_idx").on(table.matterId),
+  })
+);
+
 export type Tenant = typeof tenants.$inferSelect;
 export type User = typeof users.$inferSelect;
 export type UserRole = (typeof roleEnum.enumValues)[number];
 export type PlatformRole = (typeof platformRoleEnum.enumValues)[number];
 export type ContentModule = (typeof moduleEnum.enumValues)[number];
+export type UserSmtpSettings = typeof userSmtpSettings.$inferSelect;
+export type Letter = typeof letters.$inferSelect;
+export type LetterStatus = (typeof letterStatusEnum.enumValues)[number];
+export type Client = typeof clients.$inferSelect;
+export type ClientPerson = typeof clientPersons.$inferSelect;
+export type Matter = typeof matters.$inferSelect;
