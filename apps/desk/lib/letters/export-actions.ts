@@ -5,8 +5,40 @@ import { requireSessionUser } from "@/lib/tenant/session";
 
 import { letterFilename } from "./document-model";
 import { buildLetterDocx } from "./export-docx";
-import { buildLetterPdf } from "./export-pdf";
+import { buildLetterPdf, buildMarkdownPdf } from "./export-pdf";
 import { getLetterById } from "./storage";
+
+export async function exportMarkdownPreviewPdf(markdown: string) {
+  const user = await requireSessionUser();
+  if (!user) {
+    return { success: false as const, error: "Nicht angemeldet." };
+  }
+
+  const denied = await assertUserCanAccessAreaFunction(
+    user.id,
+    user.tenantId,
+    "prompt-kit"
+  );
+  if (denied) {
+    return { success: false as const, error: denied };
+  }
+
+  const text = markdown.trim();
+  if (!text) {
+    return {
+      success: false as const,
+      error: "Bitte Markdown-Inhalt einfügen.",
+    };
+  }
+
+  const buffer = await buildMarkdownPdf(text);
+  return {
+    success: true as const,
+    filename: letterFilename("dokument", "pdf"),
+    base64: buffer.toString("base64"),
+    mimeType: "application/pdf",
+  };
+}
 
 export async function exportLetterPdf(id: string) {
   const user = await requireSessionUser();

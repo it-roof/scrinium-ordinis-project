@@ -1,19 +1,26 @@
 import { and, asc, count, desc, eq, ne } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 
 import { clients, letters, matters, users } from "@/lib/db/schema";
 import { withTenantDb } from "@/lib/tenant/db";
 
 import {
+  INBOX_ACTION_LABELS,
   isLetterKind,
   isLetterStatus,
+  LETTER_KIND_LABELS,
   LETTER_STATUS_LABELS,
+  type InboxItem,
   type LetterColleague,
   type LetterInput,
   type LetterRecord,
 } from "./types";
-import type { InboxItem } from "@/lib/clients/types";
 import type { AppModuleId } from "@/lib/modules";
 import { normalizeOptionalAllowedModules } from "@/lib/modules";
+
+const assigneeUser = alias(users, "assignee_user");
+const assignerUser = alias(users, "assigner_user");
+const creatorUser = alias(users, "creator_user");
 
 type LetterRow = typeof letters.$inferSelect;
 
@@ -44,6 +51,7 @@ function toLetter(
     matterTitle: meta?.matterTitle ?? null,
     clientName: meta?.clientName ?? null,
     recipientEmail: row.recipientEmail ?? "",
+    ccEmail: row.ccEmail ?? "",
     assignmentNote: row.assignmentNote ?? "",
     sentAt: row.sentAt,
     createdAt: row.createdAt,
@@ -91,64 +99,87 @@ export async function getLetters(
 
 export async function countInboxItems(
   tenantId: string,
-  userId: string
+  userId: string,
+  module?: AppModuleId
 ): Promise<number> {
   return withTenantDb(tenantId, async (tx) => {
+    const conditions = [
+      eq(letters.tenantId, tenantId),
+      eq(letters.assignedTo, userId),
+      ne(letters.status, "versendet"),
+    ];
+    if (module) {
+      conditions.push(eq(letters.module, module));
+    }
     const [row] = await tx
       .select({ value: count() })
       .from(letters)
-      .where(
-        and(
-          eq(letters.tenantId, tenantId),
-          eq(letters.assignedTo, userId),
-          ne(letters.status, "versendet")
-        )
-      );
+      .where(and(...conditions));
     return row?.value ?? 0;
   });
 }
 
 export async function getInboxItems(
   tenantId: string,
-  userId: string
+  userId: string,
+  module?: AppModuleId
 ): Promise<InboxItem[]> {
   return withTenantDb(tenantId, async (tx) => {
+    const conditions = [
+      eq(letters.tenantId, tenantId),
+      eq(letters.assignedTo, userId),
+      ne(letters.status, "versendet"),
+    ];
+    if (module) {
+      conditions.push(eq(letters.module, module));
+    }
+
     const rows = await tx
       .select({
         letter: letters,
-        assigneeName: users.name,
+        assignerName: assignerUser.name,
+        creatorName: creatorUser.name,
         matterTitle: matters.title,
         clientName: clients.name,
       })
       .from(letters)
-      .leftJoin(users, eq(letters.assignedTo, users.id))
+      .leftJoin(assignerUser, eq(letters.assignedBy, assignerUser.id))
+      .leftJoin(creatorUser, eq(letters.createdBy, creatorUser.id))
       .leftJoin(matters, eq(letters.matterId, matters.id))
       .leftJoin(clients, eq(matters.clientId, clients.id))
-      .where(
-        and(eq(letters.tenantId, tenantId), eq(letters.assignedTo, userId))
-      )
+      .where(and(...conditions))
       .orderBy(desc(letters.updatedAt));
 
-    return rows
-      .filter((row) => row.letter.status !== "versendet")
-      .map((row) => {
-        const status = isLetterStatus(row.letter.status)
-          ? row.letter.status
-          : "entwurf";
-        return {
-          id: row.letter.id,
-          title: row.letter.title,
-          kind: row.letter.kind,
-          status,
-          statusLabel: LETTER_STATUS_LABELS[status],
-          assignedToName: row.assigneeName,
-          matterId: row.letter.matterId,
-          matterTitle: row.matterTitle,
-          clientName: row.clientName,
-          assignmentNote: row.letter.assignmentNote ?? "",
-          updatedAt: row.letter.updatedAt,
-        };
-      });
+    return rows.map((row) => {
+      const rawStatus = isLetterStatus(row.letter.status)
+        ? row.letter.status
+        : "entwurf";
+      const status = rawStatus as Exclude<
+        import("@/lib/db/schema").LetterStatus,
+        "versendet"
+      >;
+      const kind = isLetterKind(row.letter.kind) ? row.letter.kind : "schreiben";
+      const assignedByName =
+        row.assignerName?.trim() ||
+        row.creatorName?.trim() ||
+        null;
+      return {
+        id: row.letter.id,
+        title: row.letter.title,
+        kind,
+        kindLabel: LETTER_KIND_LABELS[kind],
+        subject: row.letter.subject.trim(),
+        status,
+        statusLabel: LETTER_STATUS_LABELS[status],
+        actionLabel: INBOX_ACTION_LABELS[status],
+        assignedByName,
+        matterId: row.letter.matterId,
+        matterTitle: row.matterTitle,
+        clientName: row.clientName,
+        assignmentNote: row.letter.assignmentNote ?? "",
+        updatedAt: row.letter.updatedAt,
+      };
+    });
   });
 }
 
@@ -215,6 +246,7 @@ export async function createLetterRow(
         closing: input.closing.trim(),
         module: input.module,
         recipientEmail: input.recipientEmail?.trim() ?? "",
+        ccEmail: input.ccEmail?.trim() ?? "",
         assignmentNote: input.assignmentNote?.trim() ?? "",
       })
       .returning();
@@ -256,6 +288,7 @@ export async function updateLetterRow(
         closing: input.closing.trim(),
         module: input.module,
         recipientEmail: (input.recipientEmail ?? "").trim(),
+        ccEmail: (input.ccEmail ?? "").trim(),
         ...(input.assignmentNote !== undefined
           ? { assignmentNote: input.assignmentNote.trim() }
           : {}),
@@ -310,6 +343,7 @@ export async function assignLetterRow(
   options?: {
     matterId?: string | null;
     assignmentNote?: string;
+    assignedBy?: string;
   }
 ): Promise<LetterRecord | null> {
   return withTenantDb(tenantId, async (tx) => {
@@ -344,6 +378,9 @@ export async function assignLetterRow(
       .set({
         assignedTo,
         status,
+        ...(options?.assignedBy !== undefined
+          ? { assignedBy: options.assignedBy }
+          : {}),
         ...(matterId !== undefined ? { matterId } : {}),
         ...(options?.assignmentNote !== undefined
           ? { assignmentNote: options.assignmentNote.trim() }
@@ -395,6 +432,71 @@ export async function markLetterSentRow(
       .returning();
 
     return row ? toLetter(row) : null;
+  });
+}
+
+export async function updateSentLetterMatterRow(
+  tenantId: string,
+  id: string,
+  matterId: string | null
+): Promise<LetterRecord | null> {
+  return withTenantDb(tenantId, async (tx) => {
+    const [existing] = await tx
+      .select({ status: letters.status, kind: letters.kind })
+      .from(letters)
+      .where(and(eq(letters.id, id), eq(letters.tenantId, tenantId)))
+      .limit(1);
+
+    if (
+      !existing ||
+      existing.status !== "versendet" ||
+      existing.kind !== "email"
+    ) {
+      return null;
+    }
+
+    if (matterId) {
+      const [matter] = await tx
+        .select({ id: matters.id })
+        .from(matters)
+        .where(and(eq(matters.id, matterId), eq(matters.tenantId, tenantId)))
+        .limit(1);
+      if (!matter) {
+        return null;
+      }
+    }
+
+    const [row] = await tx
+      .update(letters)
+      .set({
+        matterId,
+        updatedAt: new Date().toISOString(),
+      })
+      .where(and(eq(letters.id, id), eq(letters.tenantId, tenantId)))
+      .returning();
+
+    if (!row) {
+      return null;
+    }
+
+    const [meta] = await tx
+      .select({
+        assigneeName: users.name,
+        matterTitle: matters.title,
+        clientName: clients.name,
+      })
+      .from(letters)
+      .leftJoin(users, eq(letters.assignedTo, users.id))
+      .leftJoin(matters, eq(letters.matterId, matters.id))
+      .leftJoin(clients, eq(matters.clientId, clients.id))
+      .where(and(eq(letters.id, id), eq(letters.tenantId, tenantId)))
+      .limit(1);
+
+    return toLetter(row, {
+      assigneeName: meta?.assigneeName ?? null,
+      matterTitle: meta?.matterTitle ?? null,
+      clientName: meta?.clientName ?? null,
+    });
   });
 }
 

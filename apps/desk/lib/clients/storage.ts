@@ -1,16 +1,19 @@
 import { and, asc, eq, sql } from "drizzle-orm";
 
 import { clientPersons, clients, matters } from "@/lib/db/schema";
+import type { ContentModule } from "@/lib/db/schema";
 import { withTenantDb } from "@/lib/tenant/db";
 
 import type {
+  ClientEmailMatch,
   ClientInput,
   ClientKind,
   ClientPersonInput,
   ClientPersonRecord,
+  ClientRecipientOption,
   ClientRecord,
 } from "./types";
-import { resolveClientDisplayName } from "./types";
+import { formatPersonName, resolveClientDisplayName } from "./types";
 
 type ClientRow = typeof clients.$inferSelect;
 type PersonRow = typeof clientPersons.$inferSelect;
@@ -327,5 +330,213 @@ export async function getPersonById(
       .limit(1);
 
     return row ? toPerson(row) : null;
+  });
+}
+
+function normalizeLookupEmail(email: string): string | null {
+  const normalized = email.trim().toLowerCase();
+  if (!normalized || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized)) {
+    return null;
+  }
+  return normalized;
+}
+
+async function listMattersForClient(
+  tx: Parameters<Parameters<typeof withTenantDb>[1]>[0],
+  tenantId: string,
+  clientId: string,
+  module: ContentModule
+) {
+  return tx
+    .select({
+      id: matters.id,
+      title: matters.title,
+      reference: matters.reference,
+    })
+    .from(matters)
+    .where(
+      and(
+        eq(matters.tenantId, tenantId),
+        eq(matters.clientId, clientId),
+        eq(matters.module, module)
+      )
+    )
+    .orderBy(asc(matters.title));
+}
+
+/** Mandanten mit E-Mail-Adresse für Empfänger-Auswahl (Bereich). */
+export async function listClientRecipientOptions(
+  tenantId: string,
+  module: ContentModule
+): Promise<ClientRecipientOption[]> {
+  return withTenantDb(tenantId, async (tx) => {
+    const clientRows = await tx
+      .select()
+      .from(clients)
+      .where(and(eq(clients.tenantId, tenantId), eq(clients.module, module)))
+      .orderBy(asc(clients.name));
+
+    const options: ClientRecipientOption[] = [];
+
+    for (const client of clientRows) {
+      const matters = await listMattersForClient(
+        tx,
+        tenantId,
+        client.id,
+        module
+      );
+
+      if (client.kind === "person") {
+        const email = normalizeLookupEmail(client.email);
+        if (!email) {
+          continue;
+        }
+        options.push({
+          clientId: client.id,
+          clientName: client.name,
+          clientKind: client.kind as ClientKind,
+          email,
+          matters,
+        });
+        continue;
+      }
+
+      const personRows = await tx
+        .select()
+        .from(clientPersons)
+        .where(
+          and(
+            eq(clientPersons.clientId, client.id),
+            eq(clientPersons.tenantId, tenantId)
+          )
+        )
+        .orderBy(asc(clientPersons.lastName), asc(clientPersons.firstName));
+
+      for (const person of personRows) {
+        const email = normalizeLookupEmail(person.email);
+        if (!email) {
+          continue;
+        }
+        options.push({
+          clientId: client.id,
+          clientName: client.name,
+          clientKind: client.kind as ClientKind,
+          email,
+          contact: {
+            id: person.id,
+            name: formatPersonName(person),
+            role: person.role,
+          },
+          matters,
+        });
+      }
+
+      const clientEmail = normalizeLookupEmail(client.email);
+      if (clientEmail) {
+        options.push({
+          clientId: client.id,
+          clientName: client.name,
+          clientKind: client.kind as ClientKind,
+          email: clientEmail,
+          matters,
+        });
+      }
+    }
+
+    return options.sort((left, right) =>
+      left.clientName.localeCompare(right.clientName, "de")
+    );
+  });
+}
+
+/** Mandant/Kontakt anhand Empfänger-E-Mail im aktiven Bereich finden. */
+export async function findClientMatchesByEmail(
+  tenantId: string,
+  module: ContentModule,
+  email: string
+): Promise<ClientEmailMatch[]> {
+  const normalized = normalizeLookupEmail(email);
+  if (!normalized) {
+    return [];
+  }
+
+  return withTenantDb(tenantId, async (tx) => {
+    const seen = new Set<string>();
+    const matches: ClientEmailMatch[] = [];
+
+    const personRows = await tx
+      .select({
+        client: clients,
+        person: clientPersons,
+      })
+      .from(clientPersons)
+      .innerJoin(clients, eq(clientPersons.clientId, clients.id))
+      .where(
+        and(
+          eq(clientPersons.tenantId, tenantId),
+          eq(clients.module, module),
+          sql`lower(trim(${clientPersons.email})) = ${normalized}`
+        )
+      );
+
+    for (const row of personRows) {
+      if (seen.has(row.client.id)) {
+        continue;
+      }
+      seen.add(row.client.id);
+      const matterRows = await listMattersForClient(
+        tx,
+        tenantId,
+        row.client.id,
+        module
+      );
+      matches.push({
+        clientId: row.client.id,
+        clientName: row.client.name,
+        clientKind: row.client.kind as ClientKind,
+        matchedEmail: normalized,
+        matchVia: "contact",
+        contact: {
+          id: row.person.id,
+          name: formatPersonName(row.person),
+          role: row.person.role,
+        },
+        matters: matterRows,
+      });
+    }
+
+    const clientRows = await tx
+      .select()
+      .from(clients)
+      .where(
+        and(
+          eq(clients.tenantId, tenantId),
+          eq(clients.module, module),
+          sql`lower(trim(${clients.email})) = ${normalized}`
+        )
+      );
+
+    for (const row of clientRows) {
+      if (seen.has(row.id)) {
+        continue;
+      }
+      seen.add(row.id);
+      const matterRows = await listMattersForClient(
+        tx,
+        tenantId,
+        row.id,
+        module
+      );
+      matches.push({
+        clientId: row.id,
+        clientName: row.name,
+        clientKind: row.kind as ClientKind,
+        matchedEmail: normalized,
+        matchVia: "client",
+        matters: matterRows,
+      });
+    }
+
+    return matches;
   });
 }

@@ -18,6 +18,7 @@ Nach `.md`-Import oder Einfügen: **Schreiben bearbeiten** oder **Delegieren** (
 | `versendet` | Per SMTP verschickt |
 
 - `assigned_to` — zuständige Person (Tenant-User)
+- Bei Delegierung an einen anderen Mitarbeiter: Benachrichtigung per Transaktionsmail (`MAIL_*`) mit Link zum Eingang
 - Mitarbeiter und Anwalt dürfen bearbeiten und versenden
 - Versand über user-SMTP in den Einstellungen
 

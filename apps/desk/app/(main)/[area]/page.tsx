@@ -15,7 +15,7 @@ export default async function AreaStartPage({ params }: AreaStartPageProps) {
   const { area, user } = await requireAreaFromSlug(areaSlug);
   const [brandLabel, inboxCount, allowedFunctions] = await Promise.all([
     getTenantDisplayBrand(user.tenantId),
-    countInboxItems(user.tenantId, user.id),
+    countInboxItems(user.tenantId, user.id, area),
     getUserAllowedFunctions(user.id, user.tenantId),
   ]);
 

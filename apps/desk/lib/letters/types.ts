@@ -35,6 +35,33 @@ export const LETTER_STATUS_LABELS: Record<LetterStatus, string> = {
   versendet: "Versendet",
 };
 
+/** Was im Eingang als nächste Aufgabe angezeigt wird. */
+export const INBOX_ACTION_LABELS: Record<
+  Exclude<LetterStatus, "versendet">,
+  string
+> = {
+  entwurf: "Bearbeiten",
+  zur_pruefung: "Prüfen / freigeben",
+  freigegeben: "Versenden",
+};
+
+export type InboxItem = {
+  id: string;
+  title: string;
+  kind: LetterKind;
+  kindLabel: string;
+  subject: string;
+  status: Exclude<LetterStatus, "versendet">;
+  statusLabel: string;
+  actionLabel: string;
+  assignedByName: string | null;
+  matterId: string | null;
+  matterTitle: string | null;
+  clientName: string | null;
+  assignmentNote: string;
+  updatedAt: string;
+};
+
 export type LetterColleague = {
   id: string;
   name: string;
@@ -58,6 +85,7 @@ export type LetterRecord = {
   matterTitle: string | null;
   clientName: string | null;
   recipientEmail: string;
+  ccEmail: string;
   assignmentNote: string;
   sentAt: string | null;
   createdAt: string;
@@ -73,6 +101,7 @@ export type LetterInput = {
   closing: string;
   module: ContentModule;
   recipientEmail?: string;
+  ccEmail?: string;
   matterId?: string | null;
   assignmentNote?: string;
 };

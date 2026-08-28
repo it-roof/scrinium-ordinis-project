@@ -85,7 +85,7 @@ export function bodyBlocks(body: string): BodyBlock[] {
 
 export function letterFilename(
   title: string,
-  ext: "pdf" | "docx" | "md"
+  ext: "pdf" | "docx" | "md" | "txt"
 ): string {
   const base =
     title

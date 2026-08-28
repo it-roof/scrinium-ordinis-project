@@ -158,16 +158,34 @@ export type MatterInput = {
   module: ContentModule;
 };
 
-export type InboxItem = {
-  id: string;
-  title: string;
-  kind: string;
-  status: string;
-  statusLabel: string;
-  assignedToName: string | null;
-  matterId: string | null;
-  matterTitle: string | null;
-  clientName: string | null;
-  assignmentNote: string;
-  updatedAt: string;
+/** Mandant mit E-Mail für Empfänger-Auswahl im E-Mail-Editor. */
+export type ClientRecipientOption = {
+  clientId: string;
+  clientName: string;
+  clientKind: ClientKind;
+  email: string;
+  contact?: {
+    id: string;
+    name: string;
+    role: string;
+  };
+  matters: Array<{ id: string; title: string; reference: string }>;
 };
+
+/** Treffer bei Abgleich einer Empfänger-E-Mail mit Mandanten/Kontakten. */
+export type ClientEmailMatch = {
+  clientId: string;
+  clientName: string;
+  clientKind: ClientKind;
+  matchedEmail: string;
+  matchVia: "client" | "contact";
+  contact?: {
+    id: string;
+    name: string;
+    role: string;
+  };
+  matters: Array<{ id: string; title: string; reference: string }>;
+};
+
+/** @deprecated Import from @/lib/letters/types */
+export type { InboxItem } from "@/lib/letters/types";

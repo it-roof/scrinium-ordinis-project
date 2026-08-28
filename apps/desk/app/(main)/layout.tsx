@@ -40,6 +40,8 @@ export default async function MainLayout({
     redirect("/");
   }
 
+  const areaFromPath = parseAreaFromPathname(pathname);
+
   const [
     brandLabel,
     enabledModules,
@@ -58,13 +60,16 @@ export default async function MainLayout({
       cookies(),
       isSuperAdmin
         ? Promise.resolve(0)
-        : countInboxItems(session.user.tenantId, session.user.id),
+        : countInboxItems(
+            session.user.tenantId,
+            session.user.id,
+            areaFromPath ?? undefined
+          ),
       isSuperAdmin
         ? Promise.resolve(null)
         : getUserAllowedFunctions(session.user.id, session.user.tenantId),
     ]);
 
-  const areaFromPath = parseAreaFromPathname(pathname);
   const initialActiveArea =
     areaFromPath && enabledModules.includes(areaFromPath)
       ? areaFromPath

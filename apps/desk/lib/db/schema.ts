@@ -570,6 +570,10 @@ export const letters = pgTable(
     assignedTo: uuid("assigned_to").references(() => users.id, {
       onDelete: "set null",
     }),
+    /** Letzte Zuweisung durch (Delegierender). */
+    assignedBy: uuid("assigned_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
     status: letterStatusEnum("status").notNull().default("entwurf"),
     title: text("title").notNull(),
     /** schreiben | email | vermerk */
@@ -580,6 +584,8 @@ export const letters = pgTable(
     closing: text("closing").notNull().default(""),
     /** Empfänger für E-Mail-Versand (optional). */
     recipientEmail: text("recipient_email").notNull().default(""),
+    /** Kopie (CC) für E-Mail-Versand (optional). */
+    ccEmail: text("cc_email").notNull().default(""),
     /** Anweisung an die zugewiesene Person (Delegierung). */
     assignmentNote: text("assignment_note").notNull().default(""),
     sentAt: timestamp("sent_at", { withTimezone: true, mode: "string" }),
@@ -593,6 +599,7 @@ export const letters = pgTable(
   (table) => ({
     tenantIdIdx: index("letters_tenant_id_idx").on(table.tenantId),
     assignedToIdx: index("letters_assigned_to_idx").on(table.assignedTo),
+    assignedByIdx: index("letters_assigned_by_idx").on(table.assignedBy),
     statusIdx: index("letters_status_idx").on(table.status),
     matterIdIdx: index("letters_matter_id_idx").on(table.matterId),
   })

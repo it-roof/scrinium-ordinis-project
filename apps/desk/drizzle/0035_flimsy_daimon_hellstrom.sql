@@ -1,0 +1,1 @@
+ALTER TABLE "letters" ADD COLUMN "cc_email" text DEFAULT '' NOT NULL;

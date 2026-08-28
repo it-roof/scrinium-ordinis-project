@@ -11,10 +11,12 @@ import {
   FileTextIcon,
   FileUpIcon,
   FolderOpenIcon,
+  DownloadIcon,
   MailIcon,
   MicIcon,
   MicOffIcon,
   PlusIcon,
+  PrinterIcon,
   RotateCcwIcon,
   ScaleIcon,
   SearchIcon,
@@ -26,8 +28,10 @@ import { useRouter } from "next/navigation";
 
 import {
   buildPromptKitOutput,
+  buildPromptKitEmailOutput,
   getPromptKitGoal,
   PROMPT_KIT_CLIENT_LETTER,
+  PROMPT_KIT_EMAIL,
   PROMPT_KIT_GOALS,
   PROMPT_KIT_RESULT_CHECK,
   type PromptKitAction,
@@ -46,15 +50,28 @@ import {
 import {
   extractThemaTitle,
 } from "@/lib/prompt-kit/letter-draft";
+import { parseEmailDraft } from "@/lib/letters/email-template";
 import { usePromptKitDictation } from "@/lib/prompt-kit/use-dictation";
 import { useAreaBasePath } from "@/lib/area/use-area-path";
+import { createClient } from "@/lib/clients/actions";
 import { createLetter, delegateLetterFromWizard, updateLetter } from "@/lib/letters/actions";
+import { exportMarkdownPreviewPdf } from "@/lib/letters/export-actions";
 import { createMatter } from "@/lib/matters/actions";
 import {
   isMarkdownFilename,
   parseMarkdownLetter,
 } from "@/lib/letters/parse-markdown";
 import type { LetterColleague, LetterKind } from "@/lib/letters/types";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -75,7 +92,12 @@ type MatterOption = {
   reference?: string;
 };
 
-type WizardMode = "main" | "letter";
+type ClientOption = {
+  id: string;
+  name: string;
+};
+
+type WizardMode = "main" | "letter" | "email" | "print";
 
 type StepId =
   | "goal"
@@ -88,7 +110,8 @@ type StepId =
   | "next"
   | "takeover"
   | "workflow"
-  | "delegate";
+  | "delegate"
+  | "print";
 
 /** Ablauf im Schritt „Ergebnis prüfen“. */
 type CheckPhase = "copy" | "ask-errors" | "done";
@@ -102,6 +125,8 @@ const NEXT_STEP_OPTIONS: {
   icon: typeof FileTextIcon;
   /** Schreiben: Prompt→KI→Übernahme; andere: direkt Editor. */
   startsLetterFlow?: boolean;
+  startsEmailFlow?: boolean;
+  startsPrintFlow?: boolean;
   disabled?: boolean;
 }[] = [
   {
@@ -117,10 +142,20 @@ const NEXT_STEP_OPTIONS: {
     id: "email",
     kind: "email",
     title: "E-Mail senden",
-    description: "E-Mail-Entwurf für den Kanzleialltag.",
-    defaultTitle: "E-Mail",
+    description: "Kurze E-Mail per KI — mit {{TEXT}} zum Ersetzen in Scrinium.",
+    defaultTitle: "Betreff",
     icon: MailIcon,
-    disabled: true,
+    startsEmailFlow: true,
+  },
+  {
+    id: "print",
+    kind: "schreiben",
+    title: "Dokument drucken",
+    description:
+      "Markdown-Inhalt einfügen — daraus wird ein PDF erzeugt und im Browser geöffnet.",
+    defaultTitle: "Dokument",
+    icon: PrinterIcon,
+    startsPrintFlow: true,
   },
   {
     id: "recherche",
@@ -244,6 +279,7 @@ const STEP_HEADLINES: Record<StepId, string> = {
   takeover: "Schreiben übernehmen",
   workflow: "Wie weiter mit dem Schreiben?",
   delegate: "Delegieren an Mitarbeiter",
+  print: "Dokument drucken",
 };
 
 /** Schreiben-Folgefluss: Hauptitel + dezenter Kontext in Klammern. */
@@ -258,6 +294,60 @@ const LETTER_STEP_HEADLINES: Partial<
   takeover: { title: "Schreiben übernehmen" },
   workflow: { title: "Wie weiter mit dem Schreiben?" },
   delegate: { title: "Delegieren an Mitarbeiter" },
+};
+
+const EMAIL_STEPS: {
+  id: StepId;
+  label: string;
+  hint: string;
+}[] = [
+  {
+    id: "input",
+    label: "E-Mail vorbereiten",
+    hint: "Adressat und Kernbotschaft",
+  },
+  {
+    id: "result",
+    label: "Prompt kopieren",
+    hint: "E-Mail erstellen",
+  },
+  {
+    id: "inserted",
+    label: "In KI einfügen",
+    hint: "E-Mail erstellen",
+  },
+  {
+    id: "takeover",
+    label: "E-Mail übernehmen",
+    hint: "Text aus der KI in Scrinium",
+  },
+];
+
+const EMAIL_STEP_HEADLINES: Partial<
+  Record<StepId, { title: string; context?: string }>
+> = {
+  input: { title: "E-Mail vorbereiten", context: "E-Mail senden" },
+  result: { title: "Prompt kopieren", context: "E-Mail senden" },
+  inserted: { title: "Prompt in KI einfügen", context: "E-Mail senden" },
+  takeover: { title: "E-Mail übernehmen" },
+};
+
+const PRINT_STEPS: {
+  id: StepId;
+  label: string;
+  hint: string;
+}[] = [
+  {
+    id: "print",
+    label: "Dokument drucken",
+    hint: "Markdown einfügen und PDF öffnen",
+  },
+];
+
+const PRINT_STEP_HEADLINES: Partial<
+  Record<StepId, { title: string; context?: string }>
+> = {
+  print: { title: "Dokument drucken" },
 };
 
 const WORKFLOW_OPTIONS: {
@@ -310,7 +400,7 @@ export function PromptKitView({
 }: {
   currentUserId: string;
   colleagues: LetterColleague[];
-  clients: { id: string; name: string }[];
+  clients: ClientOption[];
   matters: MatterOption[];
 }) {
   const router = useRouter();
@@ -320,13 +410,19 @@ export function PromptKitView({
   const [goalId, setGoalId] = useState<PromptKitGoalId | null>("facts");
   const [input, setInput] = useState("");
   const [letterInput, setLetterInput] = useState("");
+  const [emailInput, setEmailInput] = useState("");
   const [letterTakeover, setLetterTakeover] = useState("");
+  const [printMarkdown, setPrintMarkdown] = useState("");
   const [savedLetterId, setSavedLetterId] = useState<string | null>(null);
   const [isSavingDraft, startSaveDraft] = useTransition();
   const [delegateAssignee, setDelegateAssignee] = useState("");
   const [delegateClientId, setDelegateClientId] = useState("");
   const [delegateClientQuery, setDelegateClientQuery] = useState("");
   const [delegateClientOpen, setDelegateClientOpen] = useState(false);
+  const [clientOptions, setClientOptions] = useState<ClientOption[]>(clients);
+  const [clientCreateDialogOpen, setClientCreateDialogOpen] = useState(false);
+  const [pendingClientName, setPendingClientName] = useState("");
+  const [isCreatingClient, startCreateClient] = useTransition();
   const [delegateMatterId, setDelegateMatterId] = useState("");
   const [delegateNote, setDelegateNote] = useState("");
   const [matters, setMatters] = useState<MatterOption[]>(initialMatters);
@@ -334,6 +430,7 @@ export function PromptKitView({
   const [newMatterTitle, setNewMatterTitle] = useState("");
   const [newMatterReference, setNewMatterReference] = useState("");
   const [isCreatingMatter, startCreateMatter] = useTransition();
+  const [isGeneratingPdf, startGeneratePdf] = useTransition();
   const [actionId, setActionId] = useState<string | null>(null);
   const [draftPrompt, setDraftPrompt] = useState("");
   const [copied, setCopied] = useState(false);
@@ -346,6 +443,10 @@ export function PromptKitView({
   const draftPromptRef = useRef<HTMLTextAreaElement>(null);
   const takeoverRef = useRef<HTMLTextAreaElement>(null);
   const mdTakeoverInputRef = useRef<HTMLInputElement>(null);
+  const mdPrintInputRef = useRef<HTMLInputElement>(null);
+  const txtTakeoverInputRef = useRef<HTMLInputElement>(null);
+  const delegateClientIdRef = useRef("");
+  delegateClientIdRef.current = delegateClientId;
 
   const {
     listening,
@@ -370,18 +471,38 @@ export function PromptKitView({
 
   const goal = goalId ? getPromptKitGoal(goalId) : null;
   const letterMode = mode === "letter";
-  const activeInput = letterMode ? letterInput : input;
-  const setActiveInput = letterMode ? setLetterInput : setInput;
+  const emailMode = mode === "email";
+  const printMode = mode === "print";
+  const followUpMode = letterMode || emailMode;
+  const activeInput = letterMode
+    ? letterInput
+    : emailMode
+      ? emailInput
+      : input;
+  const setActiveInput = letterMode
+    ? setLetterInput
+    : emailMode
+      ? setEmailInput
+      : setInput;
   const letterAction = PROMPT_KIT_CLIENT_LETTER.action;
-  const steps = letterMode ? LETTER_STEPS : stepsForGoal(goal);
+  const emailAction = PROMPT_KIT_EMAIL.action;
+  const steps = printMode
+    ? PRINT_STEPS
+    : letterMode
+    ? LETTER_STEPS
+    : emailMode
+      ? EMAIL_STEPS
+      : stepsForGoal(goal);
   const singleAction = goal?.actions.length === 1 ? goal.actions[0] : null;
   const action = letterMode
     ? letterAction
-    : goal && actionId
-      ? (goal.actions.find((entry) => entry.id === actionId) ?? null)
-      : singleAction && PROMPT_STEPS.includes(step)
-        ? singleAction
-        : null;
+    : emailMode
+      ? emailAction
+      : goal && actionId
+        ? (goal.actions.find((entry) => entry.id === actionId) ?? null)
+        : singleAction && PROMPT_STEPS.includes(step)
+          ? singleAction
+          : null;
 
   const stepIndex = steps.findIndex((entry) => entry.id === step);
 
@@ -435,6 +556,11 @@ export function PromptKitView({
       : null,
     workflow: step === "delegate" ? "Delegieren" : null,
     delegate: null,
+    print: printMarkdown.trim()
+      ? step === "print"
+        ? "Einfügen"
+        : "Bereit"
+      : null,
   };
 
   const delegateMatters = delegateClientId
@@ -443,14 +569,14 @@ export function PromptKitView({
   const delegateCandidates = colleagues.filter(
     (person) => person.id !== currentUserId
   );
-  const filteredDelegateClients = clients.filter((client) => {
+  const filteredDelegateClients = clientOptions.filter((client) => {
     const query = delegateClientQuery.trim().toLowerCase();
     if (!query) {
       return true;
     }
     return client.name.toLowerCase().includes(query);
   });
-  const selectedDelegateClient = clients.find(
+  const selectedDelegateClient = clientOptions.find(
     (client) => client.id === delegateClientId
   );
 
@@ -459,14 +585,40 @@ export function PromptKitView({
       action ??
       (letterMode
         ? letterAction
-        : PROMPT_STEPS.includes(step)
-          ? singleAction
-          : null);
-    if (!activeAction || !activeInput.trim()) {
+        : emailMode
+          ? emailAction
+          : PROMPT_STEPS.includes(step)
+            ? singleAction
+            : null);
+    if (!activeAction) {
+      return "";
+    }
+    if (emailMode) {
+      if (!emailInput.trim()) {
+        return "";
+      }
+      return buildPromptKitEmailOutput(
+        activeAction.template,
+        emailInput,
+        input
+      );
+    }
+    if (!activeInput.trim()) {
       return "";
     }
     return buildPromptKitOutput(activeAction.template, activeInput);
-  }, [action, activeInput, letterAction, letterMode, singleAction, step]);
+  }, [
+    action,
+    activeInput,
+    emailAction,
+    emailInput,
+    emailMode,
+    input,
+    letterAction,
+    letterMode,
+    singleAction,
+    step,
+  ]);
 
   useLayoutEffect(() => {
     const el =
@@ -521,6 +673,13 @@ export function PromptKitView({
     setStep("result");
   }
 
+  function openEmailCopy(briefing: string) {
+    setActionId(emailAction.id);
+    setDraftPrompt(buildPromptKitEmailOutput(emailAction.template, briefing, input));
+    clearCopyFlow();
+    setStep("result");
+  }
+
   function focusComposer(nextValue?: string) {
     const tryFocus = (attempt: number) => {
       const el = textareaRef.current;
@@ -544,6 +703,7 @@ export function PromptKitView({
     setActionId(null);
     setDraftPrompt("");
     setLetterInput("");
+    setEmailInput("");
     setLetterTakeover("");
     setSavedLetterId(null);
     clearCopyFlow();
@@ -554,6 +714,7 @@ export function PromptKitView({
     discardSession();
     setMode("letter");
     setLetterInput("");
+    setEmailInput("");
     setLetterTakeover("");
     setSavedLetterId(null);
     setActionId(letterAction.id);
@@ -562,15 +723,51 @@ export function PromptKitView({
     setStep("input");
   }
 
-  function exitLetterFlow() {
+  function startEmailFlow() {
+    if (!input.trim()) {
+      toast.error("Sachverhalt fehlt — bitte zuerst einen Sachverhalt erfassen.");
+      return;
+    }
+    discardSession();
+    setMode("email");
+    setEmailInput("");
+    setLetterTakeover("");
+    setPrintMarkdown("");
+    setSavedLetterId(null);
+    setActionId(emailAction.id);
+    setDraftPrompt("");
+    clearCopyFlow();
+    setStep("input");
+  }
+
+  function startPrintFlow() {
+    discardSession();
+    setMode("print");
+    setPrintMarkdown("");
+    clearCopyFlow();
+    setStep("print");
+  }
+
+  function exitPrintFlow() {
+    setMode("main");
+    setPrintMarkdown("");
+    setStep("next");
+  }
+
+  function exitFollowUpFlow() {
     discardSession();
     setMode("main");
     setLetterInput("");
+    setEmailInput("");
     setLetterTakeover("");
     setSavedLetterId(null);
     setDraftPrompt("");
     clearCopyFlow();
     setStep("next");
+  }
+
+  function exitLetterFlow() {
+    exitFollowUpFlow();
   }
 
   function appendTip(insert: string) {
@@ -596,6 +793,18 @@ export function PromptKitView({
       openLetterCopy(nextInput);
       return;
     }
+    if (emailMode) {
+      const nextInput = hasSession
+        ? mergeSessionIntoInput(emailInput, blocks)
+        : emailInput;
+      if (!nextInput.trim()) {
+        return;
+      }
+      discardSession();
+      setEmailInput(nextInput);
+      openEmailCopy(nextInput);
+      return;
+    }
     if (!goal) {
       return;
     }
@@ -617,6 +826,30 @@ export function PromptKitView({
   function goBack() {
     discardSession();
     discardNoteSession();
+    if (printMode) {
+      exitPrintFlow();
+      return;
+    }
+    if (emailMode) {
+      if (step === "takeover") {
+        setStep("inserted");
+        return;
+      }
+      if (step === "inserted") {
+        setStep("result");
+        return;
+      }
+      clearCopyFlow();
+      if (step === "result") {
+        setDraftPrompt("");
+        setStep("input");
+        return;
+      }
+      if (step === "input") {
+        exitFollowUpFlow();
+      }
+      return;
+    }
     if (letterMode) {
       if (step === "delegate") {
         setStep("workflow");
@@ -692,6 +925,25 @@ export function PromptKitView({
       return;
     }
     discardSession();
+    if (emailMode) {
+      if (target === "takeover" || target === "inserted") {
+        setStep(target);
+        return;
+      }
+      if (
+        target === "result" &&
+        (step === "takeover" || step === "inserted" || copied)
+      ) {
+        setStep("result");
+        return;
+      }
+      clearCopyFlow();
+      if (target === "input") {
+        setDraftPrompt("");
+      }
+      setStep(target);
+      return;
+    }
     if (letterMode) {
       if (
         target === "delegate" ||
@@ -859,7 +1111,7 @@ export function PromptKitView({
   }
 
   function confirmPromptInserted() {
-    if (letterMode) {
+    if (followUpMode) {
       setLetterTakeover("");
       setStep("takeover");
       return;
@@ -897,6 +1149,28 @@ export function PromptKitView({
     }
   }
 
+  async function importTextTakeover(file: File) {
+    const isTxt =
+      /\.txt$/i.test(file.name.trim()) ||
+      file.type === "text/plain" ||
+      file.type === "";
+    if (!isTxt) {
+      toast.error("Bitte eine .txt-Datei wählen.");
+      return;
+    }
+    try {
+      const text = await file.text();
+      if (!text.trim()) {
+        toast.error("Datei ist leer.");
+        return;
+      }
+      setLetterTakeover(text.trim());
+      toast.success("Textdatei übernommen.");
+    } catch {
+      toast.error("Datei konnte nicht gelesen werden.");
+    }
+  }
+
   async function importMarkdownTakeover(file: File) {
     if (!isMarkdownFilename(file.name) && file.type !== "text/markdown") {
       toast.error("Bitte eine .md-Datei wählen.");
@@ -913,6 +1187,92 @@ export function PromptKitView({
     } catch {
       toast.error("Datei konnte nicht gelesen werden.");
     }
+  }
+
+  async function importMarkdownPrint(file: File) {
+    if (!isMarkdownFilename(file.name) && file.type !== "text/markdown") {
+      toast.error("Bitte eine .md-Datei wählen.");
+      return;
+    }
+    try {
+      const text = await file.text();
+      if (!text.trim()) {
+        toast.error("Datei ist leer.");
+        return;
+      }
+      setPrintMarkdown(text.trim());
+      toast.success("Markdown-Datei übernommen.");
+    } catch {
+      toast.error("Datei konnte nicht gelesen werden.");
+    }
+  }
+
+  async function pastePrintMarkdown() {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (!text.trim()) {
+        toast.error("Zwischenablage ist leer.");
+        return;
+      }
+      setPrintMarkdown(text.trim());
+      toast.success("Aus Zwischenablage übernommen.");
+    } catch {
+      toast.error("Zwischenablage konnte nicht gelesen werden.");
+    }
+  }
+
+  function openPrintPdf() {
+    const text = printMarkdown.trim();
+    if (!text) {
+      toast.error("Bitte Markdown-Inhalt einfügen.");
+      return;
+    }
+
+    const popup = window.open("", "_blank");
+    if (!popup) {
+      toast.error("Pop-up blockiert — bitte Pop-ups für diese Seite erlauben.");
+      return;
+    }
+
+    startGeneratePdf(async () => {
+      const result = await exportMarkdownPreviewPdf(text);
+      if (!result.success) {
+        popup.close();
+        toast.error(result.error);
+        return;
+      }
+
+      const bytes = Uint8Array.from(atob(result.base64), (character) =>
+        character.charCodeAt(0)
+      );
+      const blob = new Blob([bytes], { type: result.mimeType });
+      const url = URL.createObjectURL(blob);
+      popup.location.href = url;
+      window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      toast.success("PDF geöffnet.");
+    });
+  }
+
+  function downloadTakeoverAsFile() {
+    const text = letterTakeover.trim();
+    if (!text) {
+      return;
+    }
+    const isMd = emailMode || letterMode;
+    const blob = new Blob([text], {
+      type: isMd ? "text/markdown;charset=utf-8" : "text/plain;charset=utf-8",
+    });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = emailMode
+      ? "email-entwurf.md"
+      : letterMode
+        ? "schreiben-entwurf.md"
+        : "entwurf.txt";
+    anchor.click();
+    URL.revokeObjectURL(url);
+    toast.success(isMd ? "Als .md gespeichert." : "Als .txt gespeichert.");
   }
 
   function openLetterEditor() {
@@ -936,6 +1296,8 @@ export function PromptKitView({
     setDelegateClientId("");
     setDelegateClientQuery("");
     setDelegateClientOpen(false);
+    setClientCreateDialogOpen(false);
+    setPendingClientName("");
     setDelegateMatterId("");
     setDelegateNote("");
     setMatterDialogOpen(false);
@@ -943,6 +1305,90 @@ export function PromptKitView({
     setNewMatterReference("");
     discardNoteSession();
     setStep("delegate");
+  }
+
+  function findExactDelegateClient(name: string) {
+    const normalized = name.trim().toLowerCase();
+    if (!normalized) {
+      return null;
+    }
+    return (
+      clientOptions.find(
+        (client) => client.name.toLowerCase() === normalized
+      ) ?? null
+    );
+  }
+
+  function handleDelegateClientBlur(event: React.FocusEvent<HTMLInputElement>) {
+    const queryOnBlur = event.target.value.trim();
+    window.setTimeout(() => {
+      setDelegateClientOpen(false);
+
+      if (delegateClientIdRef.current) {
+        setDelegateClientQuery("");
+        return;
+      }
+
+      if (!queryOnBlur) {
+        return;
+      }
+
+      const exactMatch = findExactDelegateClient(queryOnBlur);
+      if (exactMatch) {
+        setDelegateClientId(exactMatch.id);
+        setDelegateClientQuery("");
+        setDelegateMatterId("");
+        return;
+      }
+
+      setPendingClientName(queryOnBlur);
+      setClientCreateDialogOpen(true);
+    }, 120);
+  }
+
+  function createDelegateClient() {
+    const name = pendingClientName.trim();
+    if (!name) {
+      setClientCreateDialogOpen(false);
+      return;
+    }
+
+    startCreateClient(async () => {
+      const result = await createClient({
+        kind: "company",
+        name,
+        salutation: "",
+        firstName: "",
+        lastName: "",
+        street: "",
+        postalCode: "",
+        city: "",
+        country: "Deutschland",
+        email: "",
+        phone: "",
+        mobile: "",
+        notes: "",
+        module: "legal",
+      });
+      if (!result.success) {
+        toast.error(result.error);
+        return;
+      }
+
+      const option: ClientOption = {
+        id: result.item.id,
+        name: result.item.name,
+      };
+      setClientOptions((prev) =>
+        [...prev, option].sort((a, b) => a.name.localeCompare(b.name, "de"))
+      );
+      setDelegateClientId(result.item.id);
+      setDelegateClientQuery("");
+      setDelegateMatterId("");
+      setClientCreateDialogOpen(false);
+      setPendingClientName("");
+      toast.success("Mandant angelegt.");
+    });
   }
 
   function createMatterFromDialog() {
@@ -968,7 +1414,7 @@ export function PromptKitView({
         return;
       }
       const clientName =
-        clients.find((client) => client.id === delegateClientId)?.name ??
+        clientOptions.find((client) => client.id === delegateClientId)?.name ??
         result.item.clientName;
       const option: MatterOption = {
         id: result.item.id,
@@ -1035,11 +1481,14 @@ export function PromptKitView({
       return;
     }
 
-    const title = extractThemaTitle(letterInput) ?? "Schreiben";
-    const parsed = parseMarkdownLetter(raw);
+    const parsed = emailMode ? parseEmailDraft(raw) : parseMarkdownLetter(raw);
+    const title = emailMode
+      ? (parsed.subject.trim() || "Betreff")
+      : (extractThemaTitle(letterInput) ?? "Schreiben");
+    const kind: LetterKind = emailMode ? "email" : "schreiben";
     const letterInputPayload = {
       title,
-      kind: "schreiben" as const,
+      kind,
       subject: parsed.subject,
       salutation: parsed.salutation,
       body: parsed.body || raw,
@@ -1048,8 +1497,9 @@ export function PromptKitView({
     };
 
     startSaveDraft(async () => {
-      if (savedLetterId) {
-        const result = await updateLetter(savedLetterId, letterInputPayload);
+      let letterId = savedLetterId;
+      if (letterId) {
+        const result = await updateLetter(letterId, letterInputPayload);
         if (!result.success) {
           toast.error(result.error);
           return;
@@ -1060,17 +1510,28 @@ export function PromptKitView({
           toast.error(result.error);
           return;
         }
+        letterId = result.item.id;
         setSavedLetterId(result.item.id);
       }
-      toast.success("Entwurf gespeichert.");
+      toast.success(
+        emailMode
+          ? "E-Mail-Entwurf gespeichert — {{TEXT}} ersetzen und versenden."
+          : "Entwurf gespeichert."
+      );
+      if (emailMode && letterId) {
+        router.push(`${basePath}/schreiben/${letterId}/bearbeiten`);
+        return;
+      }
       setStep("workflow");
     });
   }
 
   const resultAction =
     action ??
-    (letterMode
-      ? letterAction
+    (followUpMode
+      ? letterMode
+        ? letterAction
+        : emailAction
       : PROMPT_STEPS.includes(step)
         ? singleAction
         : null);
@@ -1086,7 +1547,16 @@ export function PromptKitView({
         inputTips: [...PROMPT_KIT_CLIENT_LETTER.inputTips],
         singleActionNext: true,
       }
-    : goal
+    : emailMode
+      ? {
+          inputHeadline: PROMPT_KIT_EMAIL.inputHeadline,
+          guide: PROMPT_KIT_EMAIL.guide,
+          inputLabel: PROMPT_KIT_EMAIL.inputLabel,
+          inputPlaceholder: PROMPT_KIT_EMAIL.inputPlaceholder,
+          inputTips: [...PROMPT_KIT_EMAIL.inputTips],
+          singleActionNext: true,
+        }
+      : goal
       ? {
           inputHeadline: goal.inputHeadline,
           guide: goal.guide,
@@ -1121,6 +1591,20 @@ export function PromptKitView({
                       </>
                     ) : null}
                   </>
+                ) : emailMode && EMAIL_STEP_HEADLINES[step] ? (
+                  <>
+                    {EMAIL_STEP_HEADLINES[step]!.title}
+                    {EMAIL_STEP_HEADLINES[step]!.context ? (
+                      <>
+                        {" "}
+                        <span className="text-[0.72em] font-normal tracking-normal text-muted-foreground/65">
+                          ({EMAIL_STEP_HEADLINES[step]!.context})
+                        </span>
+                      </>
+                    ) : null}
+                  </>
+                ) : printMode && PRINT_STEP_HEADLINES[step] ? (
+                  PRINT_STEP_HEADLINES[step]!.title
                 ) : (
                   STEP_HEADLINES[step]
                 )}
@@ -1146,15 +1630,19 @@ export function PromptKitView({
                 <p className="text-sm text-muted-foreground md:text-base">
                   {letterMode
                     ? "Prompt in die Zwischenablage kopieren und in der KI einfügen — dort das Schreiben erstellen."
-                    : goal?.id === "facts"
-                      ? "Prompt in die Zwischenablage kopieren und anschließend in der KI einfügen — dort den Sachverhalt mit der KI verarbeiten."
-                      : "Prompt in die Zwischenablage kopieren und anschließend in der KI einfügen — dort den Text mit der KI erstellen."}
+                    : emailMode
+                      ? "Prompt in die Zwischenablage kopieren und in der KI einfügen — dort die E-Mail als .md-Datei mit {{TEXT}} erstellen."
+                      : goal?.id === "facts"
+                        ? "Prompt in die Zwischenablage kopieren und anschließend in der KI einfügen — dort den Sachverhalt mit der KI verarbeiten."
+                        : "Prompt in die Zwischenablage kopieren und anschließend in der KI einfügen — dort den Text mit der KI erstellen."}
                 </p>
               ) : step === "inserted" ? (
                 <p className="text-sm text-muted-foreground md:text-base md:leading-relaxed">
                   {letterMode
                     ? "Den Prompt jetzt in der KI einfügen, damit das Schreiben erstellt wird. Danach mit Ja bestätigen — oder mit Nein zurück zum Kopieren, falls es noch nicht geklappt hat."
-                    : "Den kopierten Prompt jetzt in der KI einfügen. Danach mit Ja bestätigen — oder mit Nein zurück zum Kopieren, falls es noch nicht geklappt hat."}
+                    : emailMode
+                      ? "Den Prompt jetzt in der KI einfügen, damit die E-Mail erstellt wird. Danach mit Ja bestätigen — oder mit Nein zurück zum Kopieren."
+                      : "Den kopierten Prompt jetzt in der KI einfügen. Danach mit Ja bestätigen — oder mit Nein zurück zum Kopieren, falls es noch nicht geklappt hat."}
                 </p>
               ) : step === "check" ? (
                 <p className="text-sm text-muted-foreground md:text-base">
@@ -1164,11 +1652,16 @@ export function PromptKitView({
                 <p className="text-sm text-muted-foreground md:text-base">
                   Ergebnis der KI weiterverwenden — Art des Entwurfs festlegen.
                 </p>
+              ) : step === "print" ? (
+                <p className="text-sm text-muted-foreground md:text-base md:leading-relaxed">
+                  Markdown aus der KI einfügen oder als .md laden — daraus wird ein
+                  PDF erzeugt und in einem neuen Browser-Tab geöffnet.
+                </p>
               ) : step === "takeover" ? (
                 <p className="text-sm text-muted-foreground md:text-base md:leading-relaxed">
-                  Die .md-Datei aus der KI hier laden oder den Text einfügen.
-                  Mit Weiter wird ein Entwurf gespeichert — danach an einen
-                  Mitarbeiter delegieren.
+                  {emailMode
+                    ? "E-Mail-Text aus der KI einfügen — per Zwischenablage oder .md-Datei. Mit Weiter öffnet sich der Editor: dort {{TEXT}} ersetzen, Empfänger eintragen und versenden."
+                    : "Die .md-Datei aus der KI hier laden oder den Text einfügen. Mit Weiter wird ein Entwurf gespeichert — danach an einen Mitarbeiter delegieren."}
                 </p>
               ) : step === "workflow" ? (
                 <p className="text-sm text-muted-foreground md:text-base">
@@ -1365,7 +1858,7 @@ export function PromptKitView({
 
                 <WizardNav
                   onBack={goBack}
-                  showBack={letterMode}
+                  showBack={followUpMode}
                   onNext={continueFromInput}
                   nextLabel={
                     inputConfig.singleActionNext
@@ -1499,7 +1992,9 @@ export function PromptKitView({
                     <p className="font-heading text-lg font-medium tracking-tight">
                       {letterMode
                         ? "Prompt in der KI eingefügt — Schreiben bereits erstellt?"
-                        : "Prompt in der KI erfolgreich eingefügt?"}
+                        : emailMode
+                          ? "Prompt in der KI eingefügt — E-Mail bereits erstellt?"
+                          : "Prompt in der KI erfolgreich eingefügt?"}
                     </p>
                     <div className="grid grid-cols-2 gap-2">
                       <Button
@@ -1613,6 +2108,14 @@ export function PromptKitView({
                             startLetterFlow();
                             return;
                           }
+                          if (entry.startsEmailFlow) {
+                            startEmailFlow();
+                            return;
+                          }
+                          if (entry.startsPrintFlow) {
+                            startPrintFlow();
+                            return;
+                          }
                           const params = new URLSearchParams({
                             kind: entry.kind,
                             title: entry.defaultTitle,
@@ -1660,22 +2163,103 @@ export function PromptKitView({
               </section>
             ) : null}
 
+            {step === "print" ? (
+              <section className="space-y-5">
+                <div className="surface-card space-y-5 p-6 md:p-8">
+                  <label className="sr-only" htmlFor="prompt-kit-print-md">
+                    Markdown für PDF
+                  </label>
+                  <textarea
+                    id="prompt-kit-print-md"
+                    value={printMarkdown}
+                    onChange={(event) => setPrintMarkdown(event.target.value)}
+                    placeholder="Markdown-Inhalt aus der KI hier einfügen…"
+                    rows={1}
+                    className="min-h-48 w-full resize-none overflow-hidden border-0 bg-transparent text-base leading-relaxed outline-none placeholder:text-muted-foreground/70 focus-visible:ring-0"
+                  />
+                  <div className="flex flex-wrap gap-2">
+                    <input
+                      ref={mdPrintInputRef}
+                      type="file"
+                      accept=".md,text/markdown"
+                      className="hidden"
+                      onChange={(event) => {
+                        const file = event.target.files?.[0];
+                        event.target.value = "";
+                        if (file) {
+                          void importMarkdownPrint(file);
+                        }
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => void pastePrintMarkdown()}
+                      className="h-11 rounded-none px-4"
+                    >
+                      <ClipboardPasteIcon data-icon="inline-start" />
+                      Aus Zwischenablage
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => mdPrintInputRef.current?.click()}
+                      className="h-11 rounded-none px-4"
+                    >
+                      <FileUpIcon data-icon="inline-start" />
+                      .md laden
+                    </Button>
+                    <Button
+                      type="button"
+                      disabled={!printMarkdown.trim() || isGeneratingPdf}
+                      onClick={openPrintPdf}
+                      className="h-11 rounded-none px-4"
+                    >
+                      <PrinterIcon data-icon="inline-start" />
+                      {isGeneratingPdf ? "PDF wird erstellt…" : "PDF öffnen"}
+                    </Button>
+                  </div>
+                </div>
+
+                <WizardNav onBack={goBack} />
+              </section>
+            ) : null}
+
             {step === "takeover" ? (
               <section className="space-y-5">
                 <div className="surface-card space-y-5 p-6 md:p-8">
                   <label className="sr-only" htmlFor="prompt-kit-takeover">
-                    Schreiben aus der KI
+                    {emailMode ? "E-Mail aus der KI" : "Schreiben aus der KI"}
                   </label>
                   <textarea
                     id="prompt-kit-takeover"
                     ref={takeoverRef}
                     value={letterTakeover}
                     onChange={(event) => setLetterTakeover(event.target.value)}
-                    placeholder="Inhalt der .md-Datei oder fertigen Text hier einfügen…"
+                    placeholder={
+                      emailMode
+                        ? "E-Mail-Text oder Inhalt einer .md-Datei aus der KI hier einfügen…"
+                        : "Inhalt der .md-Datei oder fertigen Text hier einfügen…"
+                    }
                     rows={1}
                     className="min-h-48 w-full resize-none overflow-hidden border-0 bg-transparent text-base leading-relaxed outline-none placeholder:text-muted-foreground/70 focus-visible:ring-0"
                   />
                   <div className="flex flex-wrap gap-2">
+                    {!emailMode ? (
+                      <input
+                        ref={txtTakeoverInputRef}
+                        type="file"
+                        accept=".txt,text/plain"
+                        className="hidden"
+                        onChange={(event) => {
+                          const file = event.target.files?.[0];
+                          event.target.value = "";
+                          if (file) {
+                            void importTextTakeover(file);
+                          }
+                        }}
+                      />
+                    ) : null}
                     <input
                       ref={mdTakeoverInputRef}
                       type="file"
@@ -1692,28 +2276,56 @@ export function PromptKitView({
                     <Button
                       type="button"
                       variant="outline"
-                      onClick={() => mdTakeoverInputRef.current?.click()}
-                      className="h-11 rounded-none px-4"
-                    >
-                      <FileUpIcon data-icon="inline-start" />
-                      .md laden
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
                       onClick={pasteLetterTakeover}
                       className="h-11 rounded-none px-4"
                     >
                       <ClipboardPasteIcon data-icon="inline-start" />
                       Aus Zwischenablage
                     </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => mdTakeoverInputRef.current?.click()}
+                      className="h-11 rounded-none px-4"
+                    >
+                      <FileUpIcon data-icon="inline-start" />
+                      .md laden
+                    </Button>
+                    {!emailMode ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => txtTakeoverInputRef.current?.click()}
+                        className="h-11 rounded-none px-4"
+                      >
+                        <FileUpIcon data-icon="inline-start" />
+                        .txt laden
+                      </Button>
+                    ) : null}
+                    {letterTakeover.trim() ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={downloadTakeoverAsFile}
+                        className="h-11 rounded-none px-4"
+                      >
+                        <DownloadIcon data-icon="inline-start" />
+                        {emailMode || letterMode ? "Als .md speichern" : "Als .txt speichern"}
+                      </Button>
+                    ) : null}
                   </div>
                 </div>
 
                 <WizardNav
                   onBack={goBack}
                   onNext={continueFromTakeover}
-                  nextLabel={isSavingDraft ? "Speichern…" : "Weiter"}
+                  nextLabel={
+                    isSavingDraft
+                      ? "Speichern…"
+                      : emailMode
+                        ? "Im Editor öffnen"
+                        : "Weiter"
+                  }
                   nextDisabled={!letterTakeover.trim() || isSavingDraft}
                 />
               </section>
@@ -1855,14 +2467,7 @@ export function PromptKitView({
                             setDelegateClientQuery(selectedDelegateClient.name);
                           }
                         }}
-                        onBlur={() => {
-                          window.setTimeout(() => {
-                            setDelegateClientOpen(false);
-                            if (selectedDelegateClient) {
-                              setDelegateClientQuery("");
-                            }
-                          }, 120);
-                        }}
+                        onBlur={handleDelegateClientBlur}
                         placeholder="Mandant tippen…"
                         className="h-11 rounded-none"
                         autoComplete="off"
@@ -2142,6 +2747,42 @@ export function PromptKitView({
                     </DialogFooter>
                   </DialogContent>
                 </Dialog>
+
+                <AlertDialog
+                  open={clientCreateDialogOpen}
+                  onOpenChange={(open) => {
+                    setClientCreateDialogOpen(open);
+                    if (!open) {
+                      setPendingClientName("");
+                    }
+                  }}
+                >
+                  <AlertDialogContent className="rounded-none">
+                    <AlertDialogHeader>
+                      <AlertDialogTitle className="font-heading">
+                        Mandant anlegen?
+                      </AlertDialogTitle>
+                      <AlertDialogDescription>
+                        „{pendingClientName}" ist noch nicht vorhanden.
+                        Möchtest du diesen Mandanten anlegen?
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel disabled={isCreatingClient}>
+                        Abbrechen
+                      </AlertDialogCancel>
+                      <AlertDialogAction
+                        disabled={isCreatingClient}
+                        onClick={(event) => {
+                          event.preventDefault();
+                          createDelegateClient();
+                        }}
+                      >
+                        {isCreatingClient ? "Anlegen…" : "Anlegen"}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </section>
             ) : null}
           </div>

@@ -90,6 +90,41 @@ export async function sendTestEmail(
   });
 }
 
+/** Kopie an den Absender nach erfolgreichem Versand. */
+export async function sendSentEmailCopyToSelf(
+  config: SmtpConnectionConfig,
+  input: {
+    to: string;
+    cc?: string;
+    subject: string;
+    text: string;
+  }
+): Promise<void> {
+  const self = config.fromEmail.trim();
+  if (!self || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(self)) {
+    return;
+  }
+
+  const originalSubject = input.subject.trim() || "Ohne Betreff";
+  const copyText = [
+    "E-Mail versendet:",
+    "",
+    `An: ${input.to}`,
+    ...(input.cc?.trim() ? [`Kopie (CC): ${input.cc.trim()}`] : []),
+    `Betreff: ${originalSubject}`,
+    "",
+    "---",
+    "",
+    input.text,
+  ].join("\n");
+
+  await sendMailWithUserSmtp(config, {
+    to: self,
+    subject: `E-Mail versendet: ${originalSubject}`,
+    text: copyText,
+  });
+}
+
 /** Später: Mandanten-Mails. Export für Wiederverwendung. */
 export async function sendMailWithUserSmtp(
   config: SmtpConnectionConfig,
@@ -98,13 +133,16 @@ export async function sendMailWithUserSmtp(
     subject: string;
     text: string;
     html?: string;
+    cc?: string;
   }
 ): Promise<void> {
   const transport = createTransport(config);
+  const cc = input.cc?.trim();
 
   await transport.sendMail({
     from: formatFrom(config),
     to: input.to,
+    ...(cc ? { cc } : {}),
     subject: input.subject,
     text: input.text,
     html: input.html,

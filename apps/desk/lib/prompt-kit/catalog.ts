@@ -155,6 +155,56 @@ Keine Paragraphen, Urteile oder Tatsachen erfinden.`;
  * Folge-Schritt nach Sachverhalt: Mandantenschreiben per KI erzeugen.
  * Eingabe = Freitext (Badges Thema / Kernbotschaft); landet in {{input}}.
  */
+/**
+ * Folge-Schritt nach Sachverhalt: kurze E-Mail per KI erzeugen.
+ * {{input}} = E-Mail-Auftrag (Adressat, Kernbotschaft); {{facts}} = Sachverhalt.
+ */
+export const PROMPT_KIT_EMAIL = {
+  inputHeadline: "E-Mail vorbereiten",
+  guide:
+    "Adressat und Kernbotschaft möglichst klar tippen oder diktieren. Die Buttons darüber helfen beim Gliedern — Bezug zum Sachverhalt kommt automatisch in den Prompt.",
+  inputLabel: "Angaben zur E-Mail",
+  inputPlaceholder: "Adressat und Kernbotschaft hier eingeben…",
+  inputTips: [
+    { label: "E-Mail an Mandant", insert: "Adressat: Mandant\n" },
+    { label: "E-Mail an Gegenseite", insert: "Adressat: Gegenseite\n" },
+    { label: "Kernbotschaft", insert: "Kernbotschaft: " },
+    { label: "Ton", insert: "Ton: " },
+    { label: "Frist", insert: "Frist: " },
+  ],
+  action: {
+    id: "email-followup",
+    title: "E-Mail senden",
+    description: "Kurze E-Mail für den Kanzleialltag.",
+    template: `Erstelle eine kurze professionelle E-Mail auf Deutsch — bezogen auf den Sachverhalt unserer Kanzlei (siehe unten).
+
+E-Mail-Auftrag:
+{{input}}
+
+Anforderungen:
+- Betreffzeile vorschlagen
+- Klar, geschäftlich, prägnant
+- Im E-Mail-Text genau {{TEXT}} als Platzhalter für den individuellen Inhalt verwenden (wörtlich so schreiben, in Großbuchstaben)
+- Keine erfundenen Fakten; fehlende Angaben als Platzhalter belassen
+- Ton und Adressat aus dem E-Mail-Auftrag berücksichtigen
+
+Ausgabe:
+- Nur den E-Mail-Text — keine Erklärungen drumherum
+- Struktur (Plain-Text):
+  Betreff: …
+  ---
+  Anrede
+  Text mit {{TEXT}}
+  Grußformel
+- Die E-Mail als herunterladbare Markdown-Datei (.md) ausgeben
+- Alternativ: als kopierbaren Textblock im Chat (gleiche Struktur)
+- Inhalt der Datei: einfaches Markdown — Absätze durch Leerzeilen, keine Tabellen nötig
+
+Bezug — unser Sachverhalt:
+{{facts}}`,
+  } satisfies PromptKitAction,
+} as const;
+
 export const PROMPT_KIT_CLIENT_LETTER = {
   inputHeadline: "Schreiben vorbereiten",
   guide:
@@ -192,6 +242,17 @@ export function buildPromptKitOutput(
   input: string
 ): string {
   return template.replaceAll("{{input}}", input.trim());
+}
+
+/** E-Mail-Folgeflow: Auftrag + Sachverhalt getrennt in den Prompt. */
+export function buildPromptKitEmailOutput(
+  template: string,
+  briefing: string,
+  facts: string
+): string {
+  return template
+    .replaceAll("{{input}}", briefing.trim())
+    .replaceAll("{{facts}}", facts.trim());
 }
 
 export function getPromptKitGoal(id: PromptKitGoalId): PromptKitGoal | null {
