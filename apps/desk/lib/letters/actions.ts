@@ -578,6 +578,7 @@ export async function sendLetter(
 
     if (letter.kind === "email") {
       await sendSentEmailCopyToSelf(smtp, {
+        copyTo: user.email ?? "",
         to,
         cc: cc || undefined,
         subject,

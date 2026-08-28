@@ -90,17 +90,18 @@ export async function sendTestEmail(
   });
 }
 
-/** Kopie an den Absender nach erfolgreichem Versand. */
+/** Kopie an die Login-E-Mail des Nutzers nach erfolgreichem Versand. */
 export async function sendSentEmailCopyToSelf(
   config: SmtpConnectionConfig,
   input: {
+    copyTo: string;
     to: string;
     cc?: string;
     subject: string;
     text: string;
   }
 ): Promise<void> {
-  const self = config.fromEmail.trim();
+  const self = input.copyTo.trim();
   if (!self || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(self)) {
     return;
   }
