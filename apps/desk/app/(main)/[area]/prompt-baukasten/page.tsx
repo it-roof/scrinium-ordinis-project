@@ -1,30 +1,26 @@
-import { PromptKitView } from "@/components/prompt-kit/prompt-kit-view";
-import { requireAreaFunction } from "@/lib/area/require-function";
-import { getClients } from "@/lib/clients/storage";
-import { listLetterColleagues } from "@/lib/letters/storage";
-import { listMattersOptions } from "@/lib/matters/storage";
+import { renderPromptKitFlowPage } from "@/lib/prompt-kit/render-flow-page";
 
 export const dynamic = "force-dynamic";
 
 type PageProps = {
   params: Promise<{ area: string }>;
+  searchParams: Promise<{ flow?: string }>;
 };
 
-export default async function AreaPromptKitPage({ params }: PageProps) {
+export default async function AreaPromptKitPage({
+  params,
+  searchParams,
+}: PageProps) {
   const { area: areaSlug } = await params;
-  const { user } = await requireAreaFunction(areaSlug, "prompt-kit");
-  const [colleagues, clients, matters] = await Promise.all([
-    listLetterColleagues(user.tenantId),
-    getClients(user.tenantId, "legal"),
-    listMattersOptions(user.tenantId, "legal"),
-  ]);
+  const query = await searchParams;
+  const flow =
+    query.flow === "letter" || query.flow === "email" || query.flow === "print"
+      ? query.flow
+      : null;
 
-  return (
-    <PromptKitView
-      currentUserId={user.id}
-      colleagues={colleagues}
-      clients={clients.map((client) => ({ id: client.id, name: client.name }))}
-      matters={matters}
-    />
-  );
+  return renderPromptKitFlowPage({
+    areaSlug,
+    functionId: "prompt-kit",
+    initialFlow: flow,
+  });
 }

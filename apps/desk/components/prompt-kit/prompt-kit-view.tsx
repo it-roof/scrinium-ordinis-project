@@ -392,21 +392,33 @@ function stepsForGoal(goal: ReturnType<typeof getPromptKitGoal>) {
   return steps;
 }
 
+export type PromptKitInitialFlow = "letter" | "email" | "print";
+
 export function PromptKitView({
   currentUserId,
   colleagues,
   clients,
   matters: initialMatters,
+  initialFlow = null,
 }: {
   currentUserId: string;
   colleagues: LetterColleague[];
   clients: ClientOption[];
   matters: MatterOption[];
+  /** Direkt aus Schreibtisch / Deep-Link starten. */
+  initialFlow?: PromptKitInitialFlow | null;
 }) {
   const router = useRouter();
   const basePath = useAreaBasePath() ?? "";
-  const [mode, setMode] = useState<WizardMode>("main");
-  const [step, setStep] = useState<StepId>("input");
+  const [mode, setMode] = useState<WizardMode>(() => {
+    if (initialFlow === "letter") return "letter";
+    if (initialFlow === "email") return "email";
+    if (initialFlow === "print") return "print";
+    return "main";
+  });
+  const [step, setStep] = useState<StepId>(() =>
+    initialFlow === "print" ? "print" : "input"
+  );
   const [goalId, setGoalId] = useState<PromptKitGoalId | null>("facts");
   const [input, setInput] = useState("");
   const [letterInput, setLetterInput] = useState("");
@@ -431,7 +443,11 @@ export function PromptKitView({
   const [newMatterReference, setNewMatterReference] = useState("");
   const [isCreatingMatter, startCreateMatter] = useTransition();
   const [isGeneratingPdf, startGeneratePdf] = useTransition();
-  const [actionId, setActionId] = useState<string | null>(null);
+  const [actionId, setActionId] = useState<string | null>(() => {
+    if (initialFlow === "letter") return PROMPT_KIT_CLIENT_LETTER.action.id;
+    if (initialFlow === "email") return PROMPT_KIT_EMAIL.action.id;
+    return null;
+  });
   const [draftPrompt, setDraftPrompt] = useState("");
   const [copied, setCopied] = useState(false);
   const [checkCopied, setCheckCopied] = useState(false);
@@ -723,8 +739,8 @@ export function PromptKitView({
     setStep("input");
   }
 
-  function startEmailFlow() {
-    if (!input.trim()) {
+  function startEmailFlow(options?: { requireFacts?: boolean }) {
+    if (options?.requireFacts !== false && !input.trim()) {
       toast.error("Sachverhalt fehlt — bitte zuerst einen Sachverhalt erfassen.");
       return;
     }

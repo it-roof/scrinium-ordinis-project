@@ -7,6 +7,8 @@ import {
   FolderOpenIcon,
   HomeIcon,
   InboxIcon,
+  MailIcon,
+  PrinterIcon,
   ScaleIcon,
   SettingsIcon,
   ShieldIcon,
@@ -95,8 +97,35 @@ export const navigation: NavItem[] = [
       "data-[active=true]:bg-indigo-400/10 data-[active=true]:shadow-[inset_0_0_0_1px_oklch(0.7_0.12_275/0.25)]",
   },
   {
-    href: "/schreiben",
+    href: "/schreiben-erstellen",
     label: "Schreiben erstellen",
+    description: "Anwaltsschreiben oder Brief entwerfen",
+    icon: FileTextIcon,
+    accent: "bg-rose-400/25 text-rose-100",
+    activeClass:
+      "data-[active=true]:bg-rose-400/10 data-[active=true]:shadow-[inset_0_0_0_1px_oklch(0.7_0.12_20/0.25)]",
+  },
+  {
+    href: "/email-senden",
+    label: "E-Mail senden",
+    description: "Kurze E-Mail per KI — mit Platzhaltern zum Ersetzen",
+    icon: MailIcon,
+    accent: "bg-sky-400/25 text-sky-100",
+    activeClass:
+      "data-[active=true]:bg-sky-400/10 data-[active=true]:shadow-[inset_0_0_0_1px_oklch(0.7_0.1_220/0.25)]",
+  },
+  {
+    href: "/dokument-drucken",
+    label: "Dokument drucken",
+    description: "Markdown einfügen und als PDF im Browser öffnen",
+    icon: PrinterIcon,
+    accent: "bg-amber-400/25 text-amber-100",
+    activeClass:
+      "data-[active=true]:bg-amber-400/10 data-[active=true]:shadow-[inset_0_0_0_1px_oklch(0.78_0.12_85/0.25)]",
+  },
+  {
+    href: "/schreiben",
+    label: "Schreiben",
     description: "Entwürfe mit Platzhaltern, PDF und Word",
     icon: FilePenLineIcon,
     accent: "bg-rose-400/25 text-rose-100",

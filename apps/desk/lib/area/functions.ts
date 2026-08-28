@@ -13,6 +13,9 @@ export const AREA_FUNCTION_IDS = [
   "inbox",
   "clients",
   "matters",
+  "compose-letter",
+  "compose-email",
+  "compose-print",
   "text-blocks",
   "prompts",
   "prompt-kit",
@@ -30,6 +33,10 @@ export function isAreaFunctionId(value: string): value is AreaFunctionId {
 /**
  * User-Funktions-Allowlist: null = alle Funktionen der freigeschalteten Bereiche.
  * Array = nur diese Funktionen (zusätzlich zur Bereichs-Zuordnung).
+ *
+ * Compose-Funktionen (Schreiben/E-Mail/Druck) werden mitgeführt, wenn
+ * „Sachverhalt verarbeiten“ oder „Schreiben“ freigeschaltet ist — damit
+ * bestehende Allowlists nach Feature-Erweiterung nicht leer bleiben.
  */
 export function normalizeOptionalAllowedFunctions(
   input: unknown
@@ -45,6 +52,11 @@ export function normalizeOptionalAllowedFunctions(
     if (typeof item === "string" && isAreaFunctionId(item)) {
       unique.add(item);
     }
+  }
+  if (unique.has("prompt-kit") || unique.has("letters")) {
+    unique.add("compose-letter");
+    unique.add("compose-email");
+    unique.add("compose-print");
   }
   return [...unique];
 }
@@ -68,6 +80,9 @@ export const FUNCTIONS_BY_AREA: Record<AppModuleId, AreaFunctionId[]> = {
     "matters",
     "prompt-kit",
     "prompts",
+    "compose-letter",
+    "compose-email",
+    "compose-print",
     "letters",
     "text-blocks",
   ],
@@ -80,10 +95,13 @@ export const FUNCTION_LABELS: Record<AreaFunctionId, string> = {
   inbox: "Eingang",
   clients: "Mandanten",
   matters: "Akten",
+  "compose-letter": "Schreiben erstellen",
+  "compose-email": "E-Mail senden",
+  "compose-print": "Dokument drucken",
   "text-blocks": "Textbausteine",
   prompts: "Prompt-Bibliothek",
   "prompt-kit": "Sachverhalt verarbeiten",
-  letters: "Schreiben erstellen",
+  letters: "Schreiben",
   docs: "Dokumentation",
   templates: "Vorlagen",
 };
@@ -96,10 +114,16 @@ export const FUNCTION_ROUTES: Record<
   inbox: { href: "/eingang", label: "Eingang" },
   clients: { href: "/mandanten", label: "Mandanten" },
   matters: { href: "/akten", label: "Akten" },
+  "compose-letter": {
+    href: "/schreiben-erstellen",
+    label: "Schreiben erstellen",
+  },
+  "compose-email": { href: "/email-senden", label: "E-Mail senden" },
+  "compose-print": { href: "/dokument-drucken", label: "Dokument drucken" },
   "text-blocks": { href: "/textbausteine", label: "Textbausteine" },
   prompts: { href: "/prompt", label: "Prompt-Bibliothek" },
   "prompt-kit": { href: "/prompt-baukasten", label: "Sachverhalt verarbeiten" },
-  letters: { href: "/schreiben", label: "Schreiben erstellen" },
+  letters: { href: "/schreiben", label: "Schreiben" },
   docs: { href: "/dokumentation", label: "Dokumentation" },
   templates: { href: "/vorlagen", label: "Vorlagen" },
 };
@@ -183,6 +207,9 @@ export const MANAGEMENT_FUNCTION_IDS: AreaFunctionId[] = ["clients", "matters"];
 export const TOOL_FUNCTION_IDS: AreaFunctionId[] = [
   "prompt-kit",
   "prompts",
+  "compose-letter",
+  "compose-email",
+  "compose-print",
   "letters",
   "text-blocks",
   "docs",
