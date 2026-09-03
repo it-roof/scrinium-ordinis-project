@@ -2,7 +2,7 @@ import { asc, and, count, eq } from "drizzle-orm";
 
 import { hashPassword } from "@/lib/auth/password";
 import { db } from "@/lib/db";
-import { tenants, users, type DeskRole, type UserRole } from "@/lib/db/schema";
+import { tenants, users, type DeskRole, type UserRole, type UserSalutation } from "@/lib/db/schema";
 import {
   ALL_APP_MODULE_IDS,
   normalizeEnabledModules,
@@ -26,6 +26,7 @@ export type TenantUserItem = {
   name: string;
   firstName: string;
   lastName: string;
+  salutation: UserSalutation | null;
   role: UserRole;
   deskRole: DeskRole | null;
   platformRole: string | null;
@@ -150,6 +151,7 @@ export async function listUsersForTenant(
       name: users.name,
       firstName: users.firstName,
       lastName: users.lastName,
+      salutation: users.salutation,
       role: users.role,
       deskRole: users.deskRole,
       platformRole: users.platformRole,
@@ -166,6 +168,7 @@ export async function listUsersForTenant(
     name: row.name,
     firstName: row.firstName,
     lastName: row.lastName,
+    salutation: row.salutation,
     role: row.role,
     deskRole: row.deskRole,
     platformRole: row.platformRole,
@@ -179,6 +182,7 @@ export async function createTenantUserRow(input: {
   email: string;
   firstName: string;
   lastName: string;
+  salutation: UserSalutation;
   password: string;
   role: UserRole;
   deskRole: DeskRole;
@@ -197,6 +201,7 @@ export async function createTenantUserRow(input: {
       name,
       firstName,
       lastName,
+      salutation: input.salutation,
       passwordHash,
       role: input.role,
       deskRole: input.deskRole,
@@ -209,6 +214,7 @@ export async function createTenantUserRow(input: {
       name: users.name,
       firstName: users.firstName,
       lastName: users.lastName,
+      salutation: users.salutation,
       role: users.role,
       deskRole: users.deskRole,
       allowedModules: users.allowedModules,
@@ -223,6 +229,7 @@ export async function updateTenantUserRow(input: {
   email: string;
   firstName: string;
   lastName: string;
+  salutation: UserSalutation;
   role: UserRole;
   deskRole: DeskRole;
   allowedModules?: AppModuleId[] | null;
@@ -235,6 +242,7 @@ export async function updateTenantUserRow(input: {
     name: string;
     firstName: string;
     lastName: string;
+    salutation: UserSalutation;
     role: UserRole;
     deskRole: DeskRole;
     allowedModules?: AppModuleId[] | null;
@@ -244,6 +252,7 @@ export async function updateTenantUserRow(input: {
     name: resolveUserDisplayName({ firstName, lastName }),
     firstName,
     lastName,
+    salutation: input.salutation,
     role: input.role,
     deskRole: input.deskRole,
   };
@@ -266,6 +275,7 @@ export async function updateTenantUserRow(input: {
       name: users.name,
       firstName: users.firstName,
       lastName: users.lastName,
+      salutation: users.salutation,
       role: users.role,
       deskRole: users.deskRole,
       tenantId: users.tenantId,

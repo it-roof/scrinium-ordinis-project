@@ -7,18 +7,25 @@ import {
   PaperclipIcon,
 } from "lucide-react";
 import { toast } from "sonner";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useAreaFromPath } from "@/lib/area/use-area-path";
 import {
   markStaffMessageRead,
   replyToStaffMessage,
   setStaffMessageStatus,
 } from "@/lib/staff-messages/actions";
 import {
+  STAFF_INBOX_LIVE_EVENT,
+  staffInboxPollIntervalMs,
+  type StaffInboxLiveDetail,
+} from "@/lib/staff-messages/inbox-live";
+import {
   formatFileSize,
   formatStaffMessageDueDate,
+  isStaffMessagePriority,
   priorityLabel,
   STAFF_MESSAGE_INBOX_STATUSES,
   STAFF_MESSAGE_PRIORITIES,
@@ -138,14 +145,116 @@ export function InboxView({
   delegatedMessages?: StaffMessageRecord[];
   currentUserId: string;
 }) {
-  const received = receivedMessages;
-  const delegated = delegatedMessages;
+  const area = useAreaFromPath();
+  const [received, setReceived] = useState(receivedMessages);
+  const [delegated, setDelegated] = useState(delegatedMessages);
+
+  useEffect(() => {
+    setReceived(receivedMessages);
+  }, [receivedMessages]);
+
+  useEffect(() => {
+    setDelegated(delegatedMessages);
+  }, [delegatedMessages]);
+
+  useEffect(() => {
+    if (!area) {
+      return;
+    }
+
+    const moduleId = area;
+    let cancelled = false;
+    let timer: number | undefined;
+
+    async function refreshLists() {
+      try {
+        const response = await fetch(
+          `/api/staff-messages/inbox?module=${encodeURIComponent(moduleId)}`,
+          {
+            method: "GET",
+            credentials: "same-origin",
+            cache: "no-store",
+          }
+        );
+        if (!response.ok || cancelled) {
+          return;
+        }
+        const data = (await response.json()) as {
+          received: StaffMessageRecord[];
+          delegated: StaffMessageRecord[];
+        };
+        if (cancelled) {
+          return;
+        }
+        setReceived(data.received);
+        setDelegated(data.delegated);
+      } catch {
+        // nächster Poll
+      }
+    }
+
+    const schedule = () => {
+      window.clearTimeout(timer);
+      const delay = staffInboxPollIntervalMs({
+        documentHidden: document.visibilityState === "hidden",
+        onInboxPage: true,
+      });
+      timer = window.setTimeout(async () => {
+        await refreshLists();
+        if (!cancelled) {
+          schedule();
+        }
+      }, delay);
+    };
+
+    const onLive = (event: Event) => {
+      const detail = (event as CustomEvent<StaffInboxLiveDetail>).detail;
+      if (detail) {
+        void refreshLists();
+      }
+    };
+
+    const onVisible = () => {
+      if (document.visibilityState === "visible") {
+        void refreshLists().then(() => {
+          if (!cancelled) {
+            schedule();
+          }
+        });
+      } else {
+        schedule();
+      }
+    };
+
+    window.addEventListener(STAFF_INBOX_LIVE_EVENT, onLive);
+    document.addEventListener("visibilitychange", onVisible);
+    schedule();
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+      window.removeEventListener(STAFF_INBOX_LIVE_EVENT, onLive);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [area]);
 
   const [mailbox, setMailbox] = useState<Mailbox>("received");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [mobileShowDetail, setMobileShowDetail] = useState(false);
-  const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>("alle");
+  const searchParams = useSearchParams();
+  const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>(() => {
+    const raw = searchParams.get("priority");
+    return raw && isStaffMessagePriority(raw) ? raw : "alle";
+  });
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("alle");
+
+  useEffect(() => {
+    const raw = searchParams.get("priority");
+    if (raw && isStaffMessagePriority(raw)) {
+      setPriorityFilter(raw);
+      setMailbox("received");
+    }
+  }, [searchParams]);
 
   const mailboxMessages =
     mailbox === "received" ? received : delegated;

@@ -120,7 +120,7 @@ export function MessagesOverviewView({
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-8">
       <PageHeader
-        title="Nachrichten Übersicht"
+        title="Alle Nachrichten"
         description="Alle empfangenen und delegierten Nachrichten und Aufgaben — inkl. erledigter."
       />
 

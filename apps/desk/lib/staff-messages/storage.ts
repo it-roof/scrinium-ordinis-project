@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, inArray, isNull, ne, or } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, inArray, isNull, ne, or } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 
 import {
@@ -6,6 +6,7 @@ import {
   staffMessageReplies,
   staffMessages,
   users,
+  type StaffMessagePriority,
   type StaffMessageStatus,
 } from "@/lib/db/schema";
 import type { AppModuleId } from "@/lib/modules";
@@ -326,6 +327,194 @@ export async function countOpenStaffMessagesForRecipient(
       .where(and(...conditions));
 
     return row?.value ?? 0;
+  });
+}
+
+/** Leichter Pulse für Client-Polling (Benachrichtigungston bei neuer ungelesener Nachricht). */
+export async function getStaffInboxNotifyPulse(
+  tenantId: string,
+  recipientId: string
+): Promise<{
+  unreadCount: number;
+  latestUnreadId: string | null;
+  latestUnreadAt: string | null;
+}> {
+  return withTenantDb(tenantId, async (tx) => {
+    const unreadConditions = and(
+      eq(staffMessages.tenantId, tenantId),
+      eq(staffMessages.recipientId, recipientId),
+      inArray(staffMessages.status, STAFF_MESSAGE_INBOX_STATUSES),
+      isNull(staffMessages.readAt)
+    );
+
+    const [countRow] = await tx
+      .select({ value: count() })
+      .from(staffMessages)
+      .where(unreadConditions);
+
+    const [latest] = await tx
+      .select({
+        id: staffMessages.id,
+        createdAt: staffMessages.createdAt,
+      })
+      .from(staffMessages)
+      .where(unreadConditions)
+      .orderBy(desc(staffMessages.createdAt))
+      .limit(1);
+
+    return {
+      unreadCount: countRow?.value ?? 0,
+      latestUnreadId: latest?.id ?? null,
+      latestUnreadAt: latest?.createdAt ?? null,
+    };
+  });
+}
+
+export type StaffDashboardStats = {
+  sofort: number;
+  heute: number;
+  unread: number;
+  completedThisWeek: number;
+};
+
+export type StaffDashboardPreviewItem = {
+  id: string;
+  topic: string;
+  priority: StaffMessagePriority;
+  dueDate: string | null;
+  senderName: string;
+  createdAt: string;
+};
+
+export type StaffDashboardLists = {
+  urgentTasks: StaffDashboardPreviewItem[];
+};
+
+/** Montag 00:00 der laufenden Arbeitswoche (lokal). */
+function startOfWorkWeekIso(now = new Date()): string {
+  const local = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const weekday = local.getDay(); // 0=So … 1=Mo
+  const daysSinceMonday = weekday === 0 ? 6 : weekday - 1;
+  local.setDate(local.getDate() - daysSinceMonday);
+  local.setHours(0, 0, 0, 0);
+  return local.toISOString();
+}
+
+function toDashboardPreview(row: {
+  id: string;
+  topic: string;
+  priority: StaffMessagePriority;
+  dueDate: string | null;
+  createdAt: string;
+  senderName: string | null;
+}): StaffDashboardPreviewItem {
+  return {
+    id: row.id,
+    topic: row.topic,
+    priority: row.priority,
+    dueDate: row.dueDate,
+    createdAt: row.createdAt,
+    senderName: row.senderName?.trim() || "Unbekannt",
+  };
+}
+
+/** Kennzahlen für die Rechtsanwalt-Schnellansicht (Empfänger, aktiver Bereich). */
+export async function getStaffDashboardStats(
+  tenantId: string,
+  recipientId: string,
+  module: AppModuleId
+): Promise<StaffDashboardStats> {
+  return withTenantDb(tenantId, async (tx) => {
+    const openBase = and(
+      eq(staffMessages.tenantId, tenantId),
+      eq(staffMessages.recipientId, recipientId),
+      eq(staffMessages.module, module),
+      inArray(staffMessages.status, STAFF_MESSAGE_INBOX_STATUSES)
+    );
+
+    const weekStart = startOfWorkWeekIso();
+
+    const [sofortRow, heuteRow, unreadRow, completedRow] = await Promise.all([
+      tx
+        .select({ value: count() })
+        .from(staffMessages)
+        .where(and(openBase, eq(staffMessages.priority, "sofort"))),
+      tx
+        .select({ value: count() })
+        .from(staffMessages)
+        .where(and(openBase, eq(staffMessages.priority, "heute"))),
+      tx
+        .select({ value: count() })
+        .from(staffMessages)
+        .where(and(openBase, isNull(staffMessages.readAt))),
+      tx
+        .select({ value: count() })
+        .from(staffMessages)
+        .where(
+          and(
+            eq(staffMessages.tenantId, tenantId),
+            eq(staffMessages.recipientId, recipientId),
+            eq(staffMessages.module, module),
+            eq(staffMessages.status, "erledigt"),
+            gte(staffMessages.completedAt, weekStart)
+          )
+        ),
+    ]);
+
+    return {
+      sofort: sofortRow[0]?.value ?? 0,
+      heute: heuteRow[0]?.value ?? 0,
+      unread: unreadRow[0]?.value ?? 0,
+      completedThisWeek: completedRow[0]?.value ?? 0,
+    };
+  });
+}
+
+/** Listen für die Rechtsanwalt-Übersicht (je max. 3 Einträge). */
+export async function getStaffDashboardLists(
+  tenantId: string,
+  recipientId: string,
+  module: AppModuleId
+): Promise<StaffDashboardLists> {
+  return withTenantDb(tenantId, async (tx) => {
+    const openBase = and(
+      eq(staffMessages.tenantId, tenantId),
+      eq(staffMessages.recipientId, recipientId),
+      eq(staffMessages.module, module),
+      inArray(staffMessages.status, STAFF_MESSAGE_INBOX_STATUSES)
+    );
+
+    const urgentRows = await tx
+      .select({
+        id: staffMessages.id,
+        topic: staffMessages.topic,
+        priority: staffMessages.priority,
+        dueDate: staffMessages.dueDate,
+        createdAt: staffMessages.createdAt,
+        senderName: senderUser.name,
+      })
+      .from(staffMessages)
+      .innerJoin(senderUser, eq(staffMessages.senderId, senderUser.id))
+      .where(
+        and(openBase, inArray(staffMessages.priority, ["sofort", "heute"]))
+      )
+      .orderBy(desc(staffMessages.createdAt))
+      .limit(12);
+
+    // Sofort vor Heute, dann neueste zuerst — max. 3.
+    const urgentSorted = [...urgentRows].sort((a, b) => {
+      const rank = (p: StaffMessagePriority) =>
+        p === "sofort" ? 0 : p === "heute" ? 1 : 2;
+      const byPriority = rank(a.priority) - rank(b.priority);
+      if (byPriority !== 0) {
+        return byPriority;
+      }
+      return b.createdAt.localeCompare(a.createdAt);
+    });
+
+    return {
+      urgentTasks: urgentSorted.slice(0, 3).map(toDashboardPreview),
+    };
   });
 }
 

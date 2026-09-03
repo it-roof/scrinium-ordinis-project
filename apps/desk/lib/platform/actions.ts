@@ -21,6 +21,7 @@ import {
   validateCustomDomain,
 } from "@/lib/tenant/domain";
 import { requirePlatformAdminAction } from "@/lib/tenant/session";
+import { isUserSalutation } from "@/lib/users/names";
 import {
   intersectModules,
   normalizeEnabledModules,
@@ -263,6 +264,7 @@ export async function createTenantUserAction(input: {
   email: string;
   firstName: string;
   lastName: string;
+  salutation: string;
   password: string;
   role: UserRole;
   deskRole: DeskRole;
@@ -280,11 +282,21 @@ export async function createTenantUserAction(input: {
   const deskRole = isDeskRoleId(input.deskRole)
     ? input.deskRole
     : null;
+  const salutation = isUserSalutation(input.salutation)
+    ? input.salutation
+    : null;
 
   if (!email || !firstName || !lastName) {
     return {
       success: false as const,
       error: "E-Mail, Vorname und Nachname sind Pflicht.",
+    };
+  }
+
+  if (!salutation) {
+    return {
+      success: false as const,
+      error: "Bitte eine Anrede wählen (Herr oder Frau).",
     };
   }
 
@@ -330,6 +342,7 @@ export async function createTenantUserAction(input: {
     email,
     firstName,
     lastName,
+    salutation,
     password: input.password,
     role,
     deskRole,
@@ -348,6 +361,7 @@ export async function updateTenantUserAction(input: {
   email: string;
   firstName: string;
   lastName: string;
+  salutation: string;
   role: UserRole;
   deskRole: DeskRole;
   allowedModules?: AppModuleId[] | null;
@@ -363,12 +377,22 @@ export async function updateTenantUserAction(input: {
   const lastName = input.lastName.trim();
   const role = input.role === "admin" ? "admin" : "employee";
   const deskRole = isDeskRoleId(input.deskRole) ? input.deskRole : null;
+  const salutation = isUserSalutation(input.salutation)
+    ? input.salutation
+    : null;
   const password = input.password?.trim() ?? "";
 
   if (!email || !firstName || !lastName) {
     return {
       success: false as const,
       error: "E-Mail, Vorname und Nachname sind Pflicht.",
+    };
+  }
+
+  if (!salutation) {
+    return {
+      success: false as const,
+      error: "Bitte eine Anrede wählen (Herr oder Frau).",
     };
   }
 
@@ -421,6 +445,7 @@ export async function updateTenantUserAction(input: {
     email,
     firstName,
     lastName,
+    salutation,
     role,
     deskRole,
     allowedModules,

@@ -33,6 +33,9 @@ export const deskRoleEnum = pgEnum("desk_role", [
   "sekretariat",
 ]);
 
+/** Formelle Anrede für Begrüßung (Herr / Frau). */
+export const userSalutationEnum = pgEnum("user_salutation", ["herr", "frau"]);
+
 /** Mandant: Firma oder Privatperson. */
 export const clientKindEnum = pgEnum("client_kind", ["company", "person"]);
 
@@ -93,6 +96,8 @@ export const users = pgTable("users", {
   name: text("name").notNull(),
   firstName: text("first_name").notNull().default(""),
   lastName: text("last_name").notNull().default(""),
+  /** Formelle Anrede: Herr / Frau (für Begrüßung). */
+  salutation: userSalutationEnum("salutation"),
   passwordHash: text("password_hash").notNull(),
   role: roleEnum("role").notNull().default("employee"),
   /**
@@ -736,6 +741,7 @@ export type Tenant = typeof tenants.$inferSelect;
 export type User = typeof users.$inferSelect;
 export type UserRole = (typeof roleEnum.enumValues)[number];
 export type DeskRole = (typeof deskRoleEnum.enumValues)[number];
+export type UserSalutation = (typeof userSalutationEnum.enumValues)[number];
 export type PlatformRole = (typeof platformRoleEnum.enumValues)[number];
 export type ContentModule = (typeof moduleEnum.enumValues)[number];
 export type UserSmtpSettings = typeof userSmtpSettings.$inferSelect;

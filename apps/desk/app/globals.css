@@ -193,23 +193,23 @@
       );
   }
 
-  /* Bereich Recht — Indigo */
+  /* Bereich Recht — neutral (ohne farbigen Wash) */
   .content-canvas-legal {
     background-image:
       radial-gradient(
-        ellipse 80% 65% at 5% 0%,
-        oklch(0.9 0.1 275 / 0.7),
-        transparent 60%
-      ),
-      radial-gradient(
-        ellipse 60% 52% at 100% 8%,
-        oklch(0.92 0.08 290 / 0.48),
+        ellipse 70% 55% at 0% 0%,
+        oklch(0.96 0.01 250 / 0.22),
         transparent 55%
       ),
       radial-gradient(
-        ellipse 55% 48% at 75% 100%,
-        oklch(0.94 0.06 265 / 0.36),
-        transparent 58%
+        ellipse 60% 50% at 100% 0%,
+        oklch(0.97 0.008 220 / 0.18),
+        transparent 50%
+      ),
+      radial-gradient(
+        ellipse 55% 45% at 85% 100%,
+        oklch(0.97 0.006 200 / 0.14),
+        transparent 55%
       );
   }
 
@@ -258,6 +258,7 @@
   .sidebar-canvas [data-slot="sidebar-inner"] {
     background-color: var(--sidebar);
     background-image: var(--sidebar-canvas);
+    background-attachment: fixed;
   }
 
   .surface-card {

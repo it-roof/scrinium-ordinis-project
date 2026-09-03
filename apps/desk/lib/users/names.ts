@@ -9,6 +9,39 @@ export function formatUserName(user: {
     .join(" ");
 }
 
+export const USER_SALUTATION_LABELS = {
+  herr: "Herr",
+  frau: "Frau",
+} as const;
+
+export function isUserSalutation(
+  value: string
+): value is keyof typeof USER_SALUTATION_LABELS {
+  return value === "herr" || value === "frau";
+}
+
+/** Begrüßung z. B. „Guten Tag Herr Schneiderbanger“. */
+export function formatDeskGreeting(input: {
+  salutation: keyof typeof USER_SALUTATION_LABELS | null | undefined;
+  lastName: string;
+}): string {
+  const lastName = input.lastName.trim();
+  const salutationLabel = input.salutation
+    ? USER_SALUTATION_LABELS[input.salutation]
+    : null;
+
+  if (salutationLabel && lastName) {
+    return `Guten Tag ${salutationLabel} ${lastName},`;
+  }
+  if (lastName) {
+    return `Guten Tag ${lastName},`;
+  }
+  if (salutationLabel) {
+    return `Guten Tag ${salutationLabel},`;
+  }
+  return "Guten Tag,";
+}
+
 /** Listenformat: Nachname, Vorname */
 export function formatUserListName(user: {
   firstName: string;

@@ -20,10 +20,11 @@ async function main() {
 
   if (!emailArg || !password || !firstNameArg || !lastNameArg) {
     console.error(
-      "Verwendung: pnpm user:create <email> <passwort> <vorname> <nachname> [tenant-slug] [admin|employee] [rechtsanwalt|sekretariat]"
+      "Verwendung: pnpm user:create <email> <passwort> <vorname> <nachname> [tenant-slug] [admin|employee] [rechtsanwalt|sekretariat] [herr|frau]"
     );
     console.error(`  tenant-slug default: ${DEFAULT_TENANT_SLUG}`);
     console.error("  Position default: rechtsanwalt");
+    console.error("  Anrede default: herr");
     process.exit(1);
   }
 
@@ -35,6 +36,7 @@ async function main() {
   let tenantSlug = DEFAULT_TENANT_SLUG;
   let roleArg = "employee";
   let deskRoleArg = "rechtsanwalt";
+  let salutationArg = "herr";
 
   const rest = args.slice(4);
   for (const token of rest) {
@@ -46,12 +48,17 @@ async function main() {
       deskRoleArg = token;
       continue;
     }
+    if (token === "herr" || token === "frau") {
+      salutationArg = token;
+      continue;
+    }
     tenantSlug = token;
   }
 
   const role = roleArg === "admin" ? "admin" : "employee";
   const deskRole =
     deskRoleArg === "sekretariat" ? "sekretariat" : "rechtsanwalt";
+  const salutation = salutationArg === "frau" ? "frau" : "herr";
 
   const passwordError = validatePassword(password);
   if (passwordError) {
@@ -94,6 +101,7 @@ async function main() {
       name,
       firstName,
       lastName,
+      salutation,
       passwordHash,
       role,
       deskRole,

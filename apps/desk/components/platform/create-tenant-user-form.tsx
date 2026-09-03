@@ -11,8 +11,9 @@ import {
   DESK_ROLE_LABELS,
   type DeskRoleId,
 } from "@/lib/area/desk-roles";
-import type { UserRole } from "@/lib/db/schema";
+import type { UserRole, UserSalutation } from "@/lib/db/schema";
 import type { AppModuleId } from "@/lib/modules";
+import { USER_SALUTATION_LABELS } from "@/lib/users/names";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -79,6 +80,7 @@ function CreateTenantUserForm({
   const [email, setEmail] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+  const [salutation, setSalutation] = useState<UserSalutation>("herr");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<UserRole>(defaultRole);
   const [deskRole, setDeskRole] = useState<DeskRoleId>("rechtsanwalt");
@@ -95,6 +97,7 @@ function CreateTenantUserForm({
         email,
         firstName,
         lastName,
+        salutation,
         password,
         role,
         deskRole,
@@ -115,6 +118,26 @@ function CreateTenantUserForm({
   return (
     <form onSubmit={onSubmit} className="space-y-4">
       <div className="grid gap-4 sm:grid-cols-2">
+        <div className="space-y-2">
+          <Label htmlFor="user-salutation">Anrede</Label>
+          <select
+            id="user-salutation"
+            value={salutation}
+            onChange={(event) =>
+              setSalutation(event.target.value as UserSalutation)
+            }
+            required
+            className="flex h-10 w-full rounded-none border border-input bg-background px-3 text-sm"
+          >
+            {(Object.keys(USER_SALUTATION_LABELS) as UserSalutation[]).map(
+              (id) => (
+                <option key={id} value={id}>
+                  {USER_SALUTATION_LABELS[id]}
+                </option>
+              )
+            )}
+          </select>
+        </div>
         <div className="space-y-2">
           <Label htmlFor="user-first-name">Vorname</Label>
           <Input

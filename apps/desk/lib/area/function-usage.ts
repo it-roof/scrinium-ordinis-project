@@ -79,25 +79,47 @@ function compareByUsage(
 }
 
 /**
- * Schnell-Ansicht: Kommunikations-Funktionen plus die 6 meistgenutzten
- * übrigen Funktionen, sortiert nach Nutzung.
+ * Feste Schnellzugriff-Karten für Rechtsanwalt (Reihenfolge fix).
+ * inbox wird als „Alle Nachrichten“ gelabelt und führt zum Eingang.
+ */
+export const LAWYER_QUICK_VIEW_FUNCTION_IDS: AreaFunctionId[] = [
+  "prompts",
+  "staff-messages",
+  "inbox",
+];
+
+/**
+ * Schnell-Ansicht: Nachrichten-Eingang zuerst, dann Kommunikation
+ * und die meistgenutzten übrigen Funktionen.
  */
 export function buildQuickViewFunctionIds(
   available: ReadonlySet<AreaFunctionId>,
   usage: Record<string, number>
 ): AreaFunctionId[] {
+  const inboxFirst = available.has("inbox") ? (["inbox"] as const) : [];
   const communication = COMMUNICATION_FUNCTION_IDS.filter((id) =>
     available.has(id)
   );
   const catalog = deskFunctionCatalogIds().filter(
-    (id) => available.has(id) && !communication.includes(id)
+    (id) =>
+      available.has(id) &&
+      !communication.includes(id) &&
+      id !== "inbox" &&
+      id !== "inbox-overview"
   );
   const topFunctions = [...catalog]
     .sort((a, b) => compareByUsage(a, b, usage, catalog))
     .slice(0, QUICK_VIEW_FUNCTION_LIMIT);
 
-  const fallback = [...communication, ...catalog];
-  return [...new Set([...communication, ...topFunctions])].sort((a, b) =>
-    compareByUsage(a, b, usage, fallback)
-  );
+  return [
+    ...inboxFirst,
+    ...communication,
+    ...topFunctions.sort((a, b) => compareByUsage(a, b, usage, catalog)),
+  ];
+}
+
+export function buildLawyerQuickViewFunctionIds(
+  available: ReadonlySet<AreaFunctionId>
+): AreaFunctionId[] {
+  return LAWYER_QUICK_VIEW_FUNCTION_IDS.filter((id) => available.has(id));
 }

@@ -1,4 +1,5 @@
 import type { ActiveArea } from "@/lib/area/active-area";
+import type { DeskRoleId } from "@/lib/area/desk-roles";
 import {
   areaBasePath,
   areaFromSlug,
@@ -109,7 +110,7 @@ export const FUNCTIONS_BY_AREA: Record<AppModuleId, AreaFunctionId[]> = {
 
 export const FUNCTION_LABELS: Record<AreaFunctionId, string> = {
   inbox: "Nachrichten",
-  "inbox-overview": "Nachrichten Übersicht",
+  "inbox-overview": "Alle Nachrichten",
   clients: "Mandanten",
   matters: "Akten",
   "compose-letter": "Schreiben erstellen",
@@ -132,7 +133,7 @@ export const FUNCTION_ROUTES: Record<
   inbox: { href: "/eingang", label: "Nachrichten" },
   "inbox-overview": {
     href: "/nachrichten-uebersicht",
-    label: "Nachrichten Übersicht",
+    label: "Alle Nachrichten",
   },
   clients: { href: "/mandanten", label: "Mandanten" },
   matters: { href: "/akten", label: "Akten" },
@@ -290,7 +291,8 @@ function navItemForFunction(
 /** Sidebar: gruppiert in Verwaltung + Funktionen. */
 export function navigationGroupsForArea(
   area: ActiveArea,
-  allowedFunctions: AreaFunctionId[] | null = null
+  allowedFunctions: AreaFunctionId[] | null = null,
+  deskRole: DeskRoleId | null = null
 ): NavGroup[] {
   if (area === "all") {
     return [
@@ -304,6 +306,7 @@ export function navigationGroupsForArea(
   const available = new Set(
     filterFunctionsByAllowlist(getFunctionsForArea(area), allowedFunctions)
   );
+  const isLawyer = deskRole === "rechtsanwalt";
   const startItem: NavItem = {
     ...navigation[0],
     href: areaBasePath(area),
@@ -318,13 +321,22 @@ export function navigationGroupsForArea(
     ),
   ];
 
-  const managementItems = MANAGEMENT_FUNCTION_IDS.filter((id) =>
-    available.has(id)
-  ).map((id) => navItemForFunction(area, id));
+  const managementItems = isLawyer
+    ? []
+    : MANAGEMENT_FUNCTION_IDS.filter((id) => available.has(id)).map((id) =>
+        navItemForFunction(area, id)
+      );
 
-  const toolItems = TOOL_FUNCTION_IDS.filter((id) => available.has(id)).map(
-    (id) => navItemForFunction(area, id)
-  );
+  const toolItems = TOOL_FUNCTION_IDS.filter((id) => {
+    if (!available.has(id)) {
+      return false;
+    }
+    // Rechtsanwalt: Sachverhalt verarbeiten nicht in der Sidebar.
+    if (isLawyer && id === "prompt-kit") {
+      return false;
+    }
+    return true;
+  }).map((id) => navItemForFunction(area, id));
 
   const communicationItems = COMMUNICATION_FUNCTION_IDS.filter((id) =>
     available.has(id)
@@ -349,9 +361,10 @@ export function navigationGroupsForArea(
 /** Sidebar: flache Liste (Start + Funktionen) — für Kompatibilität. */
 export function navigationForArea(
   area: ActiveArea,
-  allowedFunctions: AreaFunctionId[] | null = null
+  allowedFunctions: AreaFunctionId[] | null = null,
+  deskRole: DeskRoleId | null = null
 ): NavItem[] {
-  return navigationGroupsForArea(area, allowedFunctions).flatMap(
+  return navigationGroupsForArea(area, allowedFunctions, deskRole).flatMap(
     (group) => group.items
   );
 }

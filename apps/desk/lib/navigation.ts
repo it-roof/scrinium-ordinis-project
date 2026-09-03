@@ -55,7 +55,7 @@ export const navigation: NavItem[] = [
   },
   {
     href: "/nachrichten-uebersicht",
-    label: "Nachrichten Übersicht",
+    label: "Alle Nachrichten",
     description: "Alle Nachrichten und Aufgaben im Überblick",
     icon: ListIcon,
     accent: "bg-amber-400/20 text-amber-100",

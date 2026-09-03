@@ -6,6 +6,7 @@ import { useEffect } from "react";
 
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import { BrandWordmark } from "@/components/brand/brand-wordmark";
+import { StaffInboxSoundNotifier } from "@/components/inbox/staff-inbox-sound-notifier";
 import {
   ActiveAreaProvider,
   useActiveArea,
@@ -91,6 +92,7 @@ export function AppShell({
 
   const shell = (
     <TooltipProvider>
+      {!isSuperAdmin ? <StaffInboxSoundNotifier /> : null}
       <SidebarProvider
         className="sidebar-canvas"
         style={
@@ -139,6 +141,7 @@ export function AppShell({
                 pathname={pathname}
                 inboxCount={inboxCount}
                 allowedFunctions={allowedFunctions}
+                deskRole={user.deskRole ?? null}
               />
             )}
           </SidebarContent>
@@ -317,13 +320,19 @@ function TenantFunctionNav({
   pathname,
   inboxCount,
   allowedFunctions,
+  deskRole,
 }: {
   pathname: string;
   inboxCount: number;
   allowedFunctions: AreaFunctionId[] | null;
+  deskRole: DeskRole | null;
 }) {
   const { activeArea } = useActiveArea();
-  const groups = navigationGroupsForArea(activeArea, allowedFunctions);
+  const groups = navigationGroupsForArea(
+    activeArea,
+    allowedFunctions,
+    deskRole
+  );
 
   return (
     <>

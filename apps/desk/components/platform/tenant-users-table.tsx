@@ -14,9 +14,10 @@ import {
   DESK_ROLE_LABELS,
   type DeskRoleId,
 } from "@/lib/area/desk-roles";
-import type { DeskRole, UserRole } from "@/lib/db/schema";
+import type { DeskRole, UserRole, UserSalutation } from "@/lib/db/schema";
 import { APP_MODULES, type AppModuleId } from "@/lib/modules";
 import type { TenantUserItem } from "@/lib/platform/storage";
+import { USER_SALUTATION_LABELS } from "@/lib/users/names";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -119,6 +120,9 @@ function UserRow({
 }) {
   const [firstName, setFirstName] = useState(user.firstName);
   const [lastName, setLastName] = useState(user.lastName);
+  const [salutation, setSalutation] = useState<UserSalutation>(
+    user.salutation ?? "herr"
+  );
   const [email, setEmail] = useState(user.email);
   const [role, setRole] = useState<UserRole>(user.role);
   const [deskRole, setDeskRole] = useState<DeskRoleId>(
@@ -132,6 +136,7 @@ function UserRow({
   function resetFields() {
     setFirstName(user.firstName);
     setLastName(user.lastName);
+    setSalutation(user.salutation ?? "herr");
     setEmail(user.email);
     setRole(user.role);
     setDeskRole(user.deskRole ?? "rechtsanwalt");
@@ -148,6 +153,7 @@ function UserRow({
         tenantId,
         firstName,
         lastName,
+        salutation,
         email,
         role,
         deskRole,
@@ -196,6 +202,26 @@ function UserRow({
         <td colSpan={7} className="px-4 py-4">
           <form onSubmit={onSave} className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor={`edit-salutation-${user.id}`}>Anrede</Label>
+                <select
+                  id={`edit-salutation-${user.id}`}
+                  value={salutation}
+                  onChange={(event) =>
+                    setSalutation(event.target.value as UserSalutation)
+                  }
+                  required
+                  className="flex h-10 w-full rounded-none border border-input bg-background px-3 text-sm"
+                >
+                  {(Object.keys(USER_SALUTATION_LABELS) as UserSalutation[]).map(
+                    (id) => (
+                      <option key={id} value={id}>
+                        {USER_SALUTATION_LABELS[id]}
+                      </option>
+                    )
+                  )}
+                </select>
+              </div>
               <div className="space-y-2">
                 <Label htmlFor={`edit-first-name-${user.id}`}>Vorname</Label>
                 <Input
@@ -320,7 +346,11 @@ function UserRow({
 
   return (
     <tr className="border-b border-border/50 last:border-0">
-      <td className="px-4 py-3 font-medium">{user.name}</td>
+      <td className="px-4 py-3 font-medium">
+        {user.salutation
+          ? `${USER_SALUTATION_LABELS[user.salutation]} ${user.name}`
+          : user.name}
+      </td>
       <td className="px-4 py-3 text-muted-foreground">{user.email}</td>
       <td className="px-4 py-3">
         {user.role === "admin" ? "Admin" : "Mitarbeiter"}
