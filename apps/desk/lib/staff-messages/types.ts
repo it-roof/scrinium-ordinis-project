@@ -53,21 +53,28 @@ export const STAFF_MESSAGE_STATUSES: {
   label: string;
 }[] = [
   { value: "offen", label: "Offen" },
-  { value: "in_bearbeitung", label: "In Bearbeitung" },
+  { value: "spaeter", label: "Später" },
   { value: "erledigt", label: "Erledigt" },
-  { value: "zurueckgestellt", label: "Zurückgestellt" },
+  { value: "entfaellt", label: "Entfällt" },
 ];
 
-/** Statuse die im Eingang bleiben (nicht erledigt). */
+/** Im Eingang sichtbar (ohne Entfällt — das nur im Verlauf). */
 export const STAFF_MESSAGE_INBOX_STATUSES: StaffMessageStatus[] = [
   "offen",
-  "in_bearbeitung",
-  "zurueckgestellt",
+  "spaeter",
+  "erledigt",
+];
+
+/** Noch aktiv zu bearbeiten (Kennzahlen, Badge). */
+export const STAFF_MESSAGE_ACTIVE_STATUSES: StaffMessageStatus[] = [
+  "offen",
+  "spaeter",
 ];
 
 export const STAFF_TASK_STATUSES = STAFF_MESSAGE_STATUSES;
 export const STAFF_TASK_PRIORITIES = STAFF_MESSAGE_PRIORITIES;
 export const STAFF_TASK_INBOX_STATUSES = STAFF_MESSAGE_INBOX_STATUSES;
+export const STAFF_TASK_ACTIVE_STATUSES = STAFF_MESSAGE_ACTIVE_STATUSES;
 
 export type StaffMessageColleague = {
   id: string;
@@ -333,6 +340,47 @@ export function priorityLabel(priority: StaffMessagePriority): string {
     STAFF_MESSAGE_PRIORITIES.find((entry) => entry.value === priority)?.label ??
     priority
   );
+}
+
+/** Sortierung Eingang: Sofort → Heute → Diese Woche → Andere (nach Fälligkeit) → Keine. */
+export function compareStaffMessagesByPriority(
+  a: Pick<StaffMessageRecord, "priority" | "dueDate" | "createdAt">,
+  b: Pick<StaffMessageRecord, "priority" | "dueDate" | "createdAt">
+): number {
+  const rank = (priority: StaffMessagePriority) => {
+    switch (priority) {
+      case "sofort":
+        return 0;
+      case "heute":
+        return 1;
+      case "diese_woche":
+        return 2;
+      case "andere":
+        return 3;
+      case "keine":
+      default:
+        return 4;
+    }
+  };
+
+  const byPriority = rank(a.priority) - rank(b.priority);
+  if (byPriority !== 0) {
+    return byPriority;
+  }
+
+  const dueA = a.dueDate ?? "";
+  const dueB = b.dueDate ?? "";
+  if (dueA && dueB && dueA !== dueB) {
+    return dueA.localeCompare(dueB);
+  }
+  if (dueA && !dueB) {
+    return -1;
+  }
+  if (!dueA && dueB) {
+    return 1;
+  }
+
+  return b.createdAt.localeCompare(a.createdAt);
 }
 
 export function statusLabel(status: StaffMessageStatus): string {

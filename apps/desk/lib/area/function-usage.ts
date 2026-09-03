@@ -89,6 +89,20 @@ export const LAWYER_QUICK_VIEW_FUNCTION_IDS: AreaFunctionId[] = [
 ];
 
 /**
+ * Priorität für Sekretariat-Schnellzugriff (Fallback ohne Nutzungsdaten).
+ * Es werden max. QUICK_VIEW_FUNCTION_LIMIT Karten aus allen verfügbaren Funktionen.
+ */
+export const SECRETARY_QUICK_VIEW_FALLBACK_IDS: AreaFunctionId[] = [
+  "inbox",
+  "staff-messages",
+  "clients",
+  "matters",
+  "text-blocks",
+  "letters",
+  "inbox-overview",
+];
+
+/**
  * Schnell-Ansicht: Nachrichten-Eingang zuerst, dann Kommunikation
  * und die meistgenutzten übrigen Funktionen.
  */
@@ -122,4 +136,19 @@ export function buildLawyerQuickViewFunctionIds(
   available: ReadonlySet<AreaFunctionId>
 ): AreaFunctionId[] {
   return LAWYER_QUICK_VIEW_FUNCTION_IDS.filter((id) => available.has(id));
+}
+
+/** Sekretariat: genau 6 Karten aus allen verfügbaren Funktionen. */
+export function buildSecretaryQuickViewFunctionIds(
+  available: ReadonlySet<AreaFunctionId>,
+  usage: Record<string, number>
+): AreaFunctionId[] {
+  const preferred = SECRETARY_QUICK_VIEW_FALLBACK_IDS.filter((id) =>
+    available.has(id)
+  );
+  const rest = [...available].filter((id) => !preferred.includes(id));
+  const catalog = [...preferred, ...rest];
+  return [...catalog]
+    .sort((a, b) => compareByUsage(a, b, usage, catalog))
+    .slice(0, QUICK_VIEW_FUNCTION_LIMIT);
 }

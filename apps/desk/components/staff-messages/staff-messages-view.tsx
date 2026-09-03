@@ -102,10 +102,13 @@ function priorityChoiceClass(
         ? "border-amber-500/50 bg-amber-500/20 text-amber-950 dark:text-amber-100"
         : "border-amber-500/40 bg-amber-500/[0.06] text-amber-950 hover:bg-amber-500/10 dark:text-amber-100";
     case "diese_woche":
-    case "andere":
       return selected
         ? "border-sky-500/50 bg-sky-500/20 text-sky-950 dark:text-sky-100"
         : "border-sky-500/40 bg-sky-500/[0.06] text-sky-950 hover:bg-sky-500/10 dark:text-sky-100";
+    case "andere":
+      return selected
+        ? "border-violet-500/50 bg-violet-500/20 text-violet-950 dark:text-violet-100"
+        : "border-violet-500/40 bg-violet-500/[0.06] text-violet-950 hover:bg-violet-500/10 dark:text-violet-100";
     default:
       return selected
         ? "border-border bg-muted text-foreground"

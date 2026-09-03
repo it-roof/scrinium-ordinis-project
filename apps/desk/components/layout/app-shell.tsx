@@ -239,7 +239,7 @@ function AreaContentInset({
   return (
     <SidebarInset
       className={cn(
-        "transition-[background-image] duration-300",
+        "min-h-0 transition-[background-image] duration-300",
         "md:m-2 md:ml-0 md:overflow-hidden md:rounded-[0.75rem] md:shadow-sm",
         "md:peer-data-[state=collapsed]:ml-2",
         isSuperAdmin ? "content-canvas" : canvasClassForArea(activeArea)
@@ -287,7 +287,7 @@ function AreaContentInset({
         </div>
       </header>
 
-      <main className="flex flex-1 flex-col px-4 py-8 md:px-8 md:py-10">
+      <main className="flex min-h-0 flex-1 flex-col px-4 py-8 md:px-8 md:py-10">
         {children}
       </main>
     </SidebarInset>
@@ -336,8 +336,8 @@ function TenantFunctionNav({
 
   return (
     <>
-      {groups.map((group) => (
-        <SidebarGroup key={group.label || "pinned"}>
+      {groups.map((group, index) => (
+        <SidebarGroup key={group.label || `nav-${index}`}>
           {group.label ? (
             <SidebarGroupLabel className="px-3 text-[0.68rem] tracking-[0.16em] text-sidebar-foreground/45 uppercase">
               {group.label}

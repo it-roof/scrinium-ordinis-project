@@ -8,13 +8,15 @@ App: **`apps/desk`** (Scrinium Ordinis — Kanzlei-Werkzeug). Monorepo-Hinweise:
 
 ## Interne Nachrichten = Aufgaben (Architektur)
 
-**Domain:** Interne Zuweisungen sind fachlich immer **Aufgaben** (Status, Priorität, Fälligkeit, Empfänger).  
-**UI:** Nutzer sehen und schreiben „Nachrichten“ / „Nachricht an Mitarbeiter“ / Eingang „Nachrichten“.
+**Domain:** Interne Zuweisungen sind fachlich immer **Aufgaben** (Status, Priorität, Fälligkeit, Zuständigkeit).  
+**UI:** „Nachricht senden“ / „Alle Nachrichten“ / „Nachrichten Verlauf“.
 
-- Persistenz vorerst: Tabelle `staff_messages` (+ Dateien/Replies) — Code-Domain: Task/Aufgabe  
-- Status: `offen` · `in_bearbeitung` · `erledigt` · `zurueckgestellt`  
-- Eingang (`/…/eingang`, Nav **Nachrichten**): Arbeitsplatz zum Abarbeiten (Empfangen + Delegiert)  
-- Übersicht (`/…/nachrichten-uebersicht`, Nav **Nachrichten Übersicht**): alle eigenen Aufgaben inkl. erledigter  
+- Persistenz: Tabelle `staff_messages` (+ Dateien/Replies) — Code-Domain: Task/Aufgabe  
+- **Ballbesitz:** `recipientId` = aktuell zuständig (sieht die Aufgabe unter Offen)  
+- **Zurücksenden:** Empfänger gibt an bisherigen Absender zurück (Notiz Pflicht → Offen + ungelesen beim Gegenüber)  
+- Status: `offen` · `spaeter` · `erledigt` · `entfaellt`  
+- Eingang (`/…/eingang`, Nav **Alle Nachrichten**): nur Aufgaben, bei denen ich zuständig bin; Filter Offen / Später / Erledigt  
+- Übersicht (`/…/nachrichten-uebersicht`, Nav **Nachrichten Verlauf**): Verlauf inkl. Empfangen/Delegiert, Gelesen, Status  
 - Modul: [`lib/staff-messages/`](lib/staff-messages/) · Compose: `nachrichten-an-mitarbeiter`
 
 Keine zweite Entität „Nachricht vs. Aufgabe“ — eine Entität, zwei Bezeichnungen (UI vs. Architektur).

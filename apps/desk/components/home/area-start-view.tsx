@@ -41,6 +41,7 @@ import {
 import {
   buildLawyerQuickViewFunctionIds,
   buildQuickViewFunctionIds,
+  buildSecretaryQuickViewFunctionIds,
   getFunctionUsageCounts,
 } from "@/lib/area/function-usage";
 import { functionHref } from "@/lib/area/paths";
@@ -74,7 +75,7 @@ const featureMeta: Record<
       "hover:border-amber-200/80 hover:bg-gradient-to-br hover:from-amber-50/50 hover:to-white",
   },
   "inbox-overview": {
-    description: "Alle Nachrichten und Aufgaben im Überblick.",
+    description: "Verlauf aller Nachrichten und Aufgaben.",
     icon: ListIcon,
     iconWrap: "bg-amber-50 text-amber-800 ring-amber-200/60",
     linkClass: "text-amber-700",
@@ -199,7 +200,10 @@ function FeatureCard({
   return (
     <Link
       href={functionHref(area, functionId)}
-      className="group block rounded-none border border-border bg-card p-6 transition-colors hover:border-foreground/25 hover:bg-muted/30"
+      className={cn(
+        "group block rounded-none border border-border bg-card p-6 transition-colors",
+        meta.cardClass
+      )}
     >
       <div
         className={cn(
@@ -280,22 +284,27 @@ const DASHBOARD_CARDS: {
   icon: LucideIcon;
   valueClass: string;
   iconClass: string;
+  cardClass: string;
 }[] = [
   {
     key: "sofort",
     label: "Sofort",
-    hrefSuffix: "?priority=sofort",
+    hrefSuffix: "",
     icon: MailWarningIcon,
     valueClass: "text-rose-950",
     iconClass: "text-rose-700/70",
+    cardClass:
+      "border-rose-200/80 bg-rose-50/70 hover:border-rose-300 hover:bg-rose-50",
   },
   {
     key: "heute",
     label: "Heute",
-    hrefSuffix: "?priority=heute",
+    hrefSuffix: "",
     icon: MailQuestionMarkIcon,
     valueClass: "text-amber-950",
     iconClass: "text-amber-700/70",
+    cardClass:
+      "border-amber-200/80 bg-amber-50/70 hover:border-amber-300 hover:bg-amber-50",
   },
   {
     key: "unread",
@@ -305,6 +314,8 @@ const DASHBOARD_CARDS: {
     icon: MailIcon,
     valueClass: "text-sky-950",
     iconClass: "text-sky-700/70",
+    cardClass:
+      "border-sky-200/80 bg-sky-50/70 hover:border-sky-300 hover:bg-sky-50",
   },
   {
     key: "completedThisWeek",
@@ -314,6 +325,8 @@ const DASHBOARD_CARDS: {
     icon: CheckIcon,
     valueClass: "text-emerald-950",
     iconClass: "text-emerald-700/70",
+    cardClass:
+      "border-emerald-200/80 bg-emerald-50/70 hover:border-emerald-300 hover:bg-emerald-50",
   },
 ];
 
@@ -325,6 +338,7 @@ function DashboardMetricCard({
   icon: Icon,
   valueClass,
   iconClass,
+  cardClass,
 }: {
   label: string;
   value: number;
@@ -333,11 +347,15 @@ function DashboardMetricCard({
   icon: LucideIcon;
   valueClass: string;
   iconClass: string;
+  cardClass: string;
 }) {
   return (
     <Link
       href={href}
-      className="group flex min-h-[6.75rem] flex-col rounded-none border border-border bg-card p-5 transition-colors hover:border-foreground/25 hover:bg-muted/30"
+      className={cn(
+        "group flex min-h-[6.75rem] flex-col rounded-none border p-5 transition-colors",
+        cardClass
+      )}
     >
       <div className="flex items-center gap-2.5">
         <Icon className={cn("size-5 shrink-0", iconClass)} aria-hidden />
@@ -394,6 +412,7 @@ function LawyerDashboardCards({
             icon={card.icon}
             valueClass={card.valueClass}
             iconClass={card.iconClass}
+            cardClass={card.cardClass}
           />
         ))}
       </div>
@@ -402,7 +421,7 @@ function LawyerDashboardCards({
         <DashboardListCard
           title="Dringende Aufgaben"
           emptyText="Keine dringenden Aufgaben."
-          href={`${inboxHref}?priority=sofort`}
+          href={inboxHref}
           icon={ClipboardListIcon}
           items={lists.urgentTasks}
           area={area}
@@ -430,7 +449,7 @@ function DashboardListCard({
   const inboxHref = functionHref(area, "inbox");
 
   return (
-    <div className="rounded-none border border-border bg-card p-5 transition-colors">
+    <div className="rounded-none border border-border bg-card p-5">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <Icon className="size-5 shrink-0 text-muted-foreground" aria-hidden />
@@ -508,13 +527,19 @@ export function AreaStartView({
   const managementIds = MANAGEMENT_FUNCTION_IDS.filter((id) =>
     available.has(id)
   );
+  const secretaryNachrichtenIds = (
+    ["inbox", "inbox-overview", "staff-messages"] as const
+  ).filter((id) => available.has(id));
+  const isSecretary = deskRole === "sekretariat";
   const quickIds =
     deskRole === "rechtsanwalt"
       ? buildLawyerQuickViewFunctionIds(available)
-      : buildQuickViewFunctionIds(available, usage);
-  const showLawyerDashboard =
+      : isSecretary
+        ? buildSecretaryQuickViewFunctionIds(available, usage)
+        : buildQuickViewFunctionIds(available, usage);
+  const showStaffDashboard =
     view === "quick" &&
-    deskRole === "rechtsanwalt" &&
+    (deskRole === "rechtsanwalt" || deskRole === "sekretariat") &&
     dashboardStats !== null &&
     dashboardLists !== null;
 
@@ -578,7 +603,7 @@ export function AreaStartView({
         </div>
       </PageHeader>
 
-      {showLawyerDashboard && dashboardStats && dashboardLists ? (
+      {showStaffDashboard && dashboardStats && dashboardLists ? (
         <LawyerDashboardCards
           area={area}
           stats={dashboardStats}
@@ -605,12 +630,24 @@ export function AreaStartView({
             functionIds={toolIds}
           />
 
-          <FeatureSection
-            title="Kommunikation"
-            description="Nachrichten und Aufträge an Mitarbeiter"
-            area={area}
-            functionIds={communicationIds}
-          />
+          {isSecretary ? (
+            <FeatureSection
+              title="Nachrichten"
+              description="Eingang, Verlauf und neue Nachrichten"
+              area={area}
+              functionIds={secretaryNachrichtenIds}
+              titleForFunction={(functionId) =>
+                functionId === "inbox" ? "Alle Nachrichten" : undefined
+              }
+            />
+          ) : (
+            <FeatureSection
+              title="Kommunikation"
+              description="Nachrichten und Aufträge an Mitarbeiter"
+              area={area}
+              functionIds={communicationIds}
+            />
+          )}
 
           <FeatureSection
             title="Verwaltung"

@@ -44,7 +44,7 @@ export default async function AreaStartPage({ params }: AreaStartPageProps) {
   });
 
   const [dashboardStats, dashboardLists] =
-    deskRole === "rechtsanwalt"
+    deskRole === "rechtsanwalt" || deskRole === "sekretariat"
       ? await Promise.all([
           getStaffDashboardStats(user.tenantId, user.id, area),
           getStaffDashboardLists(user.tenantId, user.id, area),

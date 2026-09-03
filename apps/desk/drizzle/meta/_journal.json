@@ -337,6 +337,13 @@
       "when": 1788472996607,
       "tag": "0047_woozy_omega_red",
       "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1788477472199,
+      "tag": "0048_mushy_patriot",
+      "breakpoints": true
     }
   ]
 }

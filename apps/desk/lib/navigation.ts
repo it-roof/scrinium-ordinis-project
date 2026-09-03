@@ -46,7 +46,7 @@ export const navigation: NavItem[] = [
   },
   {
     href: "/eingang",
-    label: "Nachrichten",
+    label: "Alle Nachrichten",
     description: "Nachrichten und Aufgaben abarbeiten",
     icon: InboxIcon,
     accent: "bg-amber-400/25 text-amber-100",
@@ -55,8 +55,8 @@ export const navigation: NavItem[] = [
   },
   {
     href: "/nachrichten-uebersicht",
-    label: "Alle Nachrichten",
-    description: "Alle Nachrichten und Aufgaben im Überblick",
+    label: "Nachrichten Verlauf",
+    description: "Verlauf aller Nachrichten und Aufgaben",
     icon: ListIcon,
     accent: "bg-amber-400/20 text-amber-100",
     activeClass:

@@ -22,11 +22,18 @@ import { cn } from "@/lib/utils";
 type DirectionFilter = "alle" | "empfangen" | "delegiert";
 type StatusFilter = "alle" | StaffMessageStatus;
 type PriorityFilter = "alle" | StaffMessagePriority;
+type ReadFilter = "alle" | "ungelesen" | "gelesen";
 
 const DIRECTION_FILTERS: { id: DirectionFilter; label: string }[] = [
   { id: "alle", label: "Alle" },
   { id: "empfangen", label: "Empfangen" },
   { id: "delegiert", label: "Delegiert" },
+];
+
+const READ_FILTERS: { id: ReadFilter; label: string }[] = [
+  { id: "alle", label: "Alle" },
+  { id: "ungelesen", label: "Ungelesen" },
+  { id: "gelesen", label: "Gelesen" },
 ];
 
 function formatOverviewDate(iso: string): string {
@@ -43,11 +50,11 @@ function statusBadgeClass(status: StaffMessageStatus): string {
   switch (status) {
     case "offen":
       return "border-sky-500/40 bg-sky-500/10 text-sky-950 dark:text-sky-100";
-    case "in_bearbeitung":
+    case "spaeter":
       return "border-amber-500/40 bg-amber-500/10 text-amber-950 dark:text-amber-100";
     case "erledigt":
       return "border-emerald-500/40 bg-emerald-500/10 text-emerald-950 dark:text-emerald-100";
-    case "zurueckgestellt":
+    case "entfaellt":
       return "border-slate-500/40 bg-slate-500/10 text-slate-950 dark:text-slate-100";
     default:
       return "border-border/70 bg-muted/50 text-foreground";
@@ -88,6 +95,7 @@ export function MessagesOverviewView({
   const [direction, setDirection] = useState<DirectionFilter>("alle");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("alle");
   const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>("alle");
+  const [readFilter, setReadFilter] = useState<ReadFilter>("alle");
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const enriched = useMemo(
@@ -113,15 +121,21 @@ export function MessagesOverviewView({
       if (priorityFilter !== "alle" && message.priority !== priorityFilter) {
         return false;
       }
+      if (readFilter === "ungelesen" && message.readAt) {
+        return false;
+      }
+      if (readFilter === "gelesen" && !message.readAt) {
+        return false;
+      }
       return true;
     });
-  }, [direction, enriched, priorityFilter, statusFilter]);
+  }, [direction, enriched, priorityFilter, readFilter, statusFilter]);
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-8">
       <PageHeader
-        title="Alle Nachrichten"
-        description="Alle empfangenen und delegierten Nachrichten und Aufgaben — inkl. erledigter."
+        title="Nachrichten Verlauf"
+        description="Verlauf aller empfangenen und delegierten Nachrichten und Aufgaben — inkl. Erledigt und Entfällt."
       />
 
       <div className="space-y-3">
@@ -132,6 +146,16 @@ export function MessagesOverviewView({
               label={entry.label}
               active={direction === entry.id}
               onClick={() => setDirection(entry.id)}
+            />
+          ))}
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {READ_FILTERS.map((entry) => (
+            <FilterChip
+              key={entry.id}
+              label={entry.label}
+              active={readFilter === entry.id}
+              onClick={() => setReadFilter(entry.id)}
             />
           ))}
         </div>
@@ -181,7 +205,8 @@ export function MessagesOverviewView({
           {filtered.map(({ message, direction: itemDirection }) => {
             const open = expandedId === message.id;
             const canOpenInInbox =
-              itemDirection === "empfangen" && message.status !== "erledigt";
+              itemDirection === "empfangen" &&
+              (message.status === "offen" || message.status === "spaeter");
 
             return (
               <li key={message.id} className="bg-background/40">

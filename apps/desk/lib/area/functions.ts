@@ -109,8 +109,8 @@ export const FUNCTIONS_BY_AREA: Record<AppModuleId, AreaFunctionId[]> = {
 };
 
 export const FUNCTION_LABELS: Record<AreaFunctionId, string> = {
-  inbox: "Nachrichten",
-  "inbox-overview": "Alle Nachrichten",
+  inbox: "Alle Nachrichten",
+  "inbox-overview": "Nachrichten Verlauf",
   clients: "Mandanten",
   matters: "Akten",
   "compose-letter": "Schreiben erstellen",
@@ -130,10 +130,10 @@ export const FUNCTION_ROUTES: Record<
   AreaFunctionId,
   { href: string; label: string }
 > = {
-  inbox: { href: "/eingang", label: "Nachrichten" },
+  inbox: { href: "/eingang", label: "Alle Nachrichten" },
   "inbox-overview": {
     href: "/nachrichten-uebersicht",
-    label: "Alle Nachrichten",
+    label: "Nachrichten Verlauf",
   },
   clients: { href: "/mandanten", label: "Mandanten" },
   matters: { href: "/akten", label: "Akten" },
@@ -271,6 +271,11 @@ export type NavGroup = {
   items: NavItem[];
 };
 
+/** Sidebar-Labels, die vom allgemeinen Funktionsnamen abweichen. */
+const SIDEBAR_FUNCTION_LABELS: Partial<Record<AreaFunctionId, string>> = {
+  "staff-messages": "Nachricht senden",
+};
+
 function navItemForFunction(
   area: AppModuleId,
   functionId: AreaFunctionId
@@ -284,7 +289,7 @@ function navItemForFunction(
   return {
     ...(template ?? navigation[0]),
     href: functionHref(area, functionId),
-    label: FUNCTION_LABELS[functionId],
+    label: SIDEBAR_FUNCTION_LABELS[functionId] ?? FUNCTION_LABELS[functionId],
   };
 }
 
@@ -307,6 +312,7 @@ export function navigationGroupsForArea(
     filterFunctionsByAllowlist(getFunctionsForArea(area), allowedFunctions)
   );
   const isLawyer = deskRole === "rechtsanwalt";
+  const isSecretary = deskRole === "sekretariat";
   const startItem: NavItem = {
     ...navigation[0],
     href: areaBasePath(area),
@@ -314,11 +320,14 @@ export function navigationGroupsForArea(
     description: "",
   };
 
-  const pinnedItems = [
-    startItem,
+  const nachrichtenItems = [
     ...PINNED_FUNCTION_IDS.filter((id) => available.has(id)).map((id) =>
       navItemForFunction(area, id)
     ),
+    // Sekretariat: Nachricht an Mitarbeiter direkt unter den Nachrichten-Einträgen.
+    ...(isSecretary && available.has("staff-messages")
+      ? [navItemForFunction(area, "staff-messages")]
+      : []),
   ];
 
   const managementItems = isLawyer
@@ -338,13 +347,16 @@ export function navigationGroupsForArea(
     return true;
   }).map((id) => navItemForFunction(area, id));
 
-  const communicationItems = COMMUNICATION_FUNCTION_IDS.filter((id) =>
-    available.has(id)
-  ).map((id) => navItemForFunction(area, id));
+  const communicationItems = isSecretary
+    ? []
+    : COMMUNICATION_FUNCTION_IDS.filter((id) => available.has(id)).map((id) =>
+        navItemForFunction(area, id)
+      );
 
   const groups: NavGroup[] = [];
-  if (pinnedItems.length > 0) {
-    groups.push({ label: "", items: pinnedItems });
+  groups.push({ label: "", items: [startItem] });
+  if (nachrichtenItems.length > 0) {
+    groups.push({ label: "", items: nachrichtenItems });
   }
   if (toolItems.length > 0) {
     groups.push({ label: "Funktionen", items: toolItems });

@@ -14,6 +14,7 @@ import {
   createStaffMessageRow,
   discardStaffMessageObjects,
   getStaffMessageFileById,
+  handOffStaffMessageRow,
   listStaffColleagues,
   listStaffMessages,
   markStaffMessageReadRow,
@@ -428,7 +429,43 @@ export async function replyToStaffMessage(id: string, body: string) {
   return { success: true as const, item };
 }
 
-export async function setStaffMessageStatus(id: string, status: string) {
+/** Aufgabe an den bisherigen Absender zurückgeben (Ballbesitz wechseln). */
+export async function handOffStaffMessage(id: string, note: string) {
+  const { error, user } = await requireStaffMessagesUser();
+  if (error || !user) {
+    return { success: false as const, error: error ?? "Nicht angemeldet." };
+  }
+
+  const trimmed = note.trim();
+  if (!trimmed) {
+    return {
+      success: false as const,
+      error: "Bitte eine Notiz eingeben, bevor du die Aufgabe zurücksendest.",
+    };
+  }
+
+  const item = await handOffStaffMessageRow(
+    user.tenantId,
+    user.id,
+    id,
+    trimmed
+  );
+  if (!item) {
+    return {
+      success: false as const,
+      error: "Zurücksenden nicht möglich. Nur der aktuelle Empfänger kann die Aufgabe weitergeben.",
+    };
+  }
+
+  revalidateStaffMessages();
+  return { success: true as const, item };
+}
+
+export async function setStaffMessageStatus(
+  id: string,
+  status: string,
+  note?: string
+) {
   const { error, user } = await requireStaffMessagesUser();
   if (error || !user) {
     return { success: false as const, error: error ?? "Nicht angemeldet." };
@@ -438,11 +475,21 @@ export async function setStaffMessageStatus(id: string, status: string) {
     return { success: false as const, error: "Ungültiger Status." };
   }
 
+  const trimmedNote = note?.trim() ?? "";
+  if (status === "spaeter" && !trimmedNote) {
+    return {
+      success: false as const,
+      error:
+        "Bitte eine Notiz hinterlassen, warum die Nachricht auf Später gesetzt wird.",
+    };
+  }
+
   const item = await setStaffMessageStatusRow(
     user.tenantId,
     user.id,
     id,
-    status
+    status,
+    status === "spaeter" ? trimmedNote : null
   );
   if (!item) {
     return { success: false as const, error: "Status konnte nicht geändert werden." };

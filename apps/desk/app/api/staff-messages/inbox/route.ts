@@ -1,10 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { isAppModuleId } from "@/lib/modules";
-import {
-  listOpenStaffMessagesForRecipient,
-  listStaffMessagesForSender,
-} from "@/lib/staff-messages/storage";
+import { listOpenStaffMessagesForRecipient } from "@/lib/staff-messages/storage";
 import {
   assertUserCanAccessAreaFunction,
   assertUserCanAccessContentModule,
@@ -41,13 +38,14 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: moduleDenied }, { status: 403 });
   }
 
-  const [received, delegated] = await Promise.all([
-    listOpenStaffMessagesForRecipient(user.tenantId, user.id, moduleParam),
-    listStaffMessagesForSender(user.tenantId, user.id, moduleParam),
-  ]);
+  const received = await listOpenStaffMessagesForRecipient(
+    user.tenantId,
+    user.id,
+    moduleParam
+  );
 
   return NextResponse.json(
-    { received, delegated },
+    { received },
     {
       headers: {
         "Cache-Control": "no-store",
