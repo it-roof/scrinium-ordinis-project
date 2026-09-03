@@ -7,7 +7,9 @@ import {
   FolderOpenIcon,
   HomeIcon,
   InboxIcon,
+  ListIcon,
   MailIcon,
+  MessageSquareIcon,
   PrinterIcon,
   ScaleIcon,
   SettingsIcon,
@@ -35,8 +37,8 @@ export type NavItem = {
 export const navigation: NavItem[] = [
   {
     href: "/",
-    label: "Schreibtisch",
-    description: "Schreibtisch des gewählten Bereichs",
+    label: "Übersicht",
+    description: "Übersicht des gewählten Bereichs",
     icon: HomeIcon,
     accent: "bg-violet-400/25 text-violet-100",
     activeClass:
@@ -44,12 +46,21 @@ export const navigation: NavItem[] = [
   },
   {
     href: "/eingang",
-    label: "Eingang",
-    description: "Zugewiesene Aufgaben und Freigaben",
+    label: "Nachrichten",
+    description: "Nachrichten und Aufgaben abarbeiten",
     icon: InboxIcon,
     accent: "bg-amber-400/25 text-amber-100",
     activeClass:
       "data-[active=true]:bg-amber-400/10 data-[active=true]:shadow-[inset_0_0_0_1px_oklch(0.78_0.12_85/0.25)]",
+  },
+  {
+    href: "/nachrichten-uebersicht",
+    label: "Nachrichten Übersicht",
+    description: "Alle Nachrichten und Aufgaben im Überblick",
+    icon: ListIcon,
+    accent: "bg-amber-400/20 text-amber-100",
+    activeClass:
+      "data-[active=true]:bg-amber-400/10 data-[active=true]:shadow-[inset_0_0_0_1px_oklch(0.78_0.12_85/0.2)]",
   },
   {
     href: "/mandanten",
@@ -150,6 +161,15 @@ export const navigation: NavItem[] = [
     activeClass:
       "data-[active=true]:bg-lime-400/10 data-[active=true]:shadow-[inset_0_0_0_1px_oklch(0.75_0.14_125/0.25)]",
   },
+  {
+    href: "/nachrichten-an-mitarbeiter",
+    label: "Nachricht an Mitarbeiter",
+    description: "Nachricht hinterlassen, Aufgabe erteilen oder ein Dokument senden.",
+    icon: MessageSquareIcon,
+    accent: "bg-blue-400/25 text-blue-100",
+    activeClass:
+      "data-[active=true]:bg-blue-400/10 data-[active=true]:shadow-[inset_0_0_0_1px_oklch(0.7_0.1_250/0.25)]",
+  },
 ];
 
 export const platformNavItem: NavItem = {
@@ -228,11 +248,11 @@ export function getPageMeta(pathname: string): NavItem {
     }
   }
 
-  // /recht → Schreibtisch (Bereich)
+  // /recht → Übersicht (Bereich)
   if (segments.length === 1 && areaFromSlug(segments[0])) {
     return {
       ...navigation[0],
-      label: "Schreibtisch",
+      label: "Übersicht",
       description: "",
     };
   }

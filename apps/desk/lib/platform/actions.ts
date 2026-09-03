@@ -6,7 +6,8 @@ import { eq } from "drizzle-orm";
 import { validatePassword } from "@/lib/auth/password-policy";
 import { revokeAllUserSessions } from "@/lib/auth/sessions";
 import { db } from "@/lib/db";
-import { tenants, users, type UserRole } from "@/lib/db/schema";
+import { tenants, users, type DeskRole, type UserRole } from "@/lib/db/schema";
+import { isDeskRoleId } from "@/lib/area/desk-roles";
 import {
   createTenantRow,
   createTenantUserRow,
@@ -260,9 +261,11 @@ export async function deleteTenantAction(input: { id: string }) {
 export async function createTenantUserAction(input: {
   tenantId: string;
   email: string;
-  name: string;
+  firstName: string;
+  lastName: string;
   password: string;
   role: UserRole;
+  deskRole: DeskRole;
   allowedModules?: AppModuleId[] | null;
 }) {
   const admin = await requirePlatformAdminAction();
@@ -271,11 +274,25 @@ export async function createTenantUserAction(input: {
   }
 
   const email = input.email.trim().toLowerCase();
-  const name = input.name.trim();
+  const firstName = input.firstName.trim();
+  const lastName = input.lastName.trim();
   const role = input.role === "admin" ? "admin" : "employee";
+  const deskRole = isDeskRoleId(input.deskRole)
+    ? input.deskRole
+    : null;
 
-  if (!email || !name) {
-    return { success: false as const, error: "E-Mail und Name sind Pflicht." };
+  if (!email || !firstName || !lastName) {
+    return {
+      success: false as const,
+      error: "E-Mail, Vorname und Nachname sind Pflicht.",
+    };
+  }
+
+  if (!deskRole) {
+    return {
+      success: false as const,
+      error: "Bitte eine Position wählen (Rechtsanwalt oder Sekretariat).",
+    };
   }
 
   const passwordError = validatePassword(input.password);
@@ -311,9 +328,11 @@ export async function createTenantUserAction(input: {
   const user = await createTenantUserRow({
     tenantId: input.tenantId,
     email,
-    name,
+    firstName,
+    lastName,
     password: input.password,
     role,
+    deskRole,
     allowedModules,
   });
 
@@ -327,8 +346,10 @@ export async function updateTenantUserAction(input: {
   id: string;
   tenantId: string;
   email: string;
-  name: string;
+  firstName: string;
+  lastName: string;
   role: UserRole;
+  deskRole: DeskRole;
   allowedModules?: AppModuleId[] | null;
   password?: string;
 }) {
@@ -338,12 +359,24 @@ export async function updateTenantUserAction(input: {
   }
 
   const email = input.email.trim().toLowerCase();
-  const name = input.name.trim();
+  const firstName = input.firstName.trim();
+  const lastName = input.lastName.trim();
   const role = input.role === "admin" ? "admin" : "employee";
+  const deskRole = isDeskRoleId(input.deskRole) ? input.deskRole : null;
   const password = input.password?.trim() ?? "";
 
-  if (!email || !name) {
-    return { success: false as const, error: "E-Mail und Name sind Pflicht." };
+  if (!email || !firstName || !lastName) {
+    return {
+      success: false as const,
+      error: "E-Mail, Vorname und Nachname sind Pflicht.",
+    };
+  }
+
+  if (!deskRole) {
+    return {
+      success: false as const,
+      error: "Bitte eine Position wählen (Rechtsanwalt oder Sekretariat).",
+    };
   }
 
   if (password) {
@@ -386,8 +419,10 @@ export async function updateTenantUserAction(input: {
     id: input.id,
     tenantId: input.tenantId,
     email,
-    name,
+    firstName,
+    lastName,
     role,
+    deskRole,
     allowedModules,
     password: password || undefined,
   });

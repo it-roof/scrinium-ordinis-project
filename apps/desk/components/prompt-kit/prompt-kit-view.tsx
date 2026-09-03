@@ -101,6 +101,7 @@ type WizardMode = "main" | "letter" | "email" | "print";
 
 type StepId =
   | "goal"
+  | "email-start"
   | "input"
   | "action"
   | "review"
@@ -267,8 +268,26 @@ const GOAL_ICONS: Record<PromptKitGoalId, typeof ScaleIcon> = {
   writing: FilePenLineIcon,
 };
 
+const EMAIL_METHOD_OPTIONS = [
+  {
+    id: "prompt",
+    title: "Prompt erstellen",
+    description:
+      "Sachverhalt eingeben, Prompt für die KI erzeugen und E-Mail mit Platzhaltern übernehmen.",
+    icon: CopyIcon,
+  },
+  {
+    id: "direct",
+    title: "E-Mail erstellen",
+    description:
+      "Direkt im E-Mail-Editor anfangen — An, Betreff und Text selbst ausfüllen.",
+    icon: MailIcon,
+  },
+] as const;
+
 const STEP_HEADLINES: Record<StepId, string> = {
   goal: "Ziel wählen",
+  "email-start": "E-Mail senden",
   input: "Text eingeben",
   action: "Aktion wählen",
   review: "Prompt lesen und prüfen",
@@ -295,6 +314,38 @@ const LETTER_STEP_HEADLINES: Partial<
   workflow: { title: "Wie weiter mit dem Schreiben?" },
   delegate: { title: "Delegieren an Mitarbeiter" },
 };
+
+const EMAIL_ENTRY_STEPS: {
+  id: StepId;
+  label: string;
+  hint: string;
+}[] = [
+  {
+    id: "email-start",
+    label: "Vorgehen wählen",
+    hint: "Mit KI oder direkt im Editor",
+  },
+  {
+    id: "input",
+    label: "E-Mail vorbereiten",
+    hint: "Adressat und Kernbotschaft",
+  },
+  {
+    id: "result",
+    label: "Prompt kopieren",
+    hint: "E-Mail erstellen",
+  },
+  {
+    id: "inserted",
+    label: "In KI einfügen",
+    hint: "E-Mail erstellen",
+  },
+  {
+    id: "takeover",
+    label: "E-Mail übernehmen",
+    hint: "Text aus der KI in Scrinium",
+  },
+];
 
 const EMAIL_STEPS: {
   id: StepId;
@@ -326,6 +377,7 @@ const EMAIL_STEPS: {
 const EMAIL_STEP_HEADLINES: Partial<
   Record<StepId, { title: string; context?: string }>
 > = {
+  "email-start": { title: "E-Mail senden" },
   input: { title: "E-Mail vorbereiten", context: "E-Mail senden" },
   result: { title: "Prompt kopieren", context: "E-Mail senden" },
   inserted: { title: "Prompt in KI einfügen", context: "E-Mail senden" },
@@ -416,9 +468,12 @@ export function PromptKitView({
     if (initialFlow === "print") return "print";
     return "main";
   });
-  const [step, setStep] = useState<StepId>(() =>
-    initialFlow === "print" ? "print" : "input"
-  );
+  const [step, setStep] = useState<StepId>(() => {
+    if (initialFlow === "print") return "print";
+    if (initialFlow === "email") return "email-start";
+    return "input";
+  });
+  const standaloneEmailEntry = initialFlow === "email";
   const [goalId, setGoalId] = useState<PromptKitGoalId | null>("facts");
   const [input, setInput] = useState("");
   const [letterInput, setLetterInput] = useState("");
@@ -507,7 +562,9 @@ export function PromptKitView({
     : letterMode
     ? LETTER_STEPS
     : emailMode
-      ? EMAIL_STEPS
+      ? standaloneEmailEntry
+        ? EMAIL_ENTRY_STEPS
+        : EMAIL_STEPS
       : stepsForGoal(goal);
   const singleAction = goal?.actions.length === 1 ? goal.actions[0] : null;
   const action = letterMode
@@ -524,6 +581,7 @@ export function PromptKitView({
 
   const stepSummaries: Record<StepId, string | null> = {
     goal: goal?.title ?? null,
+    "email-start": null,
     input: activeInput.trim()
       ? `${activeInput.trim().slice(0, 80)}${activeInput.trim().length > 80 ? "…" : ""}`
       : null,
@@ -756,6 +814,14 @@ export function PromptKitView({
     setStep("input");
   }
 
+  function openDirectEmailEditor() {
+    const params = new URLSearchParams({
+      kind: "email",
+      title: "Betreff",
+    });
+    router.push(`${basePath}/schreiben/neu?${params.toString()}`);
+  }
+
   function startPrintFlow() {
     discardSession();
     setMode("print");
@@ -862,6 +928,10 @@ export function PromptKitView({
         return;
       }
       if (step === "input") {
+        if (standaloneEmailEntry) {
+          setStep("email-start");
+          return;
+        }
         exitFollowUpFlow();
       }
       return;
@@ -1633,6 +1703,10 @@ export function PromptKitView({
                 <p className="text-sm text-muted-foreground md:text-base">
                   Eine Karte wählen — danach Schritt für Schritt weiter.
                 </p>
+              ) : step === "email-start" ? (
+                <p className="text-sm text-muted-foreground md:text-base">
+                  Mit KI-Prompt starten oder direkt im E-Mail-Editor schreiben.
+                </p>
               ) : step === "action" && goal ? (
                 <p className="text-sm text-muted-foreground md:text-base">
                   Passende Aktion für „{goal.title}“ wählen.
@@ -1690,6 +1764,54 @@ export function PromptKitView({
                 </p>
               ) : null}
             </header>
+
+            {step === "email-start" ? (
+              <section className="space-y-5">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {EMAIL_METHOD_OPTIONS.map((entry) => {
+                    const Icon = entry.icon;
+                    return (
+                      <button
+                        key={entry.id}
+                        type="button"
+                        onClick={() => {
+                          if (entry.id === "direct") {
+                            openDirectEmailEditor();
+                            return;
+                          }
+                          setStep("input");
+                        }}
+                        className={cn(
+                          "group surface-card flex flex-col gap-4 p-6 text-left transition-colors",
+                          "hover:border-foreground/30 hover:bg-muted/25"
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            "flex size-11 items-center justify-center border border-border/70 bg-muted/40",
+                            "transition-colors group-hover:border-foreground/20 group-hover:bg-background"
+                          )}
+                        >
+                          <Icon className="size-5" />
+                        </span>
+                        <span className="space-y-1.5">
+                          <span className="block font-heading text-lg font-medium tracking-tight">
+                            {entry.title}
+                          </span>
+                          <span className="block text-sm leading-relaxed text-muted-foreground">
+                            {entry.description}
+                          </span>
+                        </span>
+                        <span className="mt-auto flex items-center gap-1.5 text-sm font-medium text-foreground/70">
+                          Auswählen
+                          <ArrowRightIcon className="size-4" />
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
+            ) : null}
 
             {step === "goal" ? (
               <section className="grid gap-3 sm:grid-cols-2">

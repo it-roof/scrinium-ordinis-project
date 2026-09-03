@@ -32,6 +32,7 @@ export function PromptForm({
   const router = useRouter();
   const basePath = useAreaBasePath() ?? "";
   const promptBase = `${basePath}/prompt`;
+  const manageBase = `${promptBase}/verwalten`;
   const [title, setTitle] = useState(initialValues?.title ?? "");
   const [content, setContent] = useState(initialValues?.content ?? "");
   const [tags, setTags] = useState(initialValues?.tags ?? []);
@@ -56,7 +57,7 @@ export function PromptForm({
       toast.success(
         mode === "edit" ? "Prompt aktualisiert." : "Prompt angelegt."
       );
-      router.push(promptBase);
+      router.push(manageBase);
       router.refresh();
     });
   }
@@ -69,14 +70,13 @@ export function PromptForm({
         size="sm"
         className="w-fit px-0 text-muted-foreground hover:text-foreground"
       >
-        <Link href={promptBase}>
+        <Link href={manageBase}>
           <ArrowLeftIcon data-icon="inline-start" />
-          Zurück zur Übersicht
+          Zurück zur Verwaltung
         </Link>
       </Button>
 
       <PageHeader
-        eyebrow={mode === "edit" ? "Bearbeiten" : "Neu anlegen"}
         title={mode === "edit" ? "Prompt bearbeiten" : "Neuer Prompt"}
         description="Titel, Tags und Prompt-Text — die Seite scrollt mit, lange Texte sind kein Problem."
       />
@@ -124,7 +124,7 @@ export function PromptForm({
 
         <div className="mt-auto flex flex-col-reverse gap-2 border-t border-border/70 bg-muted/30 p-4 sm:flex-row sm:justify-end">
           <Button variant="outline" asChild disabled={isPending}>
-            <Link href={promptBase}>Abbrechen</Link>
+            <Link href={manageBase}>Abbrechen</Link>
           </Button>
           <Button type="submit" disabled={isPending}>
             {isPending

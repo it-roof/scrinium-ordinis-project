@@ -2,7 +2,7 @@ import type { NextAuthConfig } from "next-auth";
 
 import { useSecureCookiesSync } from "@/lib/auth/cookies";
 import { SESSION_MAX_AGE_SECONDS } from "@/lib/auth/sessions";
-import type { PlatformRole, UserRole } from "@/lib/db/schema";
+import type { DeskRole, PlatformRole, UserRole } from "@/lib/db/schema";
 
 const useSecureCookies = useSecureCookiesSync();
 
@@ -46,6 +46,7 @@ export const authConfig = {
       if (session.user) {
         session.user.id = user.id;
         session.user.role = user.role as UserRole;
+        session.user.deskRole = (user.deskRole as DeskRole | null) ?? null;
         session.user.tenantId = user.tenantId;
         session.user.platformRole =
           (user.platformRole as PlatformRole | null) ?? null;

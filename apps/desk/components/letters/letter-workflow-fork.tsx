@@ -4,6 +4,7 @@ import { useState } from "react";
 import { UserRoundIcon } from "lucide-react";
 
 import type { LetterColleague } from "@/lib/letters/types";
+import { formatUserListName } from "@/lib/users/names";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
@@ -95,7 +96,7 @@ export function LetterWorkflowFork({
         >
           {colleagues.map((person) => (
             <option key={person.id} value={person.id}>
-              {person.name}
+              {formatUserListName(person)}
               {person.id === currentUserId ? " (ich)" : ""}
               {` · ${person.email}`}
             </option>

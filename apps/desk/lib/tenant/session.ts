@@ -1,11 +1,12 @@
 import { redirect } from "next/navigation";
 
 import { auth } from "@/lib/auth";
-import type { PlatformRole, UserRole } from "@/lib/db/schema";
+import type { DeskRole, PlatformRole, UserRole } from "@/lib/db/schema";
 
 export type SessionUser = {
   id: string;
   role: UserRole;
+  deskRole: DeskRole | null;
   tenantId: string;
   platformRole: PlatformRole | null;
   name?: string | null;
@@ -29,6 +30,7 @@ export async function getSessionUser(): Promise<SessionUser | null> {
   return {
     id: user.id,
     role: user.role,
+    deskRole: user.deskRole ?? null,
     tenantId: user.tenantId,
     platformRole: user.platformRole ?? null,
     name: user.name,

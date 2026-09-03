@@ -1,6 +1,7 @@
 import {
   DeleteObjectCommand,
   GetObjectCommand,
+  HeadObjectCommand,
   PutObjectCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
@@ -67,6 +68,65 @@ export async function getObjectSignedUrl(
     }),
     { expiresIn }
   );
+}
+
+/** Browser lädt direkt in den Bucket — nicht über Vercel. */
+export async function getSignedPutUrl(
+  key: string,
+  mimeType: string,
+  expiresIn = 600
+) {
+  const config = getS3Config();
+
+  return getSignedUrl(
+    getS3Client(),
+    new PutObjectCommand({
+      Bucket: config.bucket,
+      Key: key,
+      ContentType: mimeType,
+    }),
+    { expiresIn }
+  );
+}
+
+export async function waitForObjectSize(
+  key: string,
+  expectedSize: number,
+  attempts = 4
+): Promise<"ok" | "missing" | "mismatch"> {
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    const size = await headObjectSize(key);
+    if (size === expectedSize) {
+      return "ok";
+    }
+    if (size !== null && size !== expectedSize) {
+      return "mismatch";
+    }
+    if (attempt < attempts - 1) {
+      await new Promise((resolve) =>
+        setTimeout(resolve, 250 * (attempt + 1))
+      );
+    }
+  }
+  return "missing";
+}
+
+export async function headObjectSize(key: string): Promise<number | null> {
+  const config = getS3Config();
+
+  try {
+    const result = await getS3Client().send(
+      new HeadObjectCommand({
+        Bucket: config.bucket,
+        Key: key,
+      })
+    );
+    return typeof result.ContentLength === "number"
+      ? result.ContentLength
+      : null;
+  } catch {
+    return null;
+  }
 }
 
 function contentDispositionAttachment(filename: string) {

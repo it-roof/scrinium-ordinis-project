@@ -11,8 +11,8 @@ const nextConfig: NextConfig = {
   transpilePackages: ["@scrinium/brand"],
   experimental: {
     serverActions: {
-      // Bilder max. 10 MB, PDFs max. 25 MB (siehe lib/docs/upload-policy.ts)
-      bodySizeLimit: "26mb",
+      // Staff-Messages: bis 50 MB je Datei (siehe lib/staff-messages/types.ts)
+      bodySizeLimit: "55mb",
     },
   },
 };

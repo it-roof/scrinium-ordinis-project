@@ -7,6 +7,7 @@ import { requireSessionUser } from "@/lib/tenant/session";
 import {
   createPromptRow,
   deletePromptRow,
+  renamePromptTagRow,
   updatePromptRow,
 } from "./storage";
 import { normalizeTagList } from "./tag-utils";
@@ -67,6 +68,28 @@ export async function updatePrompt(id: string, input: PromptInput) {
   revalidatePath("/", "layout");
 
   return { success: true as const, item };
+}
+
+export async function renamePromptTag(tagId: string, name: string) {
+  const user = await requireSessionUser();
+  if (!user) return { success: false as const, error: "Nicht angemeldet." };
+
+  const denied = await assertPromptsAccess(user.id, user.tenantId);
+  if (denied) return { success: false as const, error: denied };
+
+  const result = await renamePromptTagRow(user.tenantId, tagId, name);
+
+  if (!result.ok) {
+    return { success: false as const, error: result.error };
+  }
+
+  revalidatePath("/", "layout");
+
+  return {
+    success: true as const,
+    tag: result.tag,
+    merged: result.merged,
+  };
 }
 
 export async function deletePrompt(id: string) {

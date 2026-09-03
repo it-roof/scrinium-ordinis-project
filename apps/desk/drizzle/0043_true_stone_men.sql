@@ -1,0 +1,1 @@
+ALTER TABLE "staff_messages" ADD COLUMN "due_date" date;

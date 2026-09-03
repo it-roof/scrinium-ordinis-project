@@ -83,7 +83,9 @@ export function ClientsView({ initialItems }: { initialItems: ClientRecord[] }) 
         }}
         onClientCreated={(client) => {
           setItems((prev) =>
-            [...prev, client].sort((a, b) => a.name.localeCompare(b.name, "de"))
+            [...prev, client].sort((a, b) =>
+              formatClientName(a).localeCompare(formatClientName(b), "de")
+            )
           );
         }}
         onPersonCreated={(clientId) => {

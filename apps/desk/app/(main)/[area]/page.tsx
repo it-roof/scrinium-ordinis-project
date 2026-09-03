@@ -25,6 +25,7 @@ export default async function AreaStartPage({ params }: AreaStartPageProps) {
       area={area}
       inboxCount={inboxCount}
       allowedFunctions={allowedFunctions}
+      userId={user.id}
     />
   );
 }

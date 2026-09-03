@@ -1,4 +1,4 @@
-import { homeAreaForFunction, type AreaFunctionId } from "@/lib/area/functions";
+import { areasForFunction, type AreaFunctionId } from "@/lib/area/functions";
 import { isAppModuleId, type AppModuleId } from "@/lib/modules";
 import {
   getUserAllowedFunctions,
@@ -52,20 +52,20 @@ export async function assertUserCanAccessContentModule(
   return DENIED;
 }
 
-/** User braucht Zugriff auf den Home-Bereich der Funktion (z. B. Prompt → Recht). */
+/** User braucht Zugriff auf mindestens einen Bereich, der die Funktion anbietet. */
 export async function assertUserCanAccessAreaFunction(
   userId: string,
   tenantId: string,
   functionId: AreaFunctionId
 ): Promise<typeof DENIED | null> {
-  const home = homeAreaForFunction(functionId);
-  if (!home) {
+  const areas = areasForFunction(functionId);
+  if (areas.length === 0) {
     return DENIED;
   }
-  const moduleDenied = await assertUserCanAccessContentModule(
+  const moduleDenied = await assertUserCanAccessAnyContentModule(
     userId,
     tenantId,
-    home
+    areas
   );
   if (moduleDenied) {
     return moduleDenied;

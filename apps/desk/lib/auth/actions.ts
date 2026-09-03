@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
 
 import { authorizeCredentials } from "@/lib/auth/authorize";
+import { authAdapter } from "@/lib/auth/adapter";
 import {
   clearAuthSessionCookies,
   getAuthSessionCookieConfig,
@@ -69,3 +70,24 @@ export async function loginAction(
 
   redirect(redirectTo);
 }
+
+export async function logoutAction() {
+  const cookieStore = await cookies();
+  const sessionCookie = await getAuthSessionCookieConfig();
+  const token =
+    cookieStore.get(sessionCookie.name)?.value ||
+    cookieStore.get("authjs.session-token")?.value ||
+    cookieStore.get("__Secure-authjs.session-token")?.value;
+
+  if (token) {
+    try {
+      await authAdapter.deleteSession?.(token);
+    } catch (error) {
+      console.error("[logoutAction] session delete", error);
+    }
+  }
+
+  await clearAuthSessionCookies();
+  redirect("/login");
+}
+

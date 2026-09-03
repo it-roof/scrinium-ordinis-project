@@ -6,6 +6,11 @@ import { toast } from "sonner";
 
 import { UserModulesFields } from "@/components/platform/user-modules-fields";
 import { createTenantUserAction } from "@/lib/platform/actions";
+import {
+  DESK_ROLE_IDS,
+  DESK_ROLE_LABELS,
+  type DeskRoleId,
+} from "@/lib/area/desk-roles";
 import type { UserRole } from "@/lib/db/schema";
 import type { AppModuleId } from "@/lib/modules";
 import { Button } from "@/components/ui/button";
@@ -72,9 +77,11 @@ function CreateTenantUserForm({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [email, setEmail] = useState("");
-  const [name, setName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<UserRole>(defaultRole);
+  const [deskRole, setDeskRole] = useState<DeskRoleId>("rechtsanwalt");
   const [allowedModules, setAllowedModules] = useState<AppModuleId[] | null>(
     null
   );
@@ -86,9 +93,11 @@ function CreateTenantUserForm({
       const result = await createTenantUserAction({
         tenantId,
         email,
-        name,
+        firstName,
+        lastName,
         password,
         role,
+        deskRole,
         allowedModules,
       });
 
@@ -107,13 +116,23 @@ function CreateTenantUserForm({
     <form onSubmit={onSubmit} className="space-y-4">
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
-          <Label htmlFor="user-name">Name</Label>
+          <Label htmlFor="user-first-name">Vorname</Label>
           <Input
-            id="user-name"
-            value={name}
-            onChange={(event) => setName(event.target.value)}
+            id="user-first-name"
+            value={firstName}
+            onChange={(event) => setFirstName(event.target.value)}
             required
             autoFocus
+            className="h-10 rounded-none"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="user-last-name">Nachname</Label>
+          <Input
+            id="user-last-name"
+            value={lastName}
+            onChange={(event) => setLastName(event.target.value)}
+            required
             className="h-10 rounded-none"
           />
         </div>
@@ -140,7 +159,7 @@ function CreateTenantUserForm({
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="user-role">Rolle</Label>
+          <Label htmlFor="user-role">Zugang</Label>
           <select
             id="user-role"
             value={role}
@@ -149,6 +168,24 @@ function CreateTenantUserForm({
           >
             <option value="admin">Admin (Kanzlei)</option>
             <option value="employee">Mitarbeiter</option>
+          </select>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="user-desk-role">Position</Label>
+          <select
+            id="user-desk-role"
+            value={deskRole}
+            onChange={(event) =>
+              setDeskRole(event.target.value as DeskRoleId)
+            }
+            required
+            className="flex h-10 w-full rounded-none border border-input bg-background px-3 text-sm"
+          >
+            {DESK_ROLE_IDS.map((id) => (
+              <option key={id} value={id}>
+                {DESK_ROLE_LABELS[id]}
+              </option>
+            ))}
           </select>
         </div>
 

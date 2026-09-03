@@ -32,7 +32,7 @@ export async function sendDelegationAssignmentMail(input: {
 
   lines.push(
     "",
-    "Im Eingang findest du die Aufgabe:",
+    "Unter Nachrichten findest du die Aufgabe:",
     link,
     "",
     "Scrinium Ordinis"
@@ -40,7 +40,7 @@ export async function sendDelegationAssignmentMail(input: {
 
   return sendSystemMail({
     to: input.to,
-    subject: "Scrinium Ordinis — Neue Aufgabe im Eingang",
+    subject: "Scrinium Ordinis — Neue Aufgabe in Nachrichten",
     text: lines.join("\n"),
   });
 }

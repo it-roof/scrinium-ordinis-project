@@ -64,6 +64,8 @@ export type InboxItem = {
 
 export type LetterColleague = {
   id: string;
+  firstName: string;
+  lastName: string;
   name: string;
   email: string;
 };

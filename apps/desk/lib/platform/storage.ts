@@ -2,13 +2,14 @@ import { asc, and, count, eq } from "drizzle-orm";
 
 import { hashPassword } from "@/lib/auth/password";
 import { db } from "@/lib/db";
-import { tenants, users, type UserRole } from "@/lib/db/schema";
+import { tenants, users, type DeskRole, type UserRole } from "@/lib/db/schema";
 import {
   ALL_APP_MODULE_IDS,
   normalizeEnabledModules,
   normalizeOptionalAllowedModules,
   type AppModuleId,
 } from "@/lib/modules";
+import { resolveUserDisplayName } from "@/lib/users/names";
 
 export type TenantListItem = {
   id: string;
@@ -23,7 +24,10 @@ export type TenantUserItem = {
   id: string;
   email: string;
   name: string;
+  firstName: string;
+  lastName: string;
   role: UserRole;
+  deskRole: DeskRole | null;
   platformRole: string | null;
   /** null = alle Tenant-Module. */
   allowedModules: AppModuleId[] | null;
@@ -144,20 +148,26 @@ export async function listUsersForTenant(
       id: users.id,
       email: users.email,
       name: users.name,
+      firstName: users.firstName,
+      lastName: users.lastName,
       role: users.role,
+      deskRole: users.deskRole,
       platformRole: users.platformRole,
       allowedModules: users.allowedModules,
       createdAt: users.createdAt,
     })
     .from(users)
     .where(eq(users.tenantId, tenantId))
-    .orderBy(asc(users.name));
+    .orderBy(asc(users.lastName), asc(users.firstName));
 
   return rows.map((row) => ({
     id: row.id,
     email: row.email,
     name: row.name,
+    firstName: row.firstName,
+    lastName: row.lastName,
     role: row.role,
+    deskRole: row.deskRole,
     platformRole: row.platformRole,
     allowedModules: normalizeOptionalAllowedModules(row.allowedModules),
     createdAt: row.createdAt,
@@ -167,21 +177,29 @@ export async function listUsersForTenant(
 export async function createTenantUserRow(input: {
   tenantId: string;
   email: string;
-  name: string;
+  firstName: string;
+  lastName: string;
   password: string;
   role: UserRole;
+  deskRole: DeskRole;
   allowedModules?: AppModuleId[] | null;
 }) {
   const passwordHash = await hashPassword(input.password);
+  const firstName = input.firstName.trim();
+  const lastName = input.lastName.trim();
+  const name = resolveUserDisplayName({ firstName, lastName });
 
   const [user] = await db
     .insert(users)
     .values({
       tenantId: input.tenantId,
       email: input.email.trim().toLowerCase(),
-      name: input.name.trim(),
+      name,
+      firstName,
+      lastName,
       passwordHash,
       role: input.role,
+      deskRole: input.deskRole,
       allowedModules:
         input.allowedModules === undefined ? null : input.allowedModules,
     })
@@ -189,7 +207,10 @@ export async function createTenantUserRow(input: {
       id: users.id,
       email: users.email,
       name: users.name,
+      firstName: users.firstName,
+      lastName: users.lastName,
       role: users.role,
+      deskRole: users.deskRole,
       allowedModules: users.allowedModules,
     });
 
@@ -200,21 +221,31 @@ export async function updateTenantUserRow(input: {
   id: string;
   tenantId: string;
   email: string;
-  name: string;
+  firstName: string;
+  lastName: string;
   role: UserRole;
+  deskRole: DeskRole;
   allowedModules?: AppModuleId[] | null;
   password?: string;
 }) {
+  const firstName = input.firstName.trim();
+  const lastName = input.lastName.trim();
   const values: {
     email: string;
     name: string;
+    firstName: string;
+    lastName: string;
     role: UserRole;
+    deskRole: DeskRole;
     allowedModules?: AppModuleId[] | null;
     passwordHash?: string;
   } = {
     email: input.email.trim().toLowerCase(),
-    name: input.name.trim(),
+    name: resolveUserDisplayName({ firstName, lastName }),
+    firstName,
+    lastName,
     role: input.role,
+    deskRole: input.deskRole,
   };
 
   if (input.allowedModules !== undefined) {
@@ -233,7 +264,10 @@ export async function updateTenantUserRow(input: {
       id: users.id,
       email: users.email,
       name: users.name,
+      firstName: users.firstName,
+      lastName: users.lastName,
       role: users.role,
+      deskRole: users.deskRole,
       tenantId: users.tenantId,
       allowedModules: users.allowedModules,
     });

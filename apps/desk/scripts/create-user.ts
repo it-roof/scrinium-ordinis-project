@@ -9,39 +9,49 @@ async function main() {
   const { validatePassword } = await import("../lib/auth/password-policy");
   const { db } = await import("../lib/db");
   const { tenants, users } = await import("../lib/db/schema");
+  const { resolveUserDisplayName } = await import("../lib/users/names");
 
   const args = process.argv.slice(2);
   if (args[0]?.endsWith("create-user.ts")) {
     args.shift();
   }
 
-  const [emailArg, password, name, roleOrTenant, maybeRole] = args;
+  const [emailArg, password, firstNameArg, lastNameArg] = args;
 
-  if (!emailArg || !password || !name) {
+  if (!emailArg || !password || !firstNameArg || !lastNameArg) {
     console.error(
-      "Verwendung: pnpm user:create <email> <passwort> <name> [tenant-slug] [admin|employee]"
+      "Verwendung: pnpm user:create <email> <passwort> <vorname> <nachname> [tenant-slug] [admin|employee] [rechtsanwalt|sekretariat]"
     );
-    console.error(
-      `  tenant-slug default: ${DEFAULT_TENANT_SLUG}`
-    );
+    console.error(`  tenant-slug default: ${DEFAULT_TENANT_SLUG}`);
+    console.error("  Position default: rechtsanwalt");
     process.exit(1);
   }
 
   const email = emailArg.trim().toLowerCase();
+  const firstName = firstNameArg.trim();
+  const lastName = lastNameArg.trim();
+  const name = resolveUserDisplayName({ firstName, lastName });
 
   let tenantSlug = DEFAULT_TENANT_SLUG;
   let roleArg = "employee";
+  let deskRoleArg = "rechtsanwalt";
 
-  if (roleOrTenant === "admin" || roleOrTenant === "employee") {
-    roleArg = roleOrTenant;
-  } else if (roleOrTenant) {
-    tenantSlug = roleOrTenant;
-    if (maybeRole === "admin" || maybeRole === "employee") {
-      roleArg = maybeRole;
+  const rest = args.slice(4);
+  for (const token of rest) {
+    if (token === "admin" || token === "employee") {
+      roleArg = token;
+      continue;
     }
+    if (token === "rechtsanwalt" || token === "sekretariat") {
+      deskRoleArg = token;
+      continue;
+    }
+    tenantSlug = token;
   }
 
   const role = roleArg === "admin" ? "admin" : "employee";
+  const deskRole =
+    deskRoleArg === "sekretariat" ? "sekretariat" : "rechtsanwalt";
 
   const passwordError = validatePassword(password);
   if (passwordError) {
@@ -57,7 +67,9 @@ async function main() {
 
   if (!tenant) {
     console.error(`Tenant nicht gefunden: ${tenantSlug}`);
-    console.error("Zuerst anlegen mit: pnpm --filter @scrinium/desk exec tsx scripts/create-tenant.ts");
+    console.error(
+      "Zuerst anlegen mit: pnpm --filter @scrinium/desk exec tsx scripts/create-tenant.ts"
+    );
     process.exit(1);
   }
 
@@ -79,15 +91,21 @@ async function main() {
     .values({
       tenantId: tenant.id,
       email,
-      name: name.trim(),
+      name,
+      firstName,
+      lastName,
       passwordHash,
       role,
+      deskRole,
     })
     .returning({
       id: users.id,
       email: users.email,
       name: users.name,
+      firstName: users.firstName,
+      lastName: users.lastName,
       role: users.role,
+      deskRole: users.deskRole,
       tenantId: users.tenantId,
     });
 
@@ -95,7 +113,10 @@ async function main() {
   console.log(`  ID:       ${user.id}`);
   console.log(`  E-Mail:   ${user.email}`);
   console.log(`  Name:     ${user.name}`);
-  console.log(`  Rolle:    ${user.role}`);
+  console.log(`  Vorname:  ${user.firstName}`);
+  console.log(`  Nachname: ${user.lastName}`);
+  console.log(`  Zugang:   ${user.role}`);
+  console.log(`  Position: ${user.deskRole}`);
   console.log(`  Tenant:   ${tenant.name} (${tenant.slug})`);
 }
 

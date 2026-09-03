@@ -42,6 +42,10 @@ export async function authorizeCredentials(credentials: Record<string, unknown>)
     return rejectLogin(email);
   }
 
+  if (user.disabledAt) {
+    return rejectLogin(email);
+  }
+
   await clearLoginAttempts(email);
 
   return {
@@ -49,6 +53,7 @@ export async function authorizeCredentials(credentials: Record<string, unknown>)
     email: user.email,
     name: user.name,
     role: user.role,
+    deskRole: user.deskRole ?? null,
     tenantId: user.tenantId,
     platformRole: user.platformRole ?? null,
   };

@@ -3,6 +3,10 @@ export type PromptTag = {
   name: string;
 };
 
+export type PromptTagWithCount = PromptTag & {
+  promptCount: number;
+};
+
 export type Prompt = {
   id: string;
   title: string;

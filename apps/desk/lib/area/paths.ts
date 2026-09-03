@@ -45,6 +45,7 @@ export function areaBasePath(area: AppModuleId): string {
 
 export const FUNCTION_PATH_SEGMENTS: Record<AreaFunctionId, string> = {
   inbox: "eingang",
+  "inbox-overview": "nachrichten-uebersicht",
   clients: "mandanten",
   matters: "akten",
   "compose-letter": "schreiben-erstellen",
@@ -56,6 +57,7 @@ export const FUNCTION_PATH_SEGMENTS: Record<AreaFunctionId, string> = {
   letters: "schreiben",
   docs: "dokumentation",
   templates: "vorlagen",
+  "staff-messages": "nachrichten-an-mitarbeiter",
 };
 
 export function functionHref(

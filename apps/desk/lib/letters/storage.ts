@@ -1,7 +1,8 @@
-import { and, asc, count, desc, eq, ne } from "drizzle-orm";
+import { and, asc, desc, eq, isNull, ne } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 
 import { clients, letters, matters, users } from "@/lib/db/schema";
+import { countOpenStaffMessagesForRecipient } from "@/lib/staff-messages/storage";
 import { withTenantDb } from "@/lib/tenant/db";
 
 import {
@@ -102,21 +103,8 @@ export async function countInboxItems(
   userId: string,
   module?: AppModuleId
 ): Promise<number> {
-  return withTenantDb(tenantId, async (tx) => {
-    const conditions = [
-      eq(letters.tenantId, tenantId),
-      eq(letters.assignedTo, userId),
-      ne(letters.status, "versendet"),
-    ];
-    if (module) {
-      conditions.push(eq(letters.module, module));
-    }
-    const [row] = await tx
-      .select({ value: count() })
-      .from(letters)
-      .where(and(...conditions));
-    return row?.value ?? 0;
-  });
+  // Vorerst: Eingang zeigt nur Nachrichten aus „Nachricht an Mitarbeiter“.
+  return countOpenStaffMessagesForRecipient(tenantId, userId, module);
 }
 
 export async function getInboxItems(
@@ -311,13 +299,15 @@ export async function listLetterColleagues(
     const rows = await tx
       .select({
         id: users.id,
+        firstName: users.firstName,
+        lastName: users.lastName,
         name: users.name,
         email: users.email,
         allowedModules: users.allowedModules,
       })
       .from(users)
-      .where(eq(users.tenantId, tenantId))
-      .orderBy(asc(users.name));
+      .where(and(eq(users.tenantId, tenantId), isNull(users.disabledAt)))
+      .orderBy(asc(users.lastName), asc(users.firstName));
 
     return rows
       .filter((row) => {
@@ -329,6 +319,8 @@ export async function listLetterColleagues(
       })
       .map((row) => ({
         id: row.id,
+        firstName: row.firstName,
+        lastName: row.lastName,
         name: row.name,
         email: row.email,
       }));

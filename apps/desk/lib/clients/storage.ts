@@ -13,7 +13,7 @@ import type {
   ClientRecipientOption,
   ClientRecord,
 } from "./types";
-import { formatPersonName, resolveClientDisplayName } from "./types";
+import { formatPersonListName, resolveClientDisplayName } from "./types";
 
 type ClientRow = typeof clients.$inferSelect;
 type PersonRow = typeof clientPersons.$inferSelect;
@@ -128,7 +128,7 @@ export async function getClients(
           : eq(clients.tenantId, tenantId)
       )
       .groupBy(clients.id)
-      .orderBy(asc(clients.name));
+      .orderBy(asc(clients.lastName), asc(clients.firstName), asc(clients.name));
 
     return rows.map((row) =>
       toClient(row.client, row.matterCount, row.personCount)
@@ -374,7 +374,7 @@ export async function listClientRecipientOptions(
       .select()
       .from(clients)
       .where(and(eq(clients.tenantId, tenantId), eq(clients.module, module)))
-      .orderBy(asc(clients.name));
+      .orderBy(asc(clients.lastName), asc(clients.firstName), asc(clients.name));
 
     const options: ClientRecipientOption[] = [];
 
@@ -393,7 +393,11 @@ export async function listClientRecipientOptions(
         }
         options.push({
           clientId: client.id,
-          clientName: client.name,
+          clientName:
+            formatPersonListName({
+              firstName: client.firstName,
+              lastName: client.lastName,
+            }) || client.name,
           clientKind: client.kind as ClientKind,
           email,
           matters,
@@ -424,7 +428,7 @@ export async function listClientRecipientOptions(
           email,
           contact: {
             id: person.id,
-            name: formatPersonName(person),
+            name: formatPersonListName(person),
             role: person.role,
           },
           matters,
@@ -498,7 +502,7 @@ export async function findClientMatchesByEmail(
         matchVia: "contact",
         contact: {
           id: row.person.id,
-          name: formatPersonName(row.person),
+          name: formatPersonListName(row.person),
           role: row.person.role,
         },
         matters: matterRows,

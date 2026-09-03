@@ -14,6 +14,7 @@ import { countInboxItems } from "@/lib/letters/storage";
 import { getTenantDisplayBrand } from "@/lib/tenant/brand";
 import {
   getUserAllowedFunctions,
+  getUserDeskRole,
   getUserEffectiveModules,
 } from "@/lib/tenant/modules";
 import { isPlatformSuperAdmin } from "@/lib/tenant/session";
@@ -49,6 +50,7 @@ export default async function MainLayout({
     cookieStore,
     inboxCount,
     allowedFunctions,
+    deskRole,
   ] = await Promise.all([
       isSuperAdmin
         ? Promise.resolve(PRODUCT_WORDMARK)
@@ -68,6 +70,9 @@ export default async function MainLayout({
       isSuperAdmin
         ? Promise.resolve(null)
         : getUserAllowedFunctions(session.user.id, session.user.tenantId),
+      isSuperAdmin
+        ? Promise.resolve(null)
+        : getUserDeskRole(session.user.id, session.user.tenantId),
     ]);
 
   const initialActiveArea =
@@ -80,7 +85,10 @@ export default async function MainLayout({
 
   return (
     <AppShell
-      user={session.user}
+      user={{
+        ...session.user,
+        deskRole,
+      }}
       brandLabel={brandLabel}
       allowedAreas={enabledModules}
       initialActiveArea={initialActiveArea}

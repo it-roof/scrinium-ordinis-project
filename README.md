@@ -31,7 +31,7 @@ pnpm build
 ```bash
 pnpm db:generate
 pnpm db:migrate   # lokal gegen die Live-DB (nicht im Coolify-Container)
-pnpm user:create <email> <passwort> <name> [tenant-slug] [admin|employee]
+pnpm user:create <email> <passwort> <vorname> <nachname> [tenant-slug] [admin|employee]
 ```
 
 ## Coolify (Desk)

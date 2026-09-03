@@ -11,6 +11,7 @@ import { navigation, type NavItem } from "@/lib/navigation";
 /** App-Funktionen, die einem Fach-Bereich zugeordnet sind. */
 export const AREA_FUNCTION_IDS = [
   "inbox",
+  "inbox-overview",
   "clients",
   "matters",
   "compose-letter",
@@ -22,6 +23,7 @@ export const AREA_FUNCTION_IDS = [
   "letters",
   "docs",
   "templates",
+  "staff-messages",
 ] as const;
 
 export type AreaFunctionId = (typeof AREA_FUNCTION_IDS)[number];
@@ -37,6 +39,9 @@ export function isAreaFunctionId(value: string): value is AreaFunctionId {
  * Compose-Funktionen (Schreiben/E-Mail/Druck) werden mitgeführt, wenn
  * „Sachverhalt verarbeiten“ oder „Schreiben“ freigeschaltet ist — damit
  * bestehende Allowlists nach Feature-Erweiterung nicht leer bleiben.
+ *
+ * „Nachricht an Mitarbeiter“ wird mitgeführt, wenn der User bereits
+ * mindestens eine andere Recht-Funktion in der Allowlist hat.
  */
 export function normalizeOptionalAllowedFunctions(
   input: unknown
@@ -58,6 +63,15 @@ export function normalizeOptionalAllowedFunctions(
     unique.add("compose-email");
     unique.add("compose-print");
   }
+  const hasOtherLegalFunction = FUNCTIONS_BY_AREA.legal.some(
+    (id) => id !== "staff-messages" && unique.has(id)
+  );
+  if (hasOtherLegalFunction) {
+    unique.add("staff-messages");
+  }
+  if (unique.has("inbox")) {
+    unique.add("inbox-overview");
+  }
   return [...unique];
 }
 
@@ -76,15 +90,17 @@ export function filterFunctionsByAllowlist(
 export const FUNCTIONS_BY_AREA: Record<AppModuleId, AreaFunctionId[]> = {
   legal: [
     "inbox",
+    "inbox-overview",
     "clients",
     "matters",
-    "prompt-kit",
     "prompts",
     "compose-letter",
     "compose-email",
     "compose-print",
     "letters",
     "text-blocks",
+    "prompt-kit",
+    "staff-messages",
   ],
   tax: ["docs", "templates"],
   "restructuring-insolvency": [],
@@ -92,7 +108,8 @@ export const FUNCTIONS_BY_AREA: Record<AppModuleId, AreaFunctionId[]> = {
 };
 
 export const FUNCTION_LABELS: Record<AreaFunctionId, string> = {
-  inbox: "Eingang",
+  inbox: "Nachrichten",
+  "inbox-overview": "Nachrichten Übersicht",
   clients: "Mandanten",
   matters: "Akten",
   "compose-letter": "Schreiben erstellen",
@@ -104,6 +121,7 @@ export const FUNCTION_LABELS: Record<AreaFunctionId, string> = {
   letters: "Schreiben",
   docs: "Dokumentation",
   templates: "Vorlagen",
+  "staff-messages": "Nachricht an Mitarbeiter",
 };
 
 /** @deprecated relative Legacy-Pfade — nutze functionHref(area, id) */
@@ -111,7 +129,11 @@ export const FUNCTION_ROUTES: Record<
   AreaFunctionId,
   { href: string; label: string }
 > = {
-  inbox: { href: "/eingang", label: "Eingang" },
+  inbox: { href: "/eingang", label: "Nachrichten" },
+  "inbox-overview": {
+    href: "/nachrichten-uebersicht",
+    label: "Nachrichten Übersicht",
+  },
   clients: { href: "/mandanten", label: "Mandanten" },
   matters: { href: "/akten", label: "Akten" },
   "compose-letter": {
@@ -126,6 +148,10 @@ export const FUNCTION_ROUTES: Record<
   letters: { href: "/schreiben", label: "Schreiben" },
   docs: { href: "/dokumentation", label: "Dokumentation" },
   templates: { href: "/vorlagen", label: "Vorlagen" },
+  "staff-messages": {
+    href: "/nachrichten-an-mitarbeiter",
+    label: "Nachricht an Mitarbeiter",
+  },
 };
 
 const SEGMENT_TO_FUNCTION = Object.fromEntries(
@@ -181,6 +207,12 @@ export function functionIdFromPathname(
   if (pathname === "/akten" || pathname.startsWith("/akten/")) {
     return "matters";
   }
+  if (
+    pathname === "/nachrichten-an-mitarbeiter" ||
+    pathname.startsWith("/nachrichten-an-mitarbeiter/")
+  ) {
+    return "staff-messages";
+  }
 
   return null;
 }
@@ -205,19 +237,32 @@ export const MANAGEMENT_FUNCTION_IDS: AreaFunctionId[] = ["clients", "matters"];
 
 /** Sidebar-Gruppe Funktionen (Werkzeuge). */
 export const TOOL_FUNCTION_IDS: AreaFunctionId[] = [
-  "prompt-kit",
   "prompts",
+  "text-blocks",
+  "docs",
+  "templates",
+  "prompt-kit",
+];
+
+/** Sidebar-Gruppe Kommunikation. */
+export const COMMUNICATION_FUNCTION_IDS: AreaFunctionId[] = ["staff-messages"];
+
+/**
+ * Vorerst nicht in Schreibtisch/Sidebar — Routen und Berechtigungen bleiben aktiv.
+ * Zugang z. B. über Sachverhalt verarbeiten oder direkte URLs.
+ */
+export const NAV_HIDDEN_FUNCTION_IDS: AreaFunctionId[] = [
   "compose-letter",
   "compose-email",
   "compose-print",
   "letters",
-  "text-blocks",
-  "docs",
-  "templates",
 ];
 
 /** Oben separat, ohne Gruppenlabel. */
-export const PINNED_FUNCTION_IDS: AreaFunctionId[] = ["inbox"];
+export const PINNED_FUNCTION_IDS: AreaFunctionId[] = [
+  "inbox",
+  "inbox-overview",
+];
 
 export type NavGroup = {
   /** Leer = ohne Gruppenüberschrift (z. B. Eingang ganz oben). */
@@ -262,7 +307,7 @@ export function navigationGroupsForArea(
   const startItem: NavItem = {
     ...navigation[0],
     href: areaBasePath(area),
-    label: "Schreibtisch",
+    label: "Übersicht",
     description: "",
   };
 
@@ -281,12 +326,19 @@ export function navigationGroupsForArea(
     (id) => navItemForFunction(area, id)
   );
 
+  const communicationItems = COMMUNICATION_FUNCTION_IDS.filter((id) =>
+    available.has(id)
+  ).map((id) => navItemForFunction(area, id));
+
   const groups: NavGroup[] = [];
   if (pinnedItems.length > 0) {
     groups.push({ label: "", items: pinnedItems });
   }
   if (toolItems.length > 0) {
     groups.push({ label: "Funktionen", items: toolItems });
+  }
+  if (communicationItems.length > 0) {
+    groups.push({ label: "Kommunikation", items: communicationItems });
   }
   if (managementItems.length > 0) {
     groups.push({ label: "Verwaltung", items: managementItems });
@@ -315,16 +367,18 @@ export function functionLabelsForArea(area: AppModuleId): string[] {
   return FUNCTIONS_BY_AREA[area].map((id) => FUNCTION_LABELS[id]);
 }
 
+/** Alle Bereiche, in denen eine Funktion hängt. */
+export function areasForFunction(functionId: AreaFunctionId): AppModuleId[] {
+  return (
+    Object.entries(FUNCTIONS_BY_AREA) as Array<[AppModuleId, AreaFunctionId[]]>
+  )
+    .filter(([, functions]) => functions.includes(functionId))
+    .map(([area]) => area);
+}
+
 /** Canonical-Bereich, dem eine Funktion gehört. */
 export function homeAreaForFunction(
   functionId: AreaFunctionId
 ): AppModuleId | null {
-  for (const [area, functions] of Object.entries(FUNCTIONS_BY_AREA) as Array<
-    [AppModuleId, AreaFunctionId[]]
-  >) {
-    if (functions.includes(functionId)) {
-      return area;
-    }
-  }
-  return null;
+  return areasForFunction(functionId)[0] ?? null;
 }

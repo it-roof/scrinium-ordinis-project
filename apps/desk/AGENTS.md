@@ -6,6 +6,19 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 App: **`apps/desk`** (Scrinium Ordinis — Kanzlei-Werkzeug). Monorepo-Hinweise: Root [`AGENTS.md`](../../AGENTS.md).
 
+## Interne Nachrichten = Aufgaben (Architektur)
+
+**Domain:** Interne Zuweisungen sind fachlich immer **Aufgaben** (Status, Priorität, Fälligkeit, Empfänger).  
+**UI:** Nutzer sehen und schreiben „Nachrichten“ / „Nachricht an Mitarbeiter“ / Eingang „Nachrichten“.
+
+- Persistenz vorerst: Tabelle `staff_messages` (+ Dateien/Replies) — Code-Domain: Task/Aufgabe  
+- Status: `offen` · `in_bearbeitung` · `erledigt` · `zurueckgestellt`  
+- Eingang (`/…/eingang`, Nav **Nachrichten**): Arbeitsplatz zum Abarbeiten (Empfangen + Delegiert)  
+- Übersicht (`/…/nachrichten-uebersicht`, Nav **Nachrichten Übersicht**): alle eigenen Aufgaben inkl. erledigter  
+- Modul: [`lib/staff-messages/`](lib/staff-messages/) · Compose: `nachrichten-an-mitarbeiter`
+
+Keine zweite Entität „Nachricht vs. Aufgabe“ — eine Entität, zwei Bezeichnungen (UI vs. Architektur).
+
 ## Datenbank (Drizzle)
 
 - PostgreSQL über Drizzle ORM (`lib/db/`)
@@ -20,7 +33,7 @@ App: **`apps/desk`** (Scrinium Ordinis — Kanzlei-Werkzeug). Monorepo-Hinweise:
 - Session enthält `id`, `role`, **`tenantId`**
 - Konfiguration in `lib/auth/`
 - Ersten Tenant (falls nötig): `pnpm tenant:create`
-- Ersten Benutzer: `pnpm user:create <email> <passwort> <name> [tenant-slug] [admin|employee]`
+- Ersten Benutzer: `pnpm user:create <email> <passwort> <vorname> <nachname> [tenant-slug] [admin|employee] [rechtsanwalt|sekretariat]`
 - Plattform-Super-Admin: `pnpm platform:grant <email>` (UI unter `/platform`)
 - Geschützte Routen via `middleware.ts`
 - Passwort-Policy: min. 6 Zeichen (Admin setzt Passwort; kein Self-Service-Register)

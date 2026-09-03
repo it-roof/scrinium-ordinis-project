@@ -1,12 +1,13 @@
 import { cache } from "react";
 import { and, eq } from "drizzle-orm";
 
+import { resolveEffectiveAllowedFunctions } from "@/lib/area/desk-roles";
 import {
   normalizeOptionalAllowedFunctions,
   type AreaFunctionId,
 } from "@/lib/area/functions";
 import { db } from "@/lib/db";
-import { tenants, users } from "@/lib/db/schema";
+import { tenants, users, type DeskRole } from "@/lib/db/schema";
 import {
   ALL_APP_MODULE_IDS,
   intersectModules,
@@ -53,8 +54,22 @@ export const getUserEffectiveModules = cache(
   }
 );
 
+/** Position (Rechtsanwalt / Sekretariat) aus der DB. */
+export const getUserDeskRole = cache(
+  async (userId: string, tenantId: string): Promise<DeskRole | null> => {
+    const [row] = await db
+      .select({ deskRole: users.deskRole })
+      .from(users)
+      .where(and(eq(users.id, userId), eq(users.tenantId, tenantId)))
+      .limit(1);
+
+    return row?.deskRole ?? null;
+  }
+);
+
 /**
- * Optionale Funktions-Allowlist des Users.
+ * Effektive Funktions-Allowlist des Users.
+ * Position (Rechtsanwalt/Sekretariat) ∩ optionale Einzel-Allowlist.
  * null = alle Funktionen der freigeschalteten Bereiche.
  */
 export const getUserAllowedFunctions = cache(
@@ -63,7 +78,10 @@ export const getUserAllowedFunctions = cache(
     tenantId: string
   ): Promise<AreaFunctionId[] | null> => {
     const [row] = await db
-      .select({ allowedFunctions: users.allowedFunctions })
+      .select({
+        deskRole: users.deskRole,
+        allowedFunctions: users.allowedFunctions,
+      })
       .from(users)
       .where(and(eq(users.id, userId), eq(users.tenantId, tenantId)))
       .limit(1);
@@ -72,6 +90,9 @@ export const getUserAllowedFunctions = cache(
       return null;
     }
 
-    return normalizeOptionalAllowedFunctions(row.allowedFunctions);
+    return resolveEffectiveAllowedFunctions({
+      deskRole: row.deskRole,
+      allowedFunctions: normalizeOptionalAllowedFunctions(row.allowedFunctions),
+    });
   }
 );

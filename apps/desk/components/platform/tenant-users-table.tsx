@@ -9,7 +9,12 @@ import {
   deleteTenantUserAction,
   updateTenantUserAction,
 } from "@/lib/platform/actions";
-import type { UserRole } from "@/lib/db/schema";
+import {
+  DESK_ROLE_IDS,
+  DESK_ROLE_LABELS,
+  type DeskRoleId,
+} from "@/lib/area/desk-roles";
+import type { DeskRole, UserRole } from "@/lib/db/schema";
 import { APP_MODULES, type AppModuleId } from "@/lib/modules";
 import type { TenantUserItem } from "@/lib/platform/storage";
 import { Button } from "@/components/ui/button";
@@ -33,6 +38,13 @@ function modulesLabel(
   return labels.length > 0 ? labels.join(", ") : "Keine";
 }
 
+function deskRoleLabel(deskRole: DeskRole | null) {
+  if (!deskRole) {
+    return "—";
+  }
+  return DESK_ROLE_LABELS[deskRole];
+}
+
 export function TenantUsersTable({
   tenantId,
   tenantModules,
@@ -53,7 +65,8 @@ export function TenantUsersTable({
           <tr>
             <th className="px-4 py-3 font-medium">Name</th>
             <th className="px-4 py-3 font-medium">E-Mail</th>
-            <th className="px-4 py-3 font-medium">Rolle</th>
+            <th className="px-4 py-3 font-medium">Zugang</th>
+            <th className="px-4 py-3 font-medium">Position</th>
             <th className="px-4 py-3 font-medium">Module</th>
             <th className="px-4 py-3 font-medium">Plattform</th>
             <th className="px-4 py-3 font-medium" />
@@ -104,18 +117,24 @@ function UserRow({
   onSaved: () => void;
   startTransition: (fn: () => void) => void;
 }) {
-  const [name, setName] = useState(user.name);
+  const [firstName, setFirstName] = useState(user.firstName);
+  const [lastName, setLastName] = useState(user.lastName);
   const [email, setEmail] = useState(user.email);
   const [role, setRole] = useState<UserRole>(user.role);
+  const [deskRole, setDeskRole] = useState<DeskRoleId>(
+    user.deskRole ?? "rechtsanwalt"
+  );
   const [password, setPassword] = useState("");
   const [allowedModules, setAllowedModules] = useState<AppModuleId[] | null>(
     user.allowedModules
   );
 
   function resetFields() {
-    setName(user.name);
+    setFirstName(user.firstName);
+    setLastName(user.lastName);
     setEmail(user.email);
     setRole(user.role);
+    setDeskRole(user.deskRole ?? "rechtsanwalt");
     setPassword("");
     setAllowedModules(user.allowedModules);
   }
@@ -127,9 +146,11 @@ function UserRow({
       const result = await updateTenantUserAction({
         id: user.id,
         tenantId,
-        name,
+        firstName,
+        lastName,
         email,
         role,
+        deskRole,
         allowedModules,
         password: password || undefined,
       });
@@ -172,15 +193,25 @@ function UserRow({
   if (isEditing) {
     return (
       <tr className="border-b border-border/50 last:border-0 bg-muted/20">
-        <td colSpan={6} className="px-4 py-4">
+        <td colSpan={7} className="px-4 py-4">
           <form onSubmit={onSave} className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor={`edit-name-${user.id}`}>Name</Label>
+                <Label htmlFor={`edit-first-name-${user.id}`}>Vorname</Label>
                 <Input
-                  id={`edit-name-${user.id}`}
-                  value={name}
-                  onChange={(event) => setName(event.target.value)}
+                  id={`edit-first-name-${user.id}`}
+                  value={firstName}
+                  onChange={(event) => setFirstName(event.target.value)}
+                  required
+                  className="h-10 rounded-none"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor={`edit-last-name-${user.id}`}>Nachname</Label>
+                <Input
+                  id={`edit-last-name-${user.id}`}
+                  value={lastName}
+                  onChange={(event) => setLastName(event.target.value)}
                   required
                   className="h-10 rounded-none"
                 />
@@ -197,7 +228,7 @@ function UserRow({
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor={`edit-role-${user.id}`}>Rolle</Label>
+                <Label htmlFor={`edit-role-${user.id}`}>Zugang</Label>
                 <select
                   id={`edit-role-${user.id}`}
                   value={role}
@@ -208,6 +239,24 @@ function UserRow({
                 >
                   <option value="admin">Admin (Kanzlei)</option>
                   <option value="employee">Mitarbeiter</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor={`edit-desk-role-${user.id}`}>Position</Label>
+                <select
+                  id={`edit-desk-role-${user.id}`}
+                  value={deskRole}
+                  onChange={(event) =>
+                    setDeskRole(event.target.value as DeskRoleId)
+                  }
+                  required
+                  className="flex h-10 w-full rounded-none border border-input bg-background px-3 text-sm"
+                >
+                  {DESK_ROLE_IDS.map((id) => (
+                    <option key={id} value={id}>
+                      {DESK_ROLE_LABELS[id]}
+                    </option>
+                  ))}
                 </select>
               </div>
               <div className="space-y-2">
@@ -276,6 +325,7 @@ function UserRow({
       <td className="px-4 py-3">
         {user.role === "admin" ? "Admin" : "Mitarbeiter"}
       </td>
+      <td className="px-4 py-3">{deskRoleLabel(user.deskRole)}</td>
       <td className="px-4 py-3 text-muted-foreground">
         {modulesLabel(user.allowedModules, tenantModules)}
       </td>

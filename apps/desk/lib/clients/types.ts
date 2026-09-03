@@ -103,12 +103,29 @@ export function formatPersonShortName(
   return [person.firstName, person.lastName].filter(Boolean).join(" ");
 }
 
+/** Listenformat: Nachname, Vorname */
+export function formatPersonListName(
+  person: Pick<ClientPersonRecord, "firstName" | "lastName">
+): string {
+  const lastName = person.lastName.trim();
+  const firstName = person.firstName.trim();
+  if (lastName && firstName) {
+    return `${lastName}, ${firstName}`;
+  }
+  if (lastName) {
+    return lastName;
+  }
+  if (firstName) {
+    return firstName;
+  }
+  return "";
+}
+
 /** Anzeigename eines Mandanten. */
 export function formatClientName(client: ClientRecord): string {
   if (client.kind === "person") {
     return (
-      formatPersonName({
-        salutation: client.salutation,
+      formatPersonListName({
         firstName: client.firstName,
         lastName: client.lastName,
       }) || client.name
@@ -129,7 +146,7 @@ export function resolveClientDisplayName(input: {
   lastName: string;
 }): string {
   if (input.kind === "person") {
-    return formatPersonShortName({
+    return formatPersonListName({
       firstName: input.firstName,
       lastName: input.lastName,
     });

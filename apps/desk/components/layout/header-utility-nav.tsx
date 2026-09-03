@@ -22,7 +22,7 @@ function HeaderNavButton({
     <button
       type="button"
       className={cn(
-        "inline-flex items-center gap-1.5 text-[0.68rem] tracking-[0.08em] text-muted-foreground uppercase transition-colors hover:text-foreground",
+        "inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap text-[0.68rem] leading-none tracking-[0.08em] text-muted-foreground uppercase transition-colors hover:text-foreground",
         className
       )}
       {...props}
@@ -39,12 +39,12 @@ export function HeaderUtilityNav({ dbConnected }: { dbConnected: boolean }) {
         <PopoverTrigger asChild>
           <HeaderNavButton>
             <HeadphonesIcon className="size-3.5" aria-hidden />
-            Support
+            Hilfe anfordern
           </HeaderNavButton>
         </PopoverTrigger>
         <PopoverContent align="end" className="w-64 gap-3 rounded-none p-4">
           <PopoverHeader>
-            <PopoverTitle>Support</PopoverTitle>
+            <PopoverTitle>Hilfe anfordern</PopoverTitle>
             <PopoverDescription>{SUPPORT_CONTACT.company}</PopoverDescription>
           </PopoverHeader>
           <div className="space-y-1.5 text-sm">

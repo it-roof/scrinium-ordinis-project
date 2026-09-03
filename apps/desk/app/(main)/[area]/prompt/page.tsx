@@ -1,4 +1,4 @@
-import { PromptsView } from "@/components/prompts/prompts-view";
+import { PromptsWorkView } from "@/components/prompts/prompts-work-view";
 import { requireAreaFunction } from "@/lib/area/require-function";
 import { getPrompts } from "@/lib/prompts/storage";
 
@@ -13,5 +13,5 @@ export default async function AreaPromptPage({ params }: PageProps) {
   const { user } = await requireAreaFunction(areaSlug, "prompts");
   const items = await getPrompts(user.tenantId);
 
-  return <PromptsView initialItems={items} />;
+  return <PromptsWorkView initialItems={items} />;
 }

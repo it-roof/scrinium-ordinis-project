@@ -1,0 +1,1 @@
+ALTER TYPE "public"."staff_message_priority" ADD VALUE 'andere';

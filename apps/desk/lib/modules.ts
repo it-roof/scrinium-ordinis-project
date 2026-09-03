@@ -5,7 +5,7 @@ export const APP_MODULES = [
     label: "Recht",
     chipColor: "bg-indigo-400",
     startDescription:
-      "Eingang, Mandanten, Akten und Werkzeuge für die Rechtsberatung.",
+      "Nachrichten, Mandanten, Akten und Werkzeuge für die Rechtsberatung.",
   },
   {
     id: "tax",

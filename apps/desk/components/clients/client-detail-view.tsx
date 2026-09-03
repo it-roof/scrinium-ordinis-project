@@ -17,7 +17,7 @@ import {
 import {
   clientKindLabel,
   formatClientName,
-  formatPersonName,
+  formatPersonListName,
   PERSON_SALUTATIONS,
   type ClientPersonRecord,
   type ClientRecord,
@@ -665,7 +665,7 @@ export function ClientDetailView({
                 >
                   <div className="min-w-0 space-y-1">
                     <p className="font-heading text-lg font-medium tracking-tight">
-                      {formatPersonName(person)}
+                      {formatPersonListName(person)}
                     </p>
                     <p className="text-sm text-muted-foreground">
                       {[

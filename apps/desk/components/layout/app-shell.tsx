@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect } from "react";
 
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import { BrandWordmark } from "@/components/brand/brand-wordmark";
@@ -12,19 +13,19 @@ import {
 } from "@/components/layout/active-area-provider";
 import { AreaSwitcher } from "@/components/layout/area-switcher";
 import { HeaderUtilityNav } from "@/components/layout/header-utility-nav";
-import {
-  AREA_ACCENT_DOT,
-  canvasClassForArea,
-} from "@/lib/area/canvas";
-import { areaBasePath } from "@/lib/area/paths";
+import { canvasClassForArea } from "@/lib/area/canvas";
+import { areaBasePath, parseAreaFromPathname } from "@/lib/area/paths";
+import { DESK_ROLE_LABELS } from "@/lib/area/desk-roles";
 import { getPageMeta, platformNavItem, settingsNavItem, type NavItem } from "@/lib/navigation";
 import {
+  functionIdFromPathname,
   navigationGroupsForArea,
   type AreaFunctionId,
 } from "@/lib/area/functions";
+import { recordFunctionUse } from "@/lib/area/function-usage";
 import type { ActiveArea } from "@/lib/area/active-area";
 import type { AppModuleId } from "@/lib/modules";
-import type { PlatformRole, UserRole } from "@/lib/db/schema";
+import type { DeskRole, PlatformRole, UserRole } from "@/lib/db/schema";
 import { cn } from "@/lib/utils";
 import {
   Sidebar,
@@ -57,9 +58,11 @@ export function AppShell({
 }: {
   children: React.ReactNode;
   user: {
+    id?: string;
     name?: string | null;
     email?: string | null;
     role: UserRole;
+    deskRole?: DeskRole | null;
     platformRole?: PlatformRole | null;
   };
   /** Anzeigename nach Login (Tenant brand_name oder Produktmarke). */
@@ -74,11 +77,33 @@ export function AppShell({
   const page = getPageMeta(pathname);
   const isSuperAdmin = user.platformRole === "super_admin";
 
+  useEffect(() => {
+    if (!user.id || isSuperAdmin) {
+      return;
+    }
+    const area = parseAreaFromPathname(pathname);
+    const functionId = functionIdFromPathname(pathname);
+    if (!area || !functionId) {
+      return;
+    }
+    recordFunctionUse(user.id, area, functionId);
+  }, [isSuperAdmin, pathname, user.id]);
+
   const shell = (
     <TooltipProvider>
-      <SidebarProvider>
+      <SidebarProvider
+        className="sidebar-canvas"
+        style={
+          {
+            // Featured Dashboard (shadcn dashboard-01): 18rem / 3rem
+            "--sidebar-width": "calc(var(--spacing) * 72)",
+            "--header-height": "calc(var(--spacing) * 12)",
+          } as React.CSSProperties
+        }
+      >
         <Sidebar
-          className="sidebar-canvas border-r border-sidebar-border/40 text-sidebar-foreground"
+          variant="inset"
+          className="text-sidebar-foreground"
         >
           <SidebarHeader className="px-4 py-5">
             {isSuperAdmin ? (
@@ -126,6 +151,11 @@ export function AppShell({
               <p className="truncate text-xs text-sidebar-foreground/55">
                 {user.email}
               </p>
+              {user.deskRole ? (
+                <p className="mt-1 truncate text-xs text-sidebar-foreground/70">
+                  {DESK_ROLE_LABELS[user.deskRole]}
+                </p>
+              ) : null}
             </div>
             {!isSuperAdmin ? (
               <SidebarMenu>
@@ -164,7 +194,7 @@ export function AppShell({
         <AreaContentInset
           page={page}
           isSuperAdmin={isSuperAdmin}
-          showAreaSwitcher={!isSuperAdmin && allowedAreas.length > 0}
+          showAreaSwitcher={!isSuperAdmin && allowedAreas.length > 1}
           dbConnected={dbConnected}
         >
           {children}
@@ -202,35 +232,26 @@ function AreaContentInset({
 }) {
   const areaCtx = useOptionalActiveArea();
   const activeArea = areaCtx?.activeArea ?? "all";
-  const accentDot = isSuperAdmin
-    ? page.href.startsWith("/platform")
-      ? "bg-amber-400"
-      : "bg-violet-400"
-    : AREA_ACCENT_DOT[activeArea];
-  const showAccentDot = !page.href.startsWith("/einstellungen");
 
   return (
     <SidebarInset
       className={cn(
         "transition-[background-image] duration-300",
+        "md:m-2 md:ml-0 md:overflow-hidden md:rounded-[0.75rem] md:shadow-sm",
+        "md:peer-data-[state=collapsed]:ml-2",
         isSuperAdmin ? "content-canvas" : canvasClassForArea(activeArea)
       )}
     >
-      <header className="sticky top-0 z-20 grid h-16 shrink-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 border-b border-border/50 bg-background/70 px-4 backdrop-blur-md md:px-8">
-        <div className="flex min-w-0 items-center gap-3">
-          <SidebarTrigger className="text-muted-foreground" />
+      <header className="sticky top-0 z-20 grid h-(--header-height) shrink-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 border-b border-border/50 bg-background/95 px-4 md:rounded-t-[0.75rem] md:px-6">
+        <div className="flex min-w-0 items-center gap-2">
+          <SidebarTrigger
+            className="size-8 shrink-0 text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+            aria-label="Seitenleiste ein- oder ausklappen"
+          />
           <Separator
             orientation="vertical"
-            className="hidden h-4 sm:block"
+            className="mx-1 hidden h-5! self-center data-vertical:h-5! data-vertical:self-center sm:block"
           />
-          {showAccentDot ? (
-            <span
-              className={cn(
-                "hidden size-2 shrink-0 rounded-full sm:block",
-                accentDot
-              )}
-            />
-          ) : null}
           <div className="min-w-0">
             <p className="truncate font-heading text-sm font-medium tracking-tight">
               {page.areaHref && page.areaLabel && page.pageLabel ? (

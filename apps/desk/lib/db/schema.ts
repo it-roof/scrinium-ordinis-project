@@ -1,5 +1,6 @@
 import {
   type AnyPgColumn,
+  date,
   index,
   integer,
   jsonb,
@@ -26,6 +27,12 @@ export const moduleEnum = pgEnum("module", [
 
 export const roleEnum = pgEnum("user_role", ["admin", "employee"]);
 
+/** Kanzlei-Position (Schreibtisch / Funktionen) — getrennt von admin/employee. */
+export const deskRoleEnum = pgEnum("desk_role", [
+  "rechtsanwalt",
+  "sekretariat",
+]);
+
 /** Mandant: Firma oder Privatperson. */
 export const clientKindEnum = pgEnum("client_kind", ["company", "person"]);
 
@@ -38,6 +45,23 @@ export const letterStatusEnum = pgEnum("letter_status", [
   "zur_pruefung",
   "freigegeben",
   "versendet",
+]);
+
+/** Priorität interner Mitarbeiter-Nachrichten. */
+export const staffMessagePriorityEnum = pgEnum("staff_message_priority", [
+  "sofort",
+  "heute",
+  "diese_woche",
+  "keine",
+  "andere",
+]);
+
+/** Auftragstatus: offen oder erledigt. */
+export const staffMessageStatusEnum = pgEnum("staff_message_status", [
+  "offen",
+  "in_bearbeitung",
+  "erledigt",
+  "zurueckgestellt",
 ]);
 
 /** Eine Kanzlei = ein Tenant auf der Multi-Tenant-Plattform. */
@@ -65,9 +89,18 @@ export const users = pgTable("users", {
     .notNull()
     .references(() => tenants.id, { onDelete: "restrict" }),
   email: text("email").notNull().unique(),
+  /** Anzeigename (Auth.js / Session) — immer aus firstName + lastName ableiten. */
   name: text("name").notNull(),
+  firstName: text("first_name").notNull().default(""),
+  lastName: text("last_name").notNull().default(""),
   passwordHash: text("password_hash").notNull(),
   role: roleEnum("role").notNull().default("employee"),
+  /**
+   * Position in der Kanzlei (Rechtsanwalt / Sekretariat).
+   * Steuert Schreibtisch und Funktionszugriff. null = noch nicht gesetzt
+   * (alle Funktionen der freigeschalteten Bereiche, sofern keine Allowlist).
+   */
+  deskRole: deskRoleEnum("desk_role"),
   platformRole: platformRoleEnum("platform_role"),
   module: moduleEnum("module"),
   /**
@@ -82,6 +115,8 @@ export const users = pgTable("users", {
   allowedFunctions: jsonb("allowed_functions").$type<string[] | null>(),
   emailVerified: timestamp("email_verified", { mode: "date" }),
   image: text("image"),
+  /** gesetzt = Benutzer deaktiviert (kein Login, nicht in Empfängerlisten). */
+  disabledAt: timestamp("disabled_at", { withTimezone: true, mode: "string" }),
   createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
     .notNull()
     .defaultNow(),
@@ -605,9 +640,102 @@ export const letters = pgTable(
   })
 );
 
+/**
+ * Interne Kanzlei-Aufgabe an eine Kollegin / einen Kollegen.
+ * UI-Bezeichnung: „Nachricht“ / „Nachricht an Mitarbeiter“.
+ * Domain: immer Aufgabe (Status, Priorität, Fälligkeit) — keine separate Message-Entität.
+ */
+export const staffMessages = pgTable(
+  "staff_messages",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    /** Bereich, aus dem die Aufgabe angelegt wurde. */
+    module: moduleEnum("module").notNull().default("general"),
+    senderId: uuid("sender_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    recipientId: uuid("recipient_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    /** Preset-Key oder `custom`. */
+    topicKey: text("topic_key").notNull(),
+    /** Anzeigethema (Preset-Label oder Freitext). */
+    topic: text("topic").notNull(),
+    priority: staffMessagePriorityEnum("priority").notNull().default("keine"),
+    /** Optional: bis wann die Aufgabe erledigt sein soll. */
+    dueDate: date("due_date", { mode: "string" }),
+    status: staffMessageStatusEnum("status").notNull().default("offen"),
+    body: text("body").notNull(),
+    readAt: timestamp("read_at", { withTimezone: true, mode: "string" }),
+    completedAt: timestamp("completed_at", { withTimezone: true, mode: "string" }),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    tenantIdIdx: index("staff_messages_tenant_id_idx").on(table.tenantId),
+    recipientIdx: index("staff_messages_recipient_idx").on(table.recipientId),
+    senderIdx: index("staff_messages_sender_idx").on(table.senderId),
+    statusIdx: index("staff_messages_status_idx").on(table.status),
+  })
+);
+
+/** Domain-Alias: Tabelle speichert Aufgaben (UI: Nachrichten). */
+export const staffTasks = staffMessages;
+
+export const staffMessageFiles = pgTable("staff_message_files", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id")
+    .notNull()
+    .references(() => tenants.id, { onDelete: "cascade" }),
+  messageId: uuid("message_id")
+    .notNull()
+    .references(() => staffMessages.id, { onDelete: "cascade" }),
+  storageKey: text("storage_key").notNull().unique(),
+  filename: text("filename").notNull(),
+  mimeType: text("mime_type").notNull(),
+  sizeBytes: integer("size_bytes").notNull(),
+  uploadedBy: uuid("uploaded_by")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+    .notNull()
+    .defaultNow(),
+});
+
+export const staffMessageReplies = pgTable(
+  "staff_message_replies",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    messageId: uuid("message_id")
+      .notNull()
+      .references(() => staffMessages.id, { onDelete: "cascade" }),
+    authorId: uuid("author_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    body: text("body").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    tenantIdIdx: index("staff_message_replies_tenant_id_idx").on(table.tenantId),
+    messageIdIdx: index("staff_message_replies_message_id_idx").on(
+      table.messageId
+    ),
+  })
+);
+
 export type Tenant = typeof tenants.$inferSelect;
 export type User = typeof users.$inferSelect;
 export type UserRole = (typeof roleEnum.enumValues)[number];
+export type DeskRole = (typeof deskRoleEnum.enumValues)[number];
 export type PlatformRole = (typeof platformRoleEnum.enumValues)[number];
 export type ContentModule = (typeof moduleEnum.enumValues)[number];
 export type UserSmtpSettings = typeof userSmtpSettings.$inferSelect;
@@ -616,3 +744,10 @@ export type LetterStatus = (typeof letterStatusEnum.enumValues)[number];
 export type Client = typeof clients.$inferSelect;
 export type ClientPerson = typeof clientPersons.$inferSelect;
 export type Matter = typeof matters.$inferSelect;
+export type StaffMessage = typeof staffMessages.$inferSelect;
+export type StaffMessageFile = typeof staffMessageFiles.$inferSelect;
+export type StaffMessageReply = typeof staffMessageReplies.$inferSelect;
+export type StaffMessagePriority =
+  (typeof staffMessagePriorityEnum.enumValues)[number];
+export type StaffMessageStatus =
+  (typeof staffMessageStatusEnum.enumValues)[number];

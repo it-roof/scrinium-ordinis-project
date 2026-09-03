@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   ArrowRightIcon,
@@ -10,11 +11,12 @@ import {
   FileTextIcon,
   FolderOpenIcon,
   InboxIcon,
+  ListIcon,
   MailIcon,
+  MessageSquareIcon,
   PrinterIcon,
   ScaleIcon,
   SparklesIcon,
-  WrenchIcon,
   type LucideIcon,
 } from "lucide-react";
 
@@ -25,14 +27,25 @@ import {
   FUNCTION_LABELS,
   filterFunctionsByAllowlist,
   getFunctionsForArea,
+  COMMUNICATION_FUNCTION_IDS,
   MANAGEMENT_FUNCTION_IDS,
   PINNED_FUNCTION_IDS,
   TOOL_FUNCTION_IDS,
   type AreaFunctionId,
 } from "@/lib/area/functions";
+import {
+  buildQuickViewFunctionIds,
+  getFunctionUsageCounts,
+} from "@/lib/area/function-usage";
 import { functionHref } from "@/lib/area/paths";
 import { APP_MODULES, type AppModuleId } from "@/lib/modules";
 import { cn } from "@/lib/utils";
+
+type DeskView = "quick" | "all";
+
+function deskViewStorageKey(area: AppModuleId) {
+  return `desk-start-view:${area}`;
+}
 
 const featureMeta: Record<
   AreaFunctionId,
@@ -46,12 +59,20 @@ const featureMeta: Record<
   }
 > = {
   inbox: {
-    description: "Zugewiesene Schreiben, Prüfungen und offene Aufgaben.",
+    description: "Nachrichten und Aufgaben abarbeiten.",
     icon: InboxIcon,
     iconWrap: "bg-amber-100 text-amber-800 ring-amber-200/70",
     linkClass: "text-amber-700",
     cardClass:
       "hover:border-amber-200/80 hover:bg-gradient-to-br hover:from-amber-50/50 hover:to-white",
+  },
+  "inbox-overview": {
+    description: "Alle Nachrichten und Aufgaben im Überblick.",
+    icon: ListIcon,
+    iconWrap: "bg-amber-50 text-amber-800 ring-amber-200/60",
+    linkClass: "text-amber-700",
+    cardClass:
+      "hover:border-amber-200/70 hover:bg-gradient-to-br hover:from-amber-50/40 hover:to-white",
   },
   clients: {
     description: "Firmen und Privatpersonen mit Akten führen.",
@@ -151,6 +172,15 @@ const featureMeta: Record<
     cardClass:
       "hover:border-rose-200/80 hover:bg-gradient-to-br hover:from-rose-50/50 hover:to-white",
   },
+  "staff-messages": {
+    description:
+      "Nachricht hinterlassen, Aufgabe erteilen oder ein Dokument senden.",
+    icon: MessageSquareIcon,
+    iconWrap: "bg-blue-100 text-blue-800 ring-blue-200/70",
+    linkClass: "text-blue-700",
+    cardClass:
+      "hover:border-blue-200/80 hover:bg-gradient-to-br hover:from-blue-50/50 hover:to-white",
+  },
 };
 
 function FeatureCard({
@@ -202,15 +232,13 @@ function FeatureSection({
   description,
   area,
   functionIds,
-  showPlaceholder = false,
 }: {
   title: string;
   description: string;
   area: AppModuleId;
   functionIds: AreaFunctionId[];
-  showPlaceholder?: boolean;
 }) {
-  if (functionIds.length === 0 && !showPlaceholder) {
+  if (functionIds.length === 0) {
     return null;
   }
 
@@ -227,28 +255,6 @@ function FeatureSection({
         {functionIds.map((functionId) => (
           <FeatureCard key={functionId} area={area} functionId={functionId} />
         ))}
-
-        {showPlaceholder ? (
-          <div
-            className="feature-card border-dashed bg-muted/20 p-6 opacity-80"
-            aria-disabled
-          >
-            <div className="flex size-11 items-center justify-center rounded-none bg-slate-100 text-slate-500 ring-1 ring-slate-200/70">
-              <WrenchIcon className="size-5" />
-            </div>
-            <div className="mt-5 space-y-2">
-              <h3 className="font-heading text-lg font-medium tracking-tight text-muted-foreground">
-                Weitere Funktionen
-              </h3>
-              <p className="text-sm leading-relaxed text-muted-foreground">
-                Weitere Werkzeuge für diesen Bereich sind in Entwicklung.
-              </p>
-            </div>
-            <p className="mt-6 text-sm font-medium text-muted-foreground/70">
-              Demnächst
-            </p>
-          </div>
-        ) : null}
       </div>
     </section>
   );
@@ -259,66 +265,124 @@ export function AreaStartView({
   area,
   inboxCount = 0,
   allowedFunctions = null,
+  userId,
 }: {
   brandLabel: string;
   area: AppModuleId;
   inboxCount?: number;
   allowedFunctions?: AreaFunctionId[] | null;
+  userId: string;
 }) {
+  const [view, setView] = useState<DeskView>("quick");
+  const [usage, setUsage] = useState<Record<string, number>>({});
   const module = APP_MODULES.find((entry) => entry.id === area);
   const available = new Set(
     filterFunctionsByAllowlist(getFunctionsForArea(area), allowedFunctions)
   );
   const pinnedIds = PINNED_FUNCTION_IDS.filter((id) => available.has(id));
   const toolIds = TOOL_FUNCTION_IDS.filter((id) => available.has(id));
+  const communicationIds = COMMUNICATION_FUNCTION_IDS.filter((id) =>
+    available.has(id)
+  );
   const managementIds = MANAGEMENT_FUNCTION_IDS.filter((id) =>
     available.has(id)
   );
+  const quickIds = buildQuickViewFunctionIds(available, usage);
+
+  useEffect(() => {
+    setUsage(getFunctionUsageCounts(userId, area));
+    const stored = window.localStorage.getItem(deskViewStorageKey(area));
+    if (stored === "quick" || stored === "all") {
+      setView(stored);
+    }
+  }, [area, userId]);
+
+  function changeView(next: DeskView) {
+    setView(next);
+    window.localStorage.setItem(deskViewStorageKey(area), next);
+  }
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-12">
       <PageHeader
         title={module?.label ?? getActiveAreaLabel(area)}
         description={
-          module?.startDescription ?? "Funktionen für diesen Fach-Bereich."
+          view === "quick"
+            ? "Die wichtigsten Wege für den Alltag."
+            : (module?.startDescription ?? "Funktionen für diesen Fach-Bereich.")
         }
       >
-        {pinnedIds.map((functionId) => {
-          const meta = featureMeta[functionId];
-          const label =
-            functionId === "inbox" && inboxCount > 0
-              ? `${FUNCTION_LABELS[functionId]} (${inboxCount})`
-              : FUNCTION_LABELS[functionId];
-          return (
-            <Button
-              key={functionId}
-              asChild
-              variant="outline"
-              className="h-11 rounded-none px-4"
-            >
-              <Link href={functionHref(area, functionId)}>
-                <meta.icon data-icon="inline-start" />
-                {label}
-              </Link>
-            </Button>
-          );
-        })}
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            variant={view === "quick" ? "default" : "outline"}
+            className="h-11 rounded-none px-4"
+            onClick={() => changeView("quick")}
+          >
+            Schnell-Ansicht
+          </Button>
+          <Button
+            type="button"
+            variant={view === "all" ? "default" : "outline"}
+            className="h-11 rounded-none px-4"
+            onClick={() => changeView("all")}
+          >
+            Alles-Ansicht
+          </Button>
+          {pinnedIds.map((functionId) => {
+            const meta = featureMeta[functionId];
+            const label =
+              functionId === "inbox" && inboxCount > 0
+                ? `${FUNCTION_LABELS[functionId]} (${inboxCount})`
+                : FUNCTION_LABELS[functionId];
+            return (
+              <Button
+                key={functionId}
+                asChild
+                variant="outline"
+                className="h-11 rounded-none px-4"
+              >
+                <Link href={functionHref(area, functionId)}>
+                  <meta.icon data-icon="inline-start" />
+                  {label}
+                </Link>
+              </Button>
+            );
+          })}
+        </div>
       </PageHeader>
 
-      <FeatureSection
-        title="Funktionen"
-        description="Werkzeuge dieses Bereichs"
-        area={area}
-        functionIds={toolIds}
-        showPlaceholder
-      />
+      {view === "quick" ? (
+        <FeatureSection
+          title="Schnell-Ansicht"
+          description="Kommunikation und die sechs meistgenutzten Funktionen"
+          area={area}
+          functionIds={quickIds}
+        />
+      ) : (
+        <>
+          <FeatureSection
+            title="Funktionen"
+            description="Werkzeuge dieses Bereichs"
+            area={area}
+            functionIds={toolIds}
+          />
 
-      <FeatureSection
-        title="Verwaltung"
-        description="Mandanten und Akten"
-        area={area}
-        functionIds={managementIds}
-      />
+          <FeatureSection
+            title="Kommunikation"
+            description="Nachrichten und Aufträge an Mitarbeiter"
+            area={area}
+            functionIds={communicationIds}
+          />
+
+          <FeatureSection
+            title="Verwaltung"
+            description="Mandanten und Akten"
+            area={area}
+            functionIds={managementIds}
+          />
+        </>
+      )}
 
       <span className="sr-only">{brandLabel}</span>
     </div>
