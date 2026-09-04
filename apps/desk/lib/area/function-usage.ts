@@ -99,7 +99,6 @@ export const SECRETARY_QUICK_VIEW_FALLBACK_IDS: AreaFunctionId[] = [
   "matters",
   "text-blocks",
   "letters",
-  "inbox-overview",
 ];
 
 /**
@@ -138,7 +137,7 @@ export function buildLawyerQuickViewFunctionIds(
   return LAWYER_QUICK_VIEW_FUNCTION_IDS.filter((id) => available.has(id));
 }
 
-/** Sekretariat: genau 6 Karten aus allen verfügbaren Funktionen. */
+/** Sekretariat: genau 6 Karten aus allen verfügbaren Funktionen (ohne Verlauf). */
 export function buildSecretaryQuickViewFunctionIds(
   available: ReadonlySet<AreaFunctionId>,
   usage: Record<string, number>
@@ -146,7 +145,9 @@ export function buildSecretaryQuickViewFunctionIds(
   const preferred = SECRETARY_QUICK_VIEW_FALLBACK_IDS.filter((id) =>
     available.has(id)
   );
-  const rest = [...available].filter((id) => !preferred.includes(id));
+  const rest = [...available].filter(
+    (id) => !preferred.includes(id) && id !== "inbox-overview"
+  );
   const catalog = [...preferred, ...rest];
   return [...catalog]
     .sort((a, b) => compareByUsage(a, b, usage, catalog))

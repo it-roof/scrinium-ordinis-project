@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 
 import { PageHeader } from "@/components/layout/page-header";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getActiveAreaLabel } from "@/lib/area/active-area";
 import type { DeskRoleId } from "@/lib/area/desk-roles";
@@ -48,9 +49,33 @@ import { functionHref } from "@/lib/area/paths";
 import { APP_MODULES, type AppModuleId } from "@/lib/modules";
 import type { StaffDashboardLists, StaffDashboardStats, StaffDashboardPreviewItem } from "@/lib/staff-messages/storage";
 import { priorityLabel } from "@/lib/staff-messages/types";
+import type { StaffMessagePriority } from "@/lib/db/schema";
 import { cn } from "@/lib/utils";
 
 type DeskView = "quick" | "all";
+
+function priorityBadgeClass(priority: StaffMessagePriority): string {
+  switch (priority) {
+    case "sofort":
+      return "border-rose-500/40 bg-rose-500/10 text-rose-950 dark:text-rose-100";
+    case "heute":
+      return "border-amber-500/40 bg-amber-500/10 text-amber-950 dark:text-amber-100";
+    case "diese_woche":
+      return "border-sky-500/40 bg-sky-500/10 text-sky-950 dark:text-sky-100";
+    case "andere":
+      return "border-violet-500/40 bg-violet-500/10 text-violet-950 dark:text-violet-100";
+    default:
+      return "border-border/70 bg-muted/50 text-foreground";
+  }
+}
+
+function bodySnippet(body: string): string {
+  const compact = body.replace(/\s+/g, " ").trim();
+  if (!compact) {
+    return "Keine Nachricht";
+  }
+  return compact.length > 90 ? `${compact.slice(0, 90)}…` : compact;
+}
 
 function deskViewStorageKey(area: AppModuleId) {
   return `desk-start-view:${area}`;
@@ -474,11 +499,25 @@ function DashboardListCard({
                 className="flex items-start justify-between gap-3 py-3 transition-colors hover:bg-muted/30"
               >
                 <div className="min-w-0 space-y-0.5">
-                  <p className="truncate text-sm font-medium text-foreground">
-                    {item.topic}
+                  <div className="flex min-w-0 items-center gap-2">
+                    <Badge
+                      variant="outline"
+                      className={cn(
+                        "shrink-0 rounded-none px-1.5 py-0 text-[0.65rem]",
+                        priorityBadgeClass(item.priority)
+                      )}
+                    >
+                      {priorityLabel(item.priority)}
+                    </Badge>
+                    <p className="truncate text-sm font-medium text-foreground">
+                      {item.topic}
+                    </p>
+                  </div>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {bodySnippet(item.body)}
                   </p>
                   <p className="truncate text-xs text-muted-foreground">
-                    {item.senderName} · {priorityLabel(item.priority)}
+                    {item.senderName}
                   </p>
                 </div>
                 <ArrowRightIcon className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
@@ -524,6 +563,13 @@ export function AreaStartView({
   const communicationIds = COMMUNICATION_FUNCTION_IDS.filter((id) =>
     available.has(id)
   );
+  /** In „Alle Funktionen“: Verlauf sichtbar, nicht in Sidebar/Schnellzugriff. */
+  const lawyerKommunikationIds = [
+    ...communicationIds,
+    ...(available.has("inbox-overview")
+      ? (["inbox-overview"] as const)
+      : []),
+  ];
   const managementIds = MANAGEMENT_FUNCTION_IDS.filter((id) =>
     available.has(id)
   );
@@ -645,7 +691,7 @@ export function AreaStartView({
               title="Kommunikation"
               description="Nachrichten und Aufträge an Mitarbeiter"
               area={area}
-              functionIds={communicationIds}
+              functionIds={lawyerKommunikationIds}
             />
           )}
 

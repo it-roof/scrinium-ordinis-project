@@ -260,10 +260,7 @@ export const NAV_HIDDEN_FUNCTION_IDS: AreaFunctionId[] = [
 ];
 
 /** Oben separat, ohne Gruppenlabel. */
-export const PINNED_FUNCTION_IDS: AreaFunctionId[] = [
-  "inbox",
-  "inbox-overview",
-];
+export const PINNED_FUNCTION_IDS: AreaFunctionId[] = ["inbox"];
 
 export type NavGroup = {
   /** Leer = ohne Gruppenüberschrift (z. B. Eingang ganz oben). */
@@ -273,6 +270,8 @@ export type NavGroup = {
 
 /** Sidebar-Labels, die vom allgemeinen Funktionsnamen abweichen. */
 const SIDEBAR_FUNCTION_LABELS: Partial<Record<AreaFunctionId, string>> = {
+  inbox: "Nachrichten",
+  "inbox-overview": "Verlauf",
   "staff-messages": "Nachricht senden",
 };
 
@@ -312,7 +311,6 @@ export function navigationGroupsForArea(
     filterFunctionsByAllowlist(getFunctionsForArea(area), allowedFunctions)
   );
   const isLawyer = deskRole === "rechtsanwalt";
-  const isSecretary = deskRole === "sekretariat";
   const startItem: NavItem = {
     ...navigation[0],
     href: areaBasePath(area),
@@ -324,8 +322,8 @@ export function navigationGroupsForArea(
     ...PINNED_FUNCTION_IDS.filter((id) => available.has(id)).map((id) =>
       navItemForFunction(area, id)
     ),
-    // Sekretariat: Nachricht an Mitarbeiter direkt unter den Nachrichten-Einträgen.
-    ...(isSecretary && available.has("staff-messages")
+    // Direkt unter Nachrichten (Rechtsanwalt + Sekretariat).
+    ...(available.has("staff-messages")
       ? [navItemForFunction(area, "staff-messages")]
       : []),
   ];
@@ -347,22 +345,13 @@ export function navigationGroupsForArea(
     return true;
   }).map((id) => navItemForFunction(area, id));
 
-  const communicationItems = isSecretary
-    ? []
-    : COMMUNICATION_FUNCTION_IDS.filter((id) => available.has(id)).map((id) =>
-        navItemForFunction(area, id)
-      );
-
   const groups: NavGroup[] = [];
-  groups.push({ label: "", items: [startItem] });
-  if (nachrichtenItems.length > 0) {
-    groups.push({ label: "", items: nachrichtenItems });
-  }
+  groups.push({
+    label: "",
+    items: [startItem, ...nachrichtenItems],
+  });
   if (toolItems.length > 0) {
     groups.push({ label: "Funktionen", items: toolItems });
-  }
-  if (communicationItems.length > 0) {
-    groups.push({ label: "Kommunikation", items: communicationItems });
   }
   if (managementItems.length > 0) {
     groups.push({ label: "Verwaltung", items: managementItems });

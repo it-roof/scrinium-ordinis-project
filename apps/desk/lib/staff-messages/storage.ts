@@ -381,6 +381,7 @@ export type StaffDashboardStats = {
 export type StaffDashboardPreviewItem = {
   id: string;
   topic: string;
+  body: string;
   priority: StaffMessagePriority;
   dueDate: string | null;
   senderName: string;
@@ -404,6 +405,7 @@ function startOfWorkWeekIso(now = new Date()): string {
 function toDashboardPreview(row: {
   id: string;
   topic: string;
+  body: string;
   priority: StaffMessagePriority;
   dueDate: string | null;
   createdAt: string;
@@ -412,6 +414,7 @@ function toDashboardPreview(row: {
   return {
     id: row.id,
     topic: row.topic,
+    body: row.body,
     priority: row.priority,
     dueDate: row.dueDate,
     createdAt: row.createdAt,
@@ -489,6 +492,7 @@ export async function getStaffDashboardLists(
       .select({
         id: staffMessages.id,
         topic: staffMessages.topic,
+        body: staffMessages.body,
         priority: staffMessages.priority,
         dueDate: staffMessages.dueDate,
         createdAt: staffMessages.createdAt,
