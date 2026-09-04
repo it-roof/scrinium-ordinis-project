@@ -9,7 +9,7 @@ type RouteContext = {
   params: Promise<{ id: string }>;
 };
 
-export async function GET(_request: Request, context: RouteContext) {
+export async function GET(request: Request, context: RouteContext) {
   const user = await getSessionUser();
 
   if (!user) {
@@ -32,9 +32,12 @@ export async function GET(_request: Request, context: RouteContext) {
     return NextResponse.json({ error: "Datei nicht gefunden." }, { status: 404 });
   }
 
+  const forceDownload =
+    new URL(request.url).searchParams.get("download") === "1";
+
   try {
     const signedUrl = await getObjectSignedUrl(file.storageKey, 300, {
-      downloadFilename: file.filename,
+      downloadFilename: forceDownload ? file.filename : undefined,
     });
     return NextResponse.redirect(signedUrl);
   } catch {

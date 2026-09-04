@@ -158,7 +158,7 @@ function parseInput(formData: FormData): {
 
   const priority = resolveStaffMessagePriority(priorityRaw);
   if (!priority) {
-    return { error: "Bitte eine Priorität eingeben oder auswählen." };
+    return { error: "Ungültige Priorität." };
   }
 
   if (dueDateRaw && !resolveStaffMessageDueDate(dueDateRaw)) {

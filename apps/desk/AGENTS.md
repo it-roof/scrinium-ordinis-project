@@ -16,6 +16,7 @@ Kein Messenger — Telefon für Absprachen, Nachrichten für Aufgaben und Ergebn
 - Empfänger setzt **Status** frei: Offen · In Bearbeitung · Erledigt (+ optional Kommentar)
 - **Eingang** (`/…/eingang`): Nachrichten an mich
 - **Gesendet** (`/…/gesendet`): von mir gesendet — Status und Kommentare lesen
+- Sidebar **Nachrichten**: Nachricht schreiben · Eingang · Gesendet
 - Rückfrage / neue Richtung = **neue** Nachricht
 - Verfassen: `nachrichten-an-mitarbeiter` · Modul: [`lib/staff-messages/`](lib/staff-messages/)
 

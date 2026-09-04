@@ -185,7 +185,7 @@ export function resolveStaffMessagePriority(
 ): StaffMessagePriority | null {
   const trimmed = priorityRaw.trim();
   if (!trimmed) {
-    return null;
+    return "keine";
   }
 
   const byValue = STAFF_MESSAGE_PRIORITIES.find(

@@ -13,6 +13,7 @@ import {
   ArrowLeftIcon,
   ArrowUpDownIcon,
   CheckIcon,
+  DownloadIcon,
   InboxIcon,
   ListFilterIcon,
   MicIcon,
@@ -36,6 +37,11 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -1459,6 +1465,22 @@ function CommentDictationPreview({
   );
 }
 
+function isPreviewableImage(mimeType: string): boolean {
+  return mimeType.startsWith("image/");
+}
+
+function isPreviewablePdf(mimeType: string, filename: string): boolean {
+  return (
+    mimeType === "application/pdf" ||
+    filename.toLowerCase().endsWith(".pdf")
+  );
+}
+
+function staffMessageFileUrl(fileId: string, download = false): string {
+  const base = `/api/staff-messages/files/${fileId}`;
+  return download ? `${base}?download=1` : base;
+}
+
 function ThreadBubble({
   own,
   authorName,
@@ -1472,6 +1494,10 @@ function ThreadBubble({
   body: string;
   files?: StaffMessageRecord["files"];
 }) {
+  const [previewFile, setPreviewFile] = useState<
+    StaffMessageRecord["files"][number] | null
+  >(null);
+
   return (
     <div className={cn("flex", own ? "justify-end" : "justify-start")}>
       <div
@@ -1492,24 +1518,135 @@ function ThreadBubble({
           {body.trim() || "—"}
         </p>
         {files.length > 0 ? (
-          <ul className="space-y-1 border-t border-border/50 pt-2">
+          <ul className="space-y-1.5 border-t border-border/50 pt-2">
             {files.map((file) => (
-              <li key={file.id}>
-                <a
-                  href={`/api/staff-messages/files/${file.id}`}
-                  className="inline-flex items-center gap-1.5 text-xs text-foreground/80 hover:underline"
+              <li
+                key={file.id}
+                className="flex items-center gap-1.5"
+              >
+                <button
+                  type="button"
+                  onClick={() => setPreviewFile(file)}
+                  className="min-w-0 flex-1 truncate text-left text-xs font-medium text-foreground/90 transition-colors hover:text-foreground hover:underline"
                 >
-                  <PaperclipIcon className="size-3 shrink-0" />
-                  {file.filename}
-                  <span className="text-muted-foreground">
-                    ({formatFileSize(file.sizeBytes)})
+                  <span className="inline-flex max-w-full items-center gap-1.5">
+                    <PaperclipIcon className="size-3 shrink-0" />
+                    <span className="truncate">{file.filename}</span>
+                    <span className="shrink-0 font-normal text-muted-foreground">
+                      ({formatFileSize(file.sizeBytes)})
+                    </span>
                   </span>
-                </a>
+                </button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="size-7 shrink-0 rounded-none"
+                  asChild
+                >
+                  <a
+                    href={staffMessageFileUrl(file.id, true)}
+                    download={file.filename}
+                    aria-label={`${file.filename} herunterladen`}
+                    title="Herunterladen"
+                  >
+                    <DownloadIcon className="size-3.5" />
+                  </a>
+                </Button>
               </li>
             ))}
           </ul>
         ) : null}
       </div>
+
+      <Dialog
+        open={previewFile != null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setPreviewFile(null);
+          }
+        }}
+      >
+        <DialogContent
+          showCloseButton={false}
+          className={cn(
+            "fixed inset-0 top-0 left-0 z-50 flex h-dvh max-h-dvh w-screen max-w-none",
+            "translate-x-0 translate-y-0 flex-col gap-0 rounded-none border-0 bg-background p-0",
+            "sm:max-w-none data-open:zoom-in-100 data-closed:zoom-out-100"
+          )}
+        >
+          {previewFile ? (
+            <>
+              <div className="flex shrink-0 items-center gap-3 border-b border-border/60 px-4 py-3">
+                <DialogTitle className="min-w-0 flex-1 truncate font-heading text-base font-medium">
+                  {previewFile.filename}
+                </DialogTitle>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="shrink-0 rounded-none"
+                  asChild
+                >
+                  <a
+                    href={staffMessageFileUrl(previewFile.id, true)}
+                    download={previewFile.filename}
+                  >
+                    <DownloadIcon data-icon="inline-start" />
+                    Download
+                  </a>
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="size-9 shrink-0 rounded-none"
+                  onClick={() => setPreviewFile(null)}
+                  aria-label="Vorschau schließen"
+                >
+                  <XIcon className="size-5" />
+                </Button>
+              </div>
+              <div className="min-h-0 flex-1 overflow-auto bg-muted/20">
+                {isPreviewableImage(previewFile.mimeType) ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- signed/redirect URL
+                  <img
+                    src={staffMessageFileUrl(previewFile.id)}
+                    alt={previewFile.filename}
+                    className="mx-auto max-h-full max-w-full object-contain p-4"
+                  />
+                ) : isPreviewablePdf(
+                    previewFile.mimeType,
+                    previewFile.filename
+                  ) ? (
+                  <iframe
+                    title={previewFile.filename}
+                    src={staffMessageFileUrl(previewFile.id)}
+                    className="h-full min-h-[70dvh] w-full border-0 bg-background"
+                  />
+                ) : (
+                  <div className="flex h-full min-h-[50dvh] flex-col items-center justify-center gap-4 px-6 text-center">
+                    <PaperclipIcon className="size-10 text-muted-foreground" />
+                    <p className="max-w-md text-sm text-muted-foreground">
+                      Für diese Datei gibt es keine Vorschau. Du kannst sie
+                      herunterladen.
+                    </p>
+                    <Button type="button" className="rounded-none" asChild>
+                      <a
+                        href={staffMessageFileUrl(previewFile.id, true)}
+                        download={previewFile.filename}
+                      >
+                        <DownloadIcon data-icon="inline-start" />
+                        Herunterladen
+                      </a>
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </>
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

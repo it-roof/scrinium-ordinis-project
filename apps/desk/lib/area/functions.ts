@@ -267,8 +267,12 @@ export const NAV_HIDDEN_FUNCTION_IDS: AreaFunctionId[] = [
   "letters",
 ];
 
-/** Oben separat, ohne Gruppenlabel. */
-export const PINNED_FUNCTION_IDS: AreaFunctionId[] = ["inbox", "inbox-sent"];
+/** Oben unter „Nachrichten“: Schreiben, Eingang, Gesendet. */
+export const PINNED_FUNCTION_IDS: AreaFunctionId[] = [
+  "staff-messages",
+  "inbox",
+  "inbox-sent",
+];
 
 export type NavGroup = {
   /** Leer = ohne Gruppenüberschrift (z. B. Eingang ganz oben). */
@@ -278,7 +282,7 @@ export type NavGroup = {
 
 /** Sidebar-Labels, die vom allgemeinen Funktionsnamen abweichen. */
 const SIDEBAR_FUNCTION_LABELS: Partial<Record<AreaFunctionId, string>> = {
-  "staff-messages": "Nachricht senden",
+  "staff-messages": "Nachricht schreiben",
 };
 
 function navItemForFunction(

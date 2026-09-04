@@ -567,7 +567,8 @@ export function AreaStartView({
       available.has(id) &&
       id !== "inbox" &&
       id !== "inbox-sent" &&
-      id !== "inbox-overview"
+      id !== "inbox-overview" &&
+      id !== "staff-messages"
   );
   const toolIds = TOOL_FUNCTION_IDS.filter((id) => available.has(id));
   const communicationIds = COMMUNICATION_FUNCTION_IDS.filter((id) =>
