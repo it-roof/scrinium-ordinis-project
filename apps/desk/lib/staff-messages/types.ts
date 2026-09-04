@@ -5,11 +5,8 @@ import type {
 } from "@/lib/db/schema";
 
 /**
- * Domain: interne Kanzlei-**Aufgabe** (Empfänger, Status, Priorität, Fälligkeit).
- * UI: „Nachricht“ / „Nachrichten“ — keine zweite Entität.
- *
- * Historische Identifier `StaffMessage*` bleiben als Alias bestehen
- * (Tabelle `staff_messages`); neuer Code bevorzugt `StaffTask*`.
+ * Domain: interne Kanzlei-**Nachricht** = eigenständige Aufgabe/Mitteilung (V1).
+ * Kein Messenger: Status + optionaler Kommentar beim Empfänger; Rückfrage = neue Nachricht.
  */
 
 export type StaffTaskPriority = StaffMessagePriority;
@@ -48,27 +45,31 @@ export const STAFF_MESSAGE_PRIORITIES: {
   { value: "andere", label: "Andere" },
 ];
 
+/** V1-Compose: ohne Legacy „Andere“. */
+export const STAFF_MESSAGE_COMPOSE_PRIORITIES = STAFF_MESSAGE_PRIORITIES.filter(
+  (entry) => entry.value !== "andere"
+);
+
 export const STAFF_MESSAGE_STATUSES: {
   value: StaffMessageStatus;
   label: string;
 }[] = [
   { value: "offen", label: "Offen" },
-  { value: "spaeter", label: "Später" },
+  { value: "in_bearbeitung", label: "In Bearbeitung" },
   { value: "erledigt", label: "Erledigt" },
-  { value: "entfaellt", label: "Entfällt" },
 ];
 
-/** Im Eingang sichtbar (ohne Entfällt — das nur im Verlauf). */
+/** Im Eingang / Gesendet sichtbar. */
 export const STAFF_MESSAGE_INBOX_STATUSES: StaffMessageStatus[] = [
   "offen",
-  "spaeter",
+  "in_bearbeitung",
   "erledigt",
 ];
 
-/** Noch aktiv zu bearbeiten (Kennzahlen, Badge). */
+/** Noch aktiv (Kennzahlen, Filter „Offen“). */
 export const STAFF_MESSAGE_ACTIVE_STATUSES: StaffMessageStatus[] = [
   "offen",
-  "spaeter",
+  "in_bearbeitung",
 ];
 
 export const STAFF_TASK_STATUSES = STAFF_MESSAGE_STATUSES;

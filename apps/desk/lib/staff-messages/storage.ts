@@ -15,8 +15,8 @@ import { deleteObject, waitForObjectSize } from "@/lib/storage/s3";
 import { withTenantDb } from "@/lib/tenant/db";
 
 /**
- * Persistenz für interne Kanzlei-Aufgaben (UI: Nachrichten).
- * Siehe apps/desk/AGENTS.md — „Interne Nachrichten = Aufgaben“.
+ * Persistenz für interne Kanzlei-Nachrichten (V1: einseitig, Status + Kommentar).
+ * Siehe apps/desk/AGENTS.md.
  */
 
 import type {
@@ -762,15 +762,15 @@ export async function setStaffMessageStatusRow(
     const [existing] = await tx
       .select({
         id: staffMessages.id,
-        senderId: staffMessages.senderId,
         recipientId: staffMessages.recipientId,
+        status: staffMessages.status,
       })
       .from(staffMessages)
       .where(
         and(
           eq(staffMessages.id, id),
           eq(staffMessages.tenantId, tenantId),
-          participantFilter(userId)
+          eq(staffMessages.recipientId, userId)
         )
       )
       .limit(1);
@@ -784,16 +784,14 @@ export async function setStaffMessageStatusRow(
       .set({
         status,
         completedAt:
-          status === "erledigt" || status === "entfaellt"
-            ? new Date().toISOString()
-            : null,
+          status === "erledigt" ? new Date().toISOString() : null,
       })
       .where(
         and(eq(staffMessages.id, id), eq(staffMessages.tenantId, tenantId))
       );
 
     const trimmedNote = note?.trim();
-    if (status === "spaeter" && trimmedNote) {
+    if (trimmedNote) {
       await tx.insert(staffMessageReplies).values({
         tenantId,
         messageId: id,
@@ -818,6 +816,51 @@ export async function setStaffMessageStatusRow(
 
     const [item] = await hydrateMessages(tx, tenantId, rows);
     return item ?? null;
+  });
+}
+
+/** Aufgabe inkl. Anhänge/Antworten löschen (Teilnehmer: Absender oder Empfänger). */
+export async function deleteStaffMessageRow(
+  tenantId: string,
+  userId: string,
+  id: string
+): Promise<{ deleted: boolean; storageKeys: string[] }> {
+  return withTenantDb(tenantId, async (tx) => {
+    const [existing] = await tx
+      .select({ id: staffMessages.id })
+      .from(staffMessages)
+      .where(
+        and(
+          eq(staffMessages.id, id),
+          eq(staffMessages.tenantId, tenantId),
+          participantFilter(userId)
+        )
+      )
+      .limit(1);
+
+    if (!existing) {
+      return { deleted: false, storageKeys: [] };
+    }
+
+    const fileRows = await tx
+      .select({ storageKey: staffMessageFiles.storageKey })
+      .from(staffMessageFiles)
+      .where(
+        and(
+          eq(staffMessageFiles.tenantId, tenantId),
+          eq(staffMessageFiles.messageId, id)
+        )
+      );
+
+    const storageKeys = fileRows.map((row) => row.storageKey);
+
+    await tx
+      .delete(staffMessages)
+      .where(
+        and(eq(staffMessages.id, id), eq(staffMessages.tenantId, tenantId))
+      );
+
+    return { deleted: true, storageKeys };
   });
 }
 
@@ -862,86 +905,6 @@ export async function addStaffMessageReplyRow(
       .innerJoin(recipientUser, eq(staffMessages.recipientId, recipientUser.id))
       .where(
         and(eq(staffMessages.id, messageId), eq(staffMessages.tenantId, tenantId))
-      )
-      .limit(1);
-
-    const [item] = await hydrateMessages(tx, tenantId, rows);
-    return item ?? null;
-  });
-}
-
-/**
- * Ballbesitz weitergeben: aktueller Empfänger sendet an den bisherigen Absender zurück.
- * Notiz wird als Verlaufseintrag gespeichert; Status Offen, ungelesen.
- */
-export async function handOffStaffMessageRow(
-  tenantId: string,
-  userId: string,
-  id: string,
-  note: string
-): Promise<StaffMessageRecord | null> {
-  const trimmed = note.trim();
-  if (!trimmed) {
-    return null;
-  }
-
-  return withTenantDb(tenantId, async (tx) => {
-    const [existing] = await tx
-      .select({
-        id: staffMessages.id,
-        senderId: staffMessages.senderId,
-        recipientId: staffMessages.recipientId,
-      })
-      .from(staffMessages)
-      .where(
-        and(
-          eq(staffMessages.id, id),
-          eq(staffMessages.tenantId, tenantId),
-          eq(staffMessages.recipientId, userId)
-        )
-      )
-      .limit(1);
-
-    if (!existing) {
-      return null;
-    }
-
-    const nextRecipientId = existing.senderId;
-    if (nextRecipientId === userId) {
-      return null;
-    }
-
-    await tx
-      .update(staffMessages)
-      .set({
-        senderId: userId,
-        recipientId: nextRecipientId,
-        status: "offen",
-        readAt: null,
-        completedAt: null,
-      })
-      .where(
-        and(eq(staffMessages.id, id), eq(staffMessages.tenantId, tenantId))
-      );
-
-    await tx.insert(staffMessageReplies).values({
-      tenantId,
-      messageId: id,
-      authorId: userId,
-      body: trimmed,
-    });
-
-    const rows = await tx
-      .select({
-        message: staffMessages,
-        senderName: senderUser.name,
-        recipientName: recipientUser.name,
-      })
-      .from(staffMessages)
-      .innerJoin(senderUser, eq(staffMessages.senderId, senderUser.id))
-      .innerJoin(recipientUser, eq(staffMessages.recipientId, recipientUser.id))
-      .where(
-        and(eq(staffMessages.id, id), eq(staffMessages.tenantId, tenantId))
       )
       .limit(1);
 

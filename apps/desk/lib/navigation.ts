@@ -9,6 +9,7 @@ import {
   InboxIcon,
   ListIcon,
   MailIcon,
+  SendIcon,
   MessageSquareIcon,
   PrinterIcon,
   ScaleIcon,
@@ -46,12 +47,21 @@ export const navigation: NavItem[] = [
   },
   {
     href: "/eingang",
-    label: "Nachrichten",
-    description: "Nachrichten und Aufgaben abarbeiten",
+    label: "Eingang",
+    description: "Aufgaben, die bei mir liegen",
     icon: InboxIcon,
     accent: "bg-amber-400/25 text-amber-100",
     activeClass:
       "data-[active=true]:bg-amber-400/10 data-[active=true]:shadow-[inset_0_0_0_1px_oklch(0.78_0.12_85/0.25)]",
+  },
+  {
+    href: "/gesendet",
+    label: "Gesendet",
+    description: "Nachrichten, die ich an Mitarbeiter geschickt habe",
+    icon: SendIcon,
+    accent: "bg-amber-400/20 text-amber-100",
+    activeClass:
+      "data-[active=true]:bg-amber-400/10 data-[active=true]:shadow-[inset_0_0_0_1px_oklch(0.78_0.12_85/0.2)]",
   },
   {
     href: "/nachrichten-uebersicht",

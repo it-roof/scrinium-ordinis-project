@@ -11,7 +11,6 @@ import {
 } from "react";
 import {
   ArrowRightIcon,
-  CalendarIcon,
   CheckIcon,
   CopyIcon,
   HomeIcon,
@@ -58,11 +57,9 @@ import {
 import {
   formatFileSize,
   germanDateToIso,
-  isoToGermanDate,
-  maskGermanDateInput,
   dueDateForStaffMessagePriority,
   priorityLabel,
-  STAFF_MESSAGE_PRIORITIES,
+  STAFF_MESSAGE_COMPOSE_PRIORITIES,
   STAFF_MESSAGE_TOPIC_PRESETS,
   validateStaffMessageFile,
   type StaffMessageColleague,
@@ -146,7 +143,6 @@ export function StaffMessagesView({
   const [isPending, startTransition] = useTransition();
   const [phase, setPhase] = useState<"compose" | "sent">("compose");
   const [sentRecipientName, setSentRecipientName] = useState("");
-  const dueDateInputRef = useRef<HTMLInputElement>(null);
   const recipientFieldRef = useRef<HTMLDivElement>(null);
   const bodyTextareaRef = useRef<HTMLTextAreaElement>(null);
   const overviewHref = areaBasePath(module as AppModuleId);
@@ -228,6 +224,7 @@ export function StaffMessagesView({
     function handlePointerDown(event: MouseEvent) {
       if (!recipientFieldRef.current?.contains(event.target as Node)) {
         setSuggestionsOpen(false);
+        setPickerOpen(false);
       }
     }
     document.addEventListener("mousedown", handlePointerDown);
@@ -251,6 +248,7 @@ export function StaffMessagesView({
     }));
     setColleagueQuery("");
     setSuggestionsOpen(false);
+    setPickerOpen(false);
   }
 
   function handleRecipientQueryChange(value: string) {
@@ -266,6 +264,11 @@ export function StaffMessagesView({
         recipientId: "",
       }));
     }
+  }
+
+  function openPhonebook() {
+    setPickerOpen(true);
+    setSuggestionsOpen(false);
   }
 
   function resetCompose() {
@@ -445,10 +448,9 @@ export function StaffMessagesView({
                     onChange={(event) =>
                       handleRecipientQueryChange(event.target.value)
                     }
-                    onFocus={() => {
-                      setSuggestionsOpen(true);
-                    }}
-                    placeholder="Name eintippen…"
+                    onFocus={openPhonebook}
+                    onClick={openPhonebook}
+                    placeholder="Name eintippen oder auswählen…"
                     className={cn(composeInputClass, "min-w-0")}
                     autoComplete="off"
                     aria-autocomplete="list"
@@ -473,8 +475,11 @@ export function StaffMessagesView({
                       event.preventDefault();
                     }}
                     onClick={() => {
-                      setPickerOpen((open) => !open);
-                      setSuggestionsOpen(false);
+                      if (pickerOpen) {
+                        setPickerOpen(false);
+                        return;
+                      }
+                      openPhonebook();
                     }}
                   >
                     {pickerOpen ? (
@@ -624,7 +629,7 @@ export function StaffMessagesView({
               <div className="space-y-2">
                 <p className={labelClass}>Priorität</p>
                 <div className="flex flex-wrap gap-2">
-                  {STAFF_MESSAGE_PRIORITIES.map((entry) => {
+                  {STAFF_MESSAGE_COMPOSE_PRIORITIES.map((entry) => {
                     const selected = form.priority === entry.value;
                     const muted = Boolean(form.priority) && !selected;
                     return (
@@ -650,75 +655,20 @@ export function StaffMessagesView({
                   })}
                 </div>
                 <input type="hidden" name="priority" value={form.priority} />
-                {form.priority !== "andere" ? (
-                  <input
-                    type="hidden"
-                    name="dueDate"
-                    value={germanDateToIso(form.dueDate)}
-                  />
-                ) : null}
+                <input
+                  type="hidden"
+                  name="dueDate"
+                  value={germanDateToIso(form.dueDate)}
+                />
               </div>
-
-              {form.priority === "andere" ? (
-                <div className="grid grid-cols-[auto_minmax(0,1fr)] items-stretch border border-border">
-                  <div className={cn(composeRowClass, composeLabelClass)}>
-                    Datum
-                  </div>
-                  <div className={cn(composeRowClass, composeFieldClass, "gap-2")}>
-                    <Input
-                      id="staff-message-due-date"
-                      value={form.dueDate}
-                      inputMode="numeric"
-                      autoComplete="off"
-                      placeholder="TT.MM.JJJJ"
-                      onChange={(event) => {
-                        const next = event.target.value;
-                        const isDeleting = next.length < form.dueDate.length;
-                        setForm((current) => ({
-                          ...current,
-                          dueDate: maskGermanDateInput(next, isDeleting),
-                        }));
-                      }}
-                      className={cn(composeInputClass, "min-w-0")}
-                    />
-                    <input
-                      type="hidden"
-                      name="dueDate"
-                      value={germanDateToIso(form.dueDate)}
-                    />
-                    <input
-                      ref={dueDateInputRef}
-                      type="date"
-                      tabIndex={-1}
-                      aria-hidden="true"
-                      className="sr-only"
-                      value={germanDateToIso(form.dueDate)}
-                      onChange={(event) =>
-                        setForm((current) => ({
-                          ...current,
-                          dueDate: isoToGermanDate(event.target.value),
-                        }))
-                      }
-                    />
-                    <button
-                      type="button"
-                      className="ml-auto shrink-0 text-muted-foreground transition-colors hover:text-foreground"
-                      aria-label="Kalender öffnen"
-                      onClick={() => {
-                        dueDateInputRef.current?.showPicker?.();
-                        dueDateInputRef.current?.focus();
-                      }}
-                    >
-                      <CalendarIcon className="size-4" />
-                    </button>
-                  </div>
-                </div>
-              ) : null}
             </div>
 
             <div className="space-y-2 pb-4">
               <Label htmlFor="body" className={labelClass}>
-                Nachricht
+                Nachricht{" "}
+                <span className="font-normal text-muted-foreground">
+                  (optional)
+                </span>
               </Label>
               <input type="hidden" name="body" value={composedBody} />
               <div
@@ -745,7 +695,7 @@ export function StaffMessagesView({
                         body: event.target.value,
                       }))
                     }
-                    placeholder="Nachricht eingeben oder diktieren…"
+                    placeholder="Optional: Nachricht eingeben oder diktieren…"
                     rows={1}
                     className={cn(
                       "min-h-36 w-full resize-none overflow-hidden border-0 bg-transparent",
@@ -802,10 +752,10 @@ export function StaffMessagesView({
                       onClick={handleMicClick}
                       aria-pressed={listening}
                       aria-label={
-                        listening ? "Diktieren stoppen" : "Nachricht diktieren"
+                        listening ? "Stoppen" : "Nachricht diktieren"
                       }
                       title={
-                        listening ? "Diktieren stoppen" : "Nachricht diktieren"
+                        listening ? "Stoppen" : "Nachricht diktieren"
                       }
                       className={cn(
                         "h-9 rounded-full px-3.5",
@@ -817,7 +767,7 @@ export function StaffMessagesView({
                       ) : (
                         <MicIcon data-icon="inline-start" className="size-4" />
                       )}
-                      {listening ? "Diktieren stoppen" : "Diktieren"}
+                      {listening ? "Stoppen" : "Diktieren"}
                     </Button>
                   </div>
                 </div>

@@ -12,7 +12,7 @@ import type { StaffMessagePriority, StaffMessageStatus } from "@/lib/db/schema";
 import {
   formatStaffMessageDueDate,
   priorityLabel,
-  STAFF_MESSAGE_PRIORITIES,
+  STAFF_MESSAGE_COMPOSE_PRIORITIES,
   STAFF_MESSAGE_STATUSES,
   statusLabel,
   type StaffMessageRecord,
@@ -50,12 +50,10 @@ function statusBadgeClass(status: StaffMessageStatus): string {
   switch (status) {
     case "offen":
       return "border-sky-500/40 bg-sky-500/10 text-sky-950 dark:text-sky-100";
-    case "spaeter":
+    case "in_bearbeitung":
       return "border-amber-500/40 bg-amber-500/10 text-amber-950 dark:text-amber-100";
     case "erledigt":
       return "border-emerald-500/40 bg-emerald-500/10 text-emerald-950 dark:text-emerald-100";
-    case "entfaellt":
-      return "border-slate-500/40 bg-slate-500/10 text-slate-950 dark:text-slate-100";
     default:
       return "border-border/70 bg-muted/50 text-foreground";
   }
@@ -180,7 +178,7 @@ export function MessagesOverviewView({
             active={priorityFilter === "alle"}
             onClick={() => setPriorityFilter("alle")}
           />
-          {STAFF_MESSAGE_PRIORITIES.map((entry) => (
+          {STAFF_MESSAGE_COMPOSE_PRIORITIES.map((entry) => (
             <FilterChip
               key={entry.value}
               label={entry.label}
@@ -206,7 +204,8 @@ export function MessagesOverviewView({
             const open = expandedId === message.id;
             const canOpenInInbox =
               itemDirection === "empfangen" &&
-              (message.status === "offen" || message.status === "spaeter");
+              (message.status === "offen" ||
+                message.status === "in_bearbeitung");
 
             return (
               <li key={message.id} className="bg-background/40">

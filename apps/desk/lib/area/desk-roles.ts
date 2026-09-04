@@ -18,6 +18,7 @@ export const DESK_ROLE_LABELS: Record<DeskRoleId, string> = {
 export const FUNCTIONS_BY_DESK_ROLE: Record<DeskRoleId, AreaFunctionId[]> = {
   rechtsanwalt: [
     "inbox",
+    "inbox-sent",
     "inbox-overview",
     "clients",
     "matters",
@@ -32,6 +33,7 @@ export const FUNCTIONS_BY_DESK_ROLE: Record<DeskRoleId, AreaFunctionId[]> = {
   ],
   sekretariat: [
     "inbox",
+    "inbox-sent",
     "inbox-overview",
     "clients",
     "matters",

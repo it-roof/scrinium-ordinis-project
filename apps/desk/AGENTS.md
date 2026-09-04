@@ -6,20 +6,18 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 App: **`apps/desk`** (Scrinium Ordinis — Kanzlei-Werkzeug). Monorepo-Hinweise: Root [`AGENTS.md`](../../AGENTS.md).
 
-## Interne Nachrichten = Aufgaben (Architektur)
+## Interne Nachrichten (V1)
 
-**Domain:** Interne Zuweisungen sind fachlich immer **Aufgaben** (Status, Priorität, Fälligkeit, Zuständigkeit).  
-**UI:** „Nachricht senden“ / „Alle Nachrichten“ / „Nachrichten Verlauf“.
+**Prinzip:** Einseitige Nachricht + optionaler Kommentar bei Statusänderung.  
+Kein Messenger — Telefon für Absprachen, Nachrichten für Aufgaben und Ergebnisse.
 
-- Persistenz: Tabelle `staff_messages` (+ Dateien/Replies) — Code-Domain: Task/Aufgabe  
-- **Ballbesitz:** `recipientId` = aktuell zuständig (sieht die Aufgabe unter Offen)  
-- **Zurücksenden:** Empfänger gibt an bisherigen Absender zurück (Notiz Pflicht → Offen + ungelesen beim Gegenüber)  
-- Status: `offen` · `spaeter` · `erledigt` · `entfaellt`  
-- Eingang (`/…/eingang`, Nav **Alle Nachrichten**): nur Aufgaben, bei denen ich zuständig bin; Filter Offen / Später / Erledigt  
-- Übersicht (`/…/nachrichten-uebersicht`, Nav **Nachrichten Verlauf**): Verlauf inkl. Empfangen/Delegiert, Gelesen, Status  
-- Modul: [`lib/staff-messages/`](lib/staff-messages/) · Compose: `nachrichten-an-mitarbeiter`
-
-Keine zweite Entität „Nachricht vs. Aufgabe“ — eine Entität, zwei Bezeichnungen (UI vs. Architektur).
+- Persistenz: `staff_messages` (+ Dateien; Kommentare in `staff_message_replies`)
+- Absender setzt **Priorität** (Sofort / Heute / Diese Woche / Keine) und Inhalt
+- Empfänger setzt **Status** frei: Offen · In Bearbeitung · Erledigt (+ optional Kommentar)
+- **Eingang** (`/…/eingang`): Nachrichten an mich
+- **Gesendet** (`/…/gesendet`): von mir gesendet — Status und Kommentare lesen
+- Rückfrage / neue Richtung = **neue** Nachricht
+- Verfassen: `nachrichten-an-mitarbeiter` · Modul: [`lib/staff-messages/`](lib/staff-messages/)
 
 ## Datenbank (Drizzle)
 

@@ -45,6 +45,7 @@ export function areaBasePath(area: AppModuleId): string {
 
 export const FUNCTION_PATH_SEGMENTS: Record<AreaFunctionId, string> = {
   inbox: "eingang",
+  "inbox-sent": "gesendet",
   "inbox-overview": "nachrichten-uebersicht",
   clients: "mandanten",
   matters: "akten",

@@ -344,6 +344,13 @@
       "when": 1788477472199,
       "tag": "0048_mushy_patriot",
       "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1788487140409,
+      "tag": "0049_light_madame_hydra",
+      "breakpoints": true
     }
   ]
 }

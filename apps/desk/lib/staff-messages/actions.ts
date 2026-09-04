@@ -10,11 +10,10 @@ import { assertUserCanAccessAreaFunction } from "@/lib/tenant/access";
 import { requireSessionUser } from "@/lib/tenant/session";
 
 import {
-  addStaffMessageReplyRow,
   createStaffMessageRow,
   discardStaffMessageObjects,
+  deleteStaffMessageRow,
   getStaffMessageFileById,
-  handOffStaffMessageRow,
   listStaffColleagues,
   listStaffMessages,
   markStaffMessageReadRow,
@@ -27,6 +26,7 @@ import {
   resolveStaffMessageDueDate,
   resolveStaffMessagePriority,
   resolveStaffMessageTopic,
+  STAFF_MESSAGE_INBOX_STATUSES,
   validateStaffMessageFileMeta,
   type StaffMessageInput,
   type StaffMessageUploadedFile,
@@ -166,10 +166,6 @@ function parseInput(formData: FormData): {
   }
 
   const dueDate = resolveStaffMessageDueDate(dueDateRaw);
-
-  if (!body.trim()) {
-    return { error: "Bitte eine Nachricht eingeben." };
-  }
 
   if (!isAppModuleId(moduleRaw)) {
     return { error: "Ungültiger Bereich." };
@@ -404,63 +400,6 @@ export async function markStaffMessageRead(id: string) {
   return { success: true as const, item };
 }
 
-export async function replyToStaffMessage(id: string, body: string) {
-  const { error, user } = await requireStaffMessagesUser();
-  if (error || !user) {
-    return { success: false as const, error: error ?? "Nicht angemeldet." };
-  }
-
-  const trimmed = body.trim();
-  if (!trimmed) {
-    return { success: false as const, error: "Bitte eine Rückmeldung eingeben." };
-  }
-
-  const item = await addStaffMessageReplyRow(
-    user.tenantId,
-    user.id,
-    id,
-    trimmed
-  );
-  if (!item) {
-    return { success: false as const, error: "Nachricht nicht gefunden." };
-  }
-
-  revalidateStaffMessages();
-  return { success: true as const, item };
-}
-
-/** Aufgabe an den bisherigen Absender zurückgeben (Ballbesitz wechseln). */
-export async function handOffStaffMessage(id: string, note: string) {
-  const { error, user } = await requireStaffMessagesUser();
-  if (error || !user) {
-    return { success: false as const, error: error ?? "Nicht angemeldet." };
-  }
-
-  const trimmed = note.trim();
-  if (!trimmed) {
-    return {
-      success: false as const,
-      error: "Bitte eine Notiz eingeben, bevor du die Aufgabe zurücksendest.",
-    };
-  }
-
-  const item = await handOffStaffMessageRow(
-    user.tenantId,
-    user.id,
-    id,
-    trimmed
-  );
-  if (!item) {
-    return {
-      success: false as const,
-      error: "Zurücksenden nicht möglich. Nur der aktuelle Empfänger kann die Aufgabe weitergeben.",
-    };
-  }
-
-  revalidateStaffMessages();
-  return { success: true as const, item };
-}
-
 export async function setStaffMessageStatus(
   id: string,
   status: string,
@@ -475,13 +414,10 @@ export async function setStaffMessageStatus(
     return { success: false as const, error: "Ungültiger Status." };
   }
 
-  const trimmedNote = note?.trim() ?? "";
-  if (status === "spaeter" && !trimmedNote) {
-    return {
-      success: false as const,
-      error:
-        "Bitte eine Notiz hinterlassen, warum die Nachricht auf Später gesetzt wird.",
-    };
+  if (
+    !(STAFF_MESSAGE_INBOX_STATUSES as readonly string[]).includes(status)
+  ) {
+    return { success: false as const, error: "Ungültiger Status." };
   }
 
   const item = await setStaffMessageStatusRow(
@@ -489,14 +425,48 @@ export async function setStaffMessageStatus(
     user.id,
     id,
     status,
-    status === "spaeter" ? trimmedNote : null
+    note?.trim() || null
   );
   if (!item) {
-    return { success: false as const, error: "Status konnte nicht geändert werden." };
+    return {
+      success: false as const,
+      error:
+        "Status konnte nicht geändert werden. Nur der Empfänger kann den Status setzen.",
+    };
   }
 
   revalidateStaffMessages();
   return { success: true as const, item };
+}
+
+export async function deleteStaffMessage(id: string) {
+  const { error, user } = await requireStaffMessagesUser();
+  if (error || !user) {
+    return { success: false as const, error: error ?? "Nicht angemeldet." };
+  }
+
+  if (!isUuid(id)) {
+    return { success: false as const, error: "Ungültige Nachricht." };
+  }
+
+  const result = await deleteStaffMessageRow(user.tenantId, user.id, id);
+  if (!result.deleted) {
+    return {
+      success: false as const,
+      error: "Aufgabe konnte nicht gelöscht werden.",
+    };
+  }
+
+  if (result.storageKeys.length > 0) {
+    await discardStaffMessageObjects(
+      user.tenantId,
+      id,
+      result.storageKeys
+    );
+  }
+
+  revalidateStaffMessages();
+  return { success: true as const };
 }
 
 export async function getStaffMessageFileAccess(fileId: string) {

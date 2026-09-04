@@ -12,6 +12,7 @@ import { navigation, type NavItem } from "@/lib/navigation";
 /** App-Funktionen, die einem Fach-Bereich zugeordnet sind. */
 export const AREA_FUNCTION_IDS = [
   "inbox",
+  "inbox-sent",
   "inbox-overview",
   "clients",
   "matters",
@@ -71,6 +72,7 @@ export function normalizeOptionalAllowedFunctions(
     unique.add("staff-messages");
   }
   if (unique.has("inbox")) {
+    unique.add("inbox-sent");
     unique.add("inbox-overview");
   }
   return [...unique];
@@ -91,6 +93,7 @@ export function filterFunctionsByAllowlist(
 export const FUNCTIONS_BY_AREA: Record<AppModuleId, AreaFunctionId[]> = {
   legal: [
     "inbox",
+    "inbox-sent",
     "inbox-overview",
     "clients",
     "matters",
@@ -109,7 +112,8 @@ export const FUNCTIONS_BY_AREA: Record<AppModuleId, AreaFunctionId[]> = {
 };
 
 export const FUNCTION_LABELS: Record<AreaFunctionId, string> = {
-  inbox: "Alle Nachrichten",
+  inbox: "Eingang",
+  "inbox-sent": "Gesendet",
   "inbox-overview": "Nachrichten Verlauf",
   clients: "Mandanten",
   matters: "Akten",
@@ -130,7 +134,8 @@ export const FUNCTION_ROUTES: Record<
   AreaFunctionId,
   { href: string; label: string }
 > = {
-  inbox: { href: "/eingang", label: "Alle Nachrichten" },
+  inbox: { href: "/eingang", label: "Eingang" },
+  "inbox-sent": { href: "/gesendet", label: "Gesendet" },
   "inbox-overview": {
     href: "/nachrichten-uebersicht",
     label: "Nachrichten Verlauf",
@@ -202,6 +207,9 @@ export function functionIdFromPathname(
   ) {
     return "inbox";
   }
+  if (pathname === "/gesendet" || pathname.startsWith("/gesendet/")) {
+    return "inbox-sent";
+  }
   if (pathname === "/mandanten" || pathname.startsWith("/mandanten/")) {
     return "clients";
   }
@@ -260,7 +268,7 @@ export const NAV_HIDDEN_FUNCTION_IDS: AreaFunctionId[] = [
 ];
 
 /** Oben separat, ohne Gruppenlabel. */
-export const PINNED_FUNCTION_IDS: AreaFunctionId[] = ["inbox"];
+export const PINNED_FUNCTION_IDS: AreaFunctionId[] = ["inbox", "inbox-sent"];
 
 export type NavGroup = {
   /** Leer = ohne Gruppenüberschrift (z. B. Eingang ganz oben). */
@@ -270,8 +278,6 @@ export type NavGroup = {
 
 /** Sidebar-Labels, die vom allgemeinen Funktionsnamen abweichen. */
 const SIDEBAR_FUNCTION_LABELS: Partial<Record<AreaFunctionId, string>> = {
-  inbox: "Nachrichten",
-  "inbox-overview": "Verlauf",
   "staff-messages": "Nachricht senden",
 };
 
@@ -318,15 +324,9 @@ export function navigationGroupsForArea(
     description: "",
   };
 
-  const nachrichtenItems = [
-    ...PINNED_FUNCTION_IDS.filter((id) => available.has(id)).map((id) =>
-      navItemForFunction(area, id)
-    ),
-    // Direkt unter Nachrichten (Rechtsanwalt + Sekretariat).
-    ...(available.has("staff-messages")
-      ? [navItemForFunction(area, "staff-messages")]
-      : []),
-  ];
+  const nachrichtenItems = PINNED_FUNCTION_IDS.filter((id) =>
+    available.has(id)
+  ).map((id) => navItemForFunction(area, id));
 
   const managementItems = isLawyer
     ? []
@@ -346,10 +346,10 @@ export function navigationGroupsForArea(
   }).map((id) => navItemForFunction(area, id));
 
   const groups: NavGroup[] = [];
-  groups.push({
-    label: "",
-    items: [startItem, ...nachrichtenItems],
-  });
+  groups.push({ label: "", items: [startItem] });
+  if (nachrichtenItems.length > 0) {
+    groups.push({ label: "Nachrichten", items: nachrichtenItems });
+  }
   if (toolItems.length > 0) {
     groups.push({ label: "Funktionen", items: toolItems });
   }

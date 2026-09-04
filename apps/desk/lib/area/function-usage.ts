@@ -80,7 +80,7 @@ function compareByUsage(
 
 /**
  * Feste Schnellzugriff-Karten für Rechtsanwalt (Reihenfolge fix).
- * inbox wird als „Alle Nachrichten“ gelabelt und führt zum Eingang.
+ * inbox wird als „Eingang“ gelabelt und führt zum Eingang.
  */
 export const LAWYER_QUICK_VIEW_FUNCTION_IDS: AreaFunctionId[] = [
   "prompts",
@@ -118,6 +118,7 @@ export function buildQuickViewFunctionIds(
       available.has(id) &&
       !communication.includes(id) &&
       id !== "inbox" &&
+      id !== "inbox-sent" &&
       id !== "inbox-overview"
   );
   const topFunctions = [...catalog]
@@ -146,7 +147,10 @@ export function buildSecretaryQuickViewFunctionIds(
     available.has(id)
   );
   const rest = [...available].filter(
-    (id) => !preferred.includes(id) && id !== "inbox-overview"
+    (id) =>
+      !preferred.includes(id) &&
+      id !== "inbox-overview" &&
+      id !== "inbox-sent"
   );
   const catalog = [...preferred, ...rest];
   return [...catalog]

@@ -59,12 +59,11 @@ export const staffMessagePriorityEnum = pgEnum("staff_message_priority", [
   "andere",
 ]);
 
-/** Nachrichtenstatus: aktiv, aufgeschoben, erledigt oder entfällt. */
+/** Status: Empfänger führt den Stand (V1). */
 export const staffMessageStatusEnum = pgEnum("staff_message_status", [
   "offen",
-  "spaeter",
+  "in_bearbeitung",
   "erledigt",
-  "entfaellt",
 ]);
 
 /** Eine Kanzlei = ein Tenant auf der Multi-Tenant-Plattform. */

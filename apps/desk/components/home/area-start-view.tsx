@@ -20,6 +20,7 @@ import {
   MessageSquareIcon,
   PrinterIcon,
   ScaleIcon,
+  SendIcon,
   SparklesIcon,
   type LucideIcon,
 } from "lucide-react";
@@ -92,12 +93,20 @@ const featureMeta: Record<
   }
 > = {
   inbox: {
-    description: "Offene Nachrichten und Aufgaben im Eingang bearbeiten.",
+    description: "Aufgaben, die bei dir liegen und abzuarbeiten sind.",
     icon: InboxIcon,
     iconWrap: "bg-amber-100 text-amber-800 ring-amber-200/70",
     linkClass: "text-amber-700",
     cardClass:
       "hover:border-amber-200/80 hover:bg-gradient-to-br hover:from-amber-50/50 hover:to-white",
+  },
+  "inbox-sent": {
+    description: "Aufgaben, die du an Mitarbeiter geschickt hast.",
+    icon: SendIcon,
+    iconWrap: "bg-amber-50 text-amber-800 ring-amber-200/60",
+    linkClass: "text-amber-700",
+    cardClass:
+      "hover:border-amber-200/70 hover:bg-gradient-to-br hover:from-amber-50/40 hover:to-white",
   },
   "inbox-overview": {
     description: "Verlauf aller Nachrichten und Aufgaben.",
@@ -314,7 +323,7 @@ const DASHBOARD_CARDS: {
   {
     key: "sofort",
     label: "Sofort",
-    hrefSuffix: "",
+    hrefSuffix: "?priority=sofort",
     icon: MailWarningIcon,
     valueClass: "text-rose-950",
     iconClass: "text-rose-700/70",
@@ -324,7 +333,7 @@ const DASHBOARD_CARDS: {
   {
     key: "heute",
     label: "Heute",
-    hrefSuffix: "",
+    hrefSuffix: "?priority=heute",
     icon: MailQuestionMarkIcon,
     valueClass: "text-amber-950",
     iconClass: "text-amber-700/70",
@@ -335,7 +344,7 @@ const DASHBOARD_CARDS: {
     key: "unread",
     label: "Nachrichten",
     valueSuffix: "ungelesen",
-    hrefSuffix: "",
+    hrefSuffix: "?unread=1",
     icon: MailIcon,
     valueClass: "text-sky-950",
     iconClass: "text-sky-700/70",
@@ -346,7 +355,7 @@ const DASHBOARD_CARDS: {
     key: "completedThisWeek",
     label: "Erledigt",
     valueSuffix: "diese Woche",
-    hrefSuffix: "",
+    hrefSuffix: "?filter=erledigt",
     icon: CheckIcon,
     valueClass: "text-emerald-950",
     iconClass: "text-emerald-700/70",
@@ -418,7 +427,6 @@ function LawyerDashboardCards({
   lists: StaffDashboardLists;
 }) {
   const inboxHref = functionHref(area, "inbox");
-  const overviewHref = functionHref(area, "inbox-overview");
 
   return (
     <section className="space-y-4">
@@ -429,11 +437,7 @@ function LawyerDashboardCards({
             label={card.label}
             value={stats[card.key]}
             valueSuffix={card.valueSuffix}
-            href={
-              card.key === "completedThisWeek"
-                ? overviewHref
-                : `${inboxHref}${card.hrefSuffix}`
-            }
+            href={`${inboxHref}${card.hrefSuffix}`}
             icon={card.icon}
             valueClass={card.valueClass}
             iconClass={card.iconClass}
@@ -442,16 +446,19 @@ function LawyerDashboardCards({
         ))}
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <DashboardListCard
-          title="Dringende Aufgaben"
-          emptyText="Keine dringenden Aufgaben."
-          href={inboxHref}
-          icon={ClipboardListIcon}
-          items={lists.urgentTasks}
-          area={area}
-        />
-      </div>
+      {/* Dringende Aufgaben — vorerst ausgeblendet, Code behalten */}
+      {false ? (
+        <div className="grid gap-4 lg:grid-cols-2">
+          <DashboardListCard
+            title="Dringende Aufgaben"
+            emptyText="Keine dringenden Aufgaben."
+            href={inboxHref}
+            icon={ClipboardListIcon}
+            items={lists.urgentTasks}
+            area={area}
+          />
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -495,7 +502,7 @@ function DashboardListCard({
           {items.map((item) => (
             <li key={item.id}>
               <Link
-                href={inboxHref}
+                href={`${inboxHref}?message=${encodeURIComponent(item.id)}`}
                 className="flex items-start justify-between gap-3 py-3 transition-colors hover:bg-muted/30"
               >
                 <div className="min-w-0 space-y-0.5">
@@ -557,15 +564,19 @@ export function AreaStartView({
   );
   const pinnedIds = PINNED_FUNCTION_IDS.filter(
     (id) =>
-      available.has(id) && id !== "inbox" && id !== "inbox-overview"
+      available.has(id) &&
+      id !== "inbox" &&
+      id !== "inbox-sent" &&
+      id !== "inbox-overview"
   );
   const toolIds = TOOL_FUNCTION_IDS.filter((id) => available.has(id));
   const communicationIds = COMMUNICATION_FUNCTION_IDS.filter((id) =>
     available.has(id)
   );
-  /** In „Alle Funktionen“: Verlauf sichtbar, nicht in Sidebar/Schnellzugriff. */
+  /** In „Alle Funktionen“: Verlauf + Gesendet sichtbar. */
   const lawyerKommunikationIds = [
     ...communicationIds,
+    ...(available.has("inbox-sent") ? (["inbox-sent"] as const) : []),
     ...(available.has("inbox-overview")
       ? (["inbox-overview"] as const)
       : []),
@@ -574,7 +585,7 @@ export function AreaStartView({
     available.has(id)
   );
   const secretaryNachrichtenIds = (
-    ["inbox", "inbox-overview", "staff-messages"] as const
+    ["inbox", "inbox-sent", "staff-messages", "inbox-overview"] as const
   ).filter((id) => available.has(id));
   const isSecretary = deskRole === "sekretariat";
   const quickIds =
@@ -664,7 +675,7 @@ export function AreaStartView({
           area={area}
           functionIds={quickIds}
           titleForFunction={(functionId) =>
-            functionId === "inbox" ? "Alle Nachrichten" : undefined
+            functionId === "inbox" ? "Eingang" : undefined
           }
         />
       ) : (
@@ -683,7 +694,7 @@ export function AreaStartView({
               area={area}
               functionIds={secretaryNachrichtenIds}
               titleForFunction={(functionId) =>
-                functionId === "inbox" ? "Alle Nachrichten" : undefined
+                functionId === "inbox" ? "Eingang" : undefined
               }
             />
           ) : (
