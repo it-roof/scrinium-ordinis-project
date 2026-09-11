@@ -5,28 +5,28 @@ import { revalidatePath } from "next/cache";
 import { areaOwnsFunction } from "@/lib/area/functions";
 import type { ContentModule } from "@/lib/db/schema";
 import { isAppModuleId } from "@/lib/modules";
-import { getSignedPutUrl, uploadObject } from "@/lib/storage/s3";
+import { uploadObject } from "@/lib/storage/s3";
 import { assertUserCanAccessAreaFunction } from "@/lib/tenant/access";
 import { requireSessionUser } from "@/lib/tenant/session";
 
 import {
+  closeStaffMessageRow,
   createStaffMessageRow,
-  discardStaffMessageObjects,
   deleteStaffMessageRow,
+  discardStaffMessageObjects,
   getStaffMessageFileById,
+  handoffStaffMessageRow,
   listStaffColleagues,
-  listStaffMessages,
   markStaffMessageReadRow,
-  setStaffMessageStatusRow,
   staffMessageObjectKey,
 } from "./storage";
 import {
-  isStaffMessageStatus,
+  isStaffMessageIntent,
   MAX_FILES_PER_STAFF_MESSAGE,
   resolveStaffMessageDueDate,
+  resolveStaffMessageIntent,
   resolveStaffMessagePriority,
   resolveStaffMessageTopic,
-  STAFF_MESSAGE_INBOX_STATUSES,
   validateStaffMessageFileMeta,
   type StaffMessageInput,
   type StaffMessageUploadedFile,
@@ -61,99 +61,26 @@ function isUuid(value: string): boolean {
   return UUID_RE.test(value);
 }
 
-function parseUploadedFiles(
-  raw: string,
-  tenantId: string,
-  messageId: string
-): { files?: StaffMessageUploadedFile[]; error?: string } {
-  if (!raw.trim()) {
-    return { files: [] };
-  }
-
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(raw);
-  } catch {
-    return { error: "Ungültige Dateiangaben." };
-  }
-
-  if (!Array.isArray(parsed)) {
-    return { error: "Ungültige Dateiangaben." };
-  }
-
-  if (parsed.length > MAX_FILES_PER_STAFF_MESSAGE) {
-    return {
-      error: `Maximal ${MAX_FILES_PER_STAFF_MESSAGE} Dateien pro Nachricht.`,
-    };
-  }
-
-  const files: StaffMessageUploadedFile[] = [];
-
-  for (const entry of parsed) {
-    if (!entry || typeof entry !== "object") {
-      return { error: "Ungültige Dateiangaben." };
-    }
-    const item = entry as Record<string, unknown>;
-    const id = String(item.id ?? "");
-    const filename = String(item.filename ?? "");
-    const mimeType =
-      String(item.mimeType ?? "application/octet-stream").trim() ||
-      "application/octet-stream";
-    const sizeBytes = Number(item.sizeBytes);
-    const storageKey = String(item.storageKey ?? "");
-
-    if (!isUuid(id) || files.some((file) => file.id === id)) {
-      return { error: "Ungültige Dateiangaben." };
-    }
-
-    if (
-      !Number.isInteger(sizeBytes) ||
-      mimeType.length > 200 ||
-      filename.length > 255
-    ) {
-      return { error: "Ungültige Dateiangaben." };
-    }
-
-    const metaError = validateStaffMessageFileMeta(filename, sizeBytes);
-    if (metaError) {
-      return { error: metaError };
-    }
-
-    const expectedKey = staffMessageObjectKey(tenantId, messageId, id, filename);
-    if (storageKey !== expectedKey) {
-      return { error: "Ungültiger Dateipfad." };
-    }
-
-    files.push({
-      id,
-      storageKey,
-      filename: filename.trim(),
-      mimeType,
-      sizeBytes,
-    });
-  }
-
-  return { files };
-}
-
-function parseInput(formData: FormData): {
-  input?: StaffMessageInput;
-  error?: string;
-} {
-  const recipientId = String(formData.get("recipientId") ?? "").trim();
+function parseCreateForm(formData: FormData):
+  | { error: string }
+  | { input: StaffMessageInput } {
+  const ballHolderId = String(formData.get("ballHolderId") ?? "").trim();
+  const topicKeyRaw = String(formData.get("topicKey") ?? "").trim();
   const topicRaw = String(formData.get("topic") ?? "").trim();
   const priorityRaw = String(formData.get("priority") ?? "").trim();
   const dueDateRaw = String(formData.get("dueDate") ?? "").trim();
-  const body = String(formData.get("body") ?? "");
-  const moduleRaw = String(formData.get("module") ?? "general").trim();
+  const intentRaw = String(formData.get("intent") ?? "").trim();
+  const body = String(formData.get("body") ?? "").trim();
+  const moduleRaw = String(formData.get("module") ?? "").trim();
+  const matterIdRaw = String(formData.get("matterId") ?? "").trim();
 
-  if (!recipientId) {
+  if (!ballHolderId || !isUuid(ballHolderId)) {
     return { error: "Bitte einen Mitarbeiter wählen." };
   }
 
-  const topic = resolveStaffMessageTopic(topicRaw);
-  if (!topic) {
-    return { error: "Bitte einen Betreff eingeben oder auswählen." };
+  const topic = resolveStaffMessageTopic(topicKeyRaw, topicRaw);
+  if ("error" in topic) {
+    return { error: topic.error };
   }
 
   const priority = resolveStaffMessagePriority(priorityRaw);
@@ -161,29 +88,38 @@ function parseInput(formData: FormData): {
     return { error: "Ungültige Priorität." };
   }
 
+  const intent = resolveStaffMessageIntent(intentRaw);
+  if (!intent) {
+    return { error: "Ungültiges Vorgehen." };
+  }
+
   if (dueDateRaw && !resolveStaffMessageDueDate(dueDateRaw)) {
     return { error: "Bitte ein gültiges Datum wählen." };
   }
-
-  const dueDate = resolveStaffMessageDueDate(dueDateRaw);
 
   if (!isAppModuleId(moduleRaw)) {
     return { error: "Ungültiger Bereich." };
   }
 
   if (!areaOwnsFunction(moduleRaw, "staff-messages")) {
-    return { error: "Nachrichten sind in diesem Bereich nicht verfügbar." };
+    return { error: "Aufträge sind in diesem Bereich nicht verfügbar." };
+  }
+
+  if (matterIdRaw && !isUuid(matterIdRaw)) {
+    return { error: "Ungültige Akte." };
   }
 
   return {
     input: {
-      recipientId,
+      ballHolderId,
       topicKey: topic.topicKey,
       topic: topic.topic,
       priority,
-      dueDate,
+      dueDate: resolveStaffMessageDueDate(dueDateRaw),
+      intent,
       body,
       module: moduleRaw as ContentModule,
+      matterId: matterIdRaw || null,
     },
   };
 }
@@ -198,290 +134,202 @@ export async function getStaffColleaguesAction() {
   return { success: true as const, items };
 }
 
-export async function prepareStaffMessageUploads(
-  files: { filename: string; sizeBytes: number; mimeType: string }[]
-) {
-  const { error, user } = await requireStaffMessagesUser();
-  if (error || !user) {
-    return { success: false as const, error: error ?? "Nicht angemeldet." };
-  }
-
-  if (files.length > MAX_FILES_PER_STAFF_MESSAGE) {
-    return {
-      success: false as const,
-      error: `Maximal ${MAX_FILES_PER_STAFF_MESSAGE} Dateien pro Nachricht.`,
-    };
-  }
-
-  const messageId = crypto.randomUUID();
-  const uploads: {
-    id: string;
-    storageKey: string;
-    uploadUrl: string;
-    filename: string;
-    mimeType: string;
-    sizeBytes: number;
-  }[] = [];
-
-  for (const file of files) {
-    const metaError = validateStaffMessageFileMeta(file.filename, file.sizeBytes);
-    if (metaError) {
-      return { success: false as const, error: metaError };
-    }
-
-    const id = crypto.randomUUID();
-    const mimeType =
-      file.mimeType.trim() || "application/octet-stream";
-    const storageKey = staffMessageObjectKey(
-      user.tenantId,
-      messageId,
-      id,
-      file.filename
-    );
-    const uploadUrl = await getSignedPutUrl(storageKey, mimeType, 900);
-
-    uploads.push({
-      id,
-      storageKey,
-      uploadUrl,
-      filename: file.filename.trim(),
-      mimeType,
-      sizeBytes: file.sizeBytes,
-    });
-  }
-
-  return { success: true as const, messageId, uploads };
-}
-
-export async function abortStaffMessageUploads(
-  messageId: string,
-  storageKeys: string[]
-) {
-  const { error, user } = await requireStaffMessagesUser();
-  if (error || !user) {
-    return { success: false as const, error: error ?? "Nicht angemeldet." };
-  }
-
-  if (!isUuid(messageId) || !Array.isArray(storageKeys)) {
-    return { success: false as const, error: "Ungültige Dateiangaben." };
-  }
-
-  await discardStaffMessageObjects(
-    user.tenantId,
-    messageId,
-    storageKeys.filter((key) => typeof key === "string").slice(0, MAX_FILES_PER_STAFF_MESSAGE)
-  );
-  return { success: true as const };
-}
-
+/** Anlegen */
 export async function createStaffMessage(formData: FormData) {
   const { error, user } = await requireStaffMessagesUser();
   if (error || !user) {
     return { success: false as const, error: error ?? "Nicht angemeldet." };
   }
 
-  const messageIdRaw = String(formData.get("messageId") ?? "").trim();
-  const messageId = messageIdRaw || crypto.randomUUID();
-  if (!isUuid(messageId)) {
-    return { success: false as const, error: "Ungültige Nachricht." };
+  const parsed = parseCreateForm(formData);
+  if ("error" in parsed) {
+    return { success: false as const, error: parsed.error };
   }
 
-  const parsed = parseInput(formData);
-  if (parsed.error || !parsed.input) {
-    return { success: false as const, error: parsed.error ?? "Ungültige Eingabe." };
-  }
-
+  const messageId = crypto.randomUUID();
   const rawFiles = formData
     .getAll("files")
-    .filter((entry): entry is File => entry instanceof File && entry.size > 0);
+    .filter((f): f is File => f instanceof File);
 
   if (rawFiles.length > MAX_FILES_PER_STAFF_MESSAGE) {
     return {
       success: false as const,
-      error: `Maximal ${MAX_FILES_PER_STAFF_MESSAGE} Dateien pro Nachricht.`,
+      error: `Maximal ${MAX_FILES_PER_STAFF_MESSAGE} Dateien.`,
     };
   }
 
-  const uploadedFiles: StaffMessageUploadedFile[] = [];
+  const uploaded: StaffMessageUploadedFile[] = [];
+  const uploadedKeys: string[] = [];
 
   try {
     for (const file of rawFiles) {
       const metaError = validateStaffMessageFileMeta(file.name, file.size);
       if (metaError) {
-        throw new Error(metaError);
+        await discardStaffMessageObjects(uploadedKeys);
+        return { success: false as const, error: metaError };
       }
 
-      const id = crypto.randomUUID();
-      const mimeType =
-        file.type.trim() || "application/octet-stream";
+      const fileId = crypto.randomUUID();
       const storageKey = staffMessageObjectKey(
         user.tenantId,
         messageId,
-        id,
+        fileId,
         file.name
       );
-      const buffer = new Uint8Array(await file.arrayBuffer());
-      await uploadObject(storageKey, buffer, mimeType);
-      uploadedFiles.push({
-        id,
+      const buffer = Buffer.from(await file.arrayBuffer());
+      await uploadObject(
         storageKey,
-        filename: file.name.trim(),
-        mimeType,
+        buffer,
+        file.type || "application/octet-stream"
+      );
+      uploadedKeys.push(storageKey);
+      uploaded.push({
+        id: fileId,
+        storageKey,
+        filename: file.name,
+        mimeType: file.type || "application/octet-stream",
         sizeBytes: file.size,
       });
     }
-  } catch (uploadError) {
-    await discardStaffMessageObjects(
-      user.tenantId,
-      messageId,
-      uploadedFiles.map((file) => file.storageKey)
-    );
-    const message =
-      uploadError instanceof Error && uploadError.message
-        ? uploadError.message
-        : "Datei konnte nicht hochgeladen werden.";
-    return { success: false as const, error: message };
-  }
 
-  // Legacy: bereits vorab hochgeladene Keys (Direkt-Upload), falls noch gesetzt
-  if (uploadedFiles.length === 0) {
-    const uploaded = parseUploadedFiles(
-      String(formData.get("uploadedFiles") ?? ""),
+    const result = await createStaffMessageRow(
       user.tenantId,
+      user.id,
+      parsed.input,
+      uploaded,
       messageId
     );
-    if (uploaded.error) {
-      return {
-        success: false as const,
-        error: uploaded.error,
-      };
+
+    if ("error" in result) {
+      await discardStaffMessageObjects(uploadedKeys);
+      return { success: false as const, error: result.error };
     }
-    if (uploaded.files) {
-      uploadedFiles.push(...uploaded.files);
-    }
+
+    revalidateStaffMessages();
+    return { success: true as const, message: result };
+  } catch {
+    await discardStaffMessageObjects(uploadedKeys);
+    return {
+      success: false as const,
+      error: "Auftrag konnte nicht gesendet werden.",
+    };
+  }
+}
+
+export async function markStaffMessageRead(messageId: string) {
+  const { error, user } = await requireStaffMessagesUser();
+  if (error || !user) {
+    return { success: false as const, error: error ?? "Nicht angemeldet." };
+  }
+  if (!isUuid(messageId)) {
+    return { success: false as const, error: "Ungültige Anfrage." };
   }
 
-  const result = await createStaffMessageRow(
+  const result = await markStaffMessageReadRow(
     user.tenantId,
     user.id,
-    parsed.input,
-    uploadedFiles,
     messageId
   );
-
-  if (result.error || !result.message) {
-    await discardStaffMessageObjects(
-      user.tenantId,
-      messageId,
-      uploadedFiles.map((file) => file.storageKey)
-    );
-    return {
-      success: false as const,
-      error: result.error ?? "Nachricht konnte nicht gesendet werden.",
-    };
+  if ("error" in result) {
+    return { success: false as const, error: result.error };
   }
-
   revalidateStaffMessages();
-  return { success: true as const, item: result.message };
+  return { success: true as const, message: result };
 }
 
-export async function markStaffMessageRead(id: string) {
+/** Übergeben */
+export async function handoffStaffMessage(formData: FormData) {
   const { error, user } = await requireStaffMessagesUser();
   if (error || !user) {
     return { success: false as const, error: error ?? "Nicht angemeldet." };
   }
 
-  const item = await markStaffMessageReadRow(user.tenantId, user.id, id);
-  if (!item) {
-    return { success: false as const, error: "Nachricht nicht gefunden." };
+  const messageId = String(formData.get("messageId") ?? "").trim();
+  const toBallHolderId = String(formData.get("toBallHolderId") ?? "").trim();
+  const intentRaw = String(formData.get("intent") ?? "").trim();
+  const commentRaw = String(formData.get("comment") ?? "").trim();
+
+  if (!isUuid(messageId) || !isUuid(toBallHolderId)) {
+    return { success: false as const, error: "Ungültige Anfrage." };
+  }
+  if (!isStaffMessageIntent(intentRaw)) {
+    return { success: false as const, error: "Bitte ein Vorgehen wählen." };
   }
 
-  revalidateStaffMessages();
-  return { success: true as const, item };
-}
-
-export async function setStaffMessageStatus(
-  id: string,
-  status: string,
-  note?: string
-) {
-  const { error, user } = await requireStaffMessagesUser();
-  if (error || !user) {
-    return { success: false as const, error: error ?? "Nicht angemeldet." };
-  }
-
-  if (!isStaffMessageStatus(status)) {
-    return { success: false as const, error: "Ungültiger Status." };
-  }
-
-  if (
-    !(STAFF_MESSAGE_INBOX_STATUSES as readonly string[]).includes(status)
-  ) {
-    return { success: false as const, error: "Ungültiger Status." };
-  }
-
-  const item = await setStaffMessageStatusRow(
+  const result = await handoffStaffMessageRow(
     user.tenantId,
     user.id,
-    id,
-    status,
-    note?.trim() || null
+    messageId,
+    {
+      toBallHolderId,
+      intent: intentRaw,
+      comment: commentRaw || null,
+    }
   );
-  if (!item) {
-    return {
-      success: false as const,
-      error:
-        "Status konnte nicht geändert werden. Nur der Empfänger kann den Status setzen.",
-    };
+
+  if ("error" in result) {
+    return { success: false as const, error: result.error };
   }
 
   revalidateStaffMessages();
-  return { success: true as const, item };
+  return { success: true as const, message: result };
 }
 
-export async function deleteStaffMessage(id: string) {
+/** Abschließen */
+export async function closeStaffMessage(formData: FormData) {
   const { error, user } = await requireStaffMessagesUser();
   if (error || !user) {
     return { success: false as const, error: error ?? "Nicht angemeldet." };
   }
 
-  if (!isUuid(id)) {
-    return { success: false as const, error: "Ungültige Nachricht." };
+  const messageId = String(formData.get("messageId") ?? "").trim();
+  const commentRaw = String(formData.get("comment") ?? "").trim();
+
+  if (!isUuid(messageId)) {
+    return { success: false as const, error: "Ungültige Anfrage." };
   }
 
-  const result = await deleteStaffMessageRow(user.tenantId, user.id, id);
-  if (!result.deleted) {
-    return {
-      success: false as const,
-      error: "Aufgabe konnte nicht gelöscht werden.",
-    };
+  const result = await closeStaffMessageRow(
+    user.tenantId,
+    user.id,
+    messageId,
+    commentRaw || null
+  );
+
+  if ("error" in result) {
+    return { success: false as const, error: result.error };
   }
 
-  if (result.storageKeys.length > 0) {
-    await discardStaffMessageObjects(
-      user.tenantId,
-      id,
-      result.storageKeys
-    );
+  revalidateStaffMessages();
+  return { success: true as const, message: result };
+}
+
+export async function deleteStaffMessage(messageId: string) {
+  const { error, user } = await requireStaffMessagesUser();
+  if (error || !user) {
+    return { success: false as const, error: error ?? "Nicht angemeldet." };
+  }
+  if (!isUuid(messageId)) {
+    return { success: false as const, error: "Ungültige Anfrage." };
   }
 
+  const result = await deleteStaffMessageRow(user.tenantId, user.id, messageId);
+  if ("error" in result) {
+    return { success: false as const, error: result.error };
+  }
+
+  await discardStaffMessageObjects(result.storageKeys);
   revalidateStaffMessages();
   return { success: true as const };
 }
 
 export async function getStaffMessageFileAccess(fileId: string) {
-  const user = await requireSessionUser();
-  if (!user) {
-    return { success: false as const, error: "Nicht angemeldet." };
+  const { error, user } = await requireStaffMessagesUser();
+  if (error || !user) {
+    return { success: false as const, error: error ?? "Nicht angemeldet." };
   }
-
-  const denied = await assertUserCanAccessAreaFunction(
-    user.id,
-    user.tenantId,
-    "staff-messages"
-  );
-  if (denied) {
-    return { success: false as const, error: denied };
+  if (!isUuid(fileId)) {
+    return { success: false as const, error: "Ungültige Anfrage." };
   }
 
   const file = await getStaffMessageFileById(user.tenantId, user.id, fileId);
@@ -489,5 +337,13 @@ export async function getStaffMessageFileAccess(fileId: string) {
     return { success: false as const, error: "Datei nicht gefunden." };
   }
 
-  return { success: true as const, file };
+  return {
+    success: true as const,
+    file: {
+      id: file.id,
+      storageKey: file.storageKey,
+      filename: file.filename,
+      mimeType: file.mimeType,
+    },
+  };
 }

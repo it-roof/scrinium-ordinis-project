@@ -126,7 +126,7 @@ export const FUNCTION_LABELS: Record<AreaFunctionId, string> = {
   letters: "Schreiben",
   docs: "Dokumentation",
   templates: "Vorlagen",
-  "staff-messages": "Nachricht an Mitarbeiter",
+  "staff-messages": "Auftrag an Mitarbeiter",
 };
 
 /** @deprecated relative Legacy-Pfade — nutze functionHref(area, id) */
@@ -267,7 +267,7 @@ export const NAV_HIDDEN_FUNCTION_IDS: AreaFunctionId[] = [
   "letters",
 ];
 
-/** Oben unter „Nachrichten“: Schreiben, Eingang, Gesendet. */
+/** Oben unter „Post“: Auftrag schreiben, Eingang, Gesendet. */
 export const PINNED_FUNCTION_IDS: AreaFunctionId[] = [
   "staff-messages",
   "inbox",
@@ -282,7 +282,7 @@ export type NavGroup = {
 
 /** Sidebar-Labels, die vom allgemeinen Funktionsnamen abweichen. */
 const SIDEBAR_FUNCTION_LABELS: Partial<Record<AreaFunctionId, string>> = {
-  "staff-messages": "Nachricht schreiben",
+  "staff-messages": "Auftrag schreiben",
 };
 
 function navItemForFunction(
@@ -352,7 +352,7 @@ export function navigationGroupsForArea(
   const groups: NavGroup[] = [];
   groups.push({ label: "", items: [startItem] });
   if (nachrichtenItems.length > 0) {
-    groups.push({ label: "Nachrichten", items: nachrichtenItems });
+    groups.push({ label: "Post", items: nachrichtenItems });
   }
   if (toolItems.length > 0) {
     groups.push({ label: "Funktionen", items: toolItems });

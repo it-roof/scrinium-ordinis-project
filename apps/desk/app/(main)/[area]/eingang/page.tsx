@@ -1,7 +1,7 @@
-import { InboxView } from "@/components/inbox/inbox-view";
+import { AuftragInboxView } from "@/components/auftraege/auftrag-inbox-view";
 import { requireAreaFunction } from "@/lib/area/require-function";
 import { isStaffMessagePriority } from "@/lib/staff-messages/types";
-import { listOpenStaffMessagesForRecipient } from "@/lib/staff-messages/storage";
+import { listBallInbox } from "@/lib/staff-messages/storage";
 
 export const dynamic = "force-dynamic";
 
@@ -34,11 +34,7 @@ export default async function AreaInboxPage({
     message: messageRaw,
   } = await searchParams;
   const { area, user } = await requireAreaFunction(areaSlug, "inbox");
-  const receivedMessages = await listOpenStaffMessagesForRecipient(
-    user.tenantId,
-    user.id,
-    area
-  );
+  const messages = await listBallInbox(user.tenantId, user.id, area);
   const initialPriority =
     priorityRaw && isStaffMessagePriority(priorityRaw) ? priorityRaw : null;
   const initialFilter = parseInboxFilter(filterRaw);
@@ -50,9 +46,9 @@ export default async function AreaInboxPage({
       : null;
 
   return (
-    <InboxView
+    <AuftragInboxView
       mailbox="eingang"
-      receivedMessages={receivedMessages}
+      messages={messages}
       currentUserId={user.id}
       initialPriority={initialPriority}
       initialFilter={initialFilter}

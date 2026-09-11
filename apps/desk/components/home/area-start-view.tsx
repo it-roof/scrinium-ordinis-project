@@ -49,26 +49,10 @@ import {
 import { functionHref } from "@/lib/area/paths";
 import { APP_MODULES, type AppModuleId } from "@/lib/modules";
 import type { StaffDashboardLists, StaffDashboardStats, StaffDashboardPreviewItem } from "@/lib/staff-messages/storage";
-import { priorityLabel } from "@/lib/staff-messages/types";
-import type { StaffMessagePriority } from "@/lib/db/schema";
+import { priorityBadgeClass, priorityLabel } from "@/lib/staff-messages/types";
 import { cn } from "@/lib/utils";
 
 type DeskView = "quick" | "all";
-
-function priorityBadgeClass(priority: StaffMessagePriority): string {
-  switch (priority) {
-    case "sofort":
-      return "border-rose-500/40 bg-rose-500/10 text-rose-950 dark:text-rose-100";
-    case "heute":
-      return "border-amber-500/40 bg-amber-500/10 text-amber-950 dark:text-amber-100";
-    case "diese_woche":
-      return "border-sky-500/40 bg-sky-500/10 text-sky-950 dark:text-sky-100";
-    case "andere":
-      return "border-violet-500/40 bg-violet-500/10 text-violet-950 dark:text-violet-100";
-    default:
-      return "border-border/70 bg-muted/50 text-foreground";
-  }
-}
 
 function bodySnippet(body: string): string {
   const compact = body.replace(/\s+/g, " ").trim();
@@ -342,7 +326,7 @@ const DASHBOARD_CARDS: {
   },
   {
     key: "unread",
-    label: "Nachrichten",
+    label: "Aufträge",
     valueSuffix: "ungelesen",
     hrefSuffix: "?unread=1",
     icon: MailIcon,
@@ -690,8 +674,8 @@ export function AreaStartView({
 
           {isSecretary ? (
             <FeatureSection
-              title="Nachrichten"
-              description="Eingang, Verlauf und neue Nachrichten"
+              title="Post"
+              description="Schreiben, Eingang und Gesendet"
               area={area}
               functionIds={secretaryNachrichtenIds}
               titleForFunction={(functionId) =>
@@ -700,8 +684,8 @@ export function AreaStartView({
             />
           ) : (
             <FeatureSection
-              title="Kommunikation"
-              description="Nachrichten und Aufträge an Mitarbeiter"
+              title="Post"
+              description="Aufträge an Mitarbeiter"
               area={area}
               functionIds={lawyerKommunikationIds}
             />

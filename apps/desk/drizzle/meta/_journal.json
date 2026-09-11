@@ -351,6 +351,20 @@
       "when": 1788487140409,
       "tag": "0049_light_madame_hydra",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1788500000000,
+      "tag": "0050_staff_auftrag_ball_intent",
+      "breakpoints": true
+    },
+    {
+      "idx": 51,
+      "version": "7",
+      "when": 1788501000000,
+      "tag": "0051_staff_message_matter",
+      "breakpoints": true
     }
   ]
 }

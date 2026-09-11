@@ -6,19 +6,19 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 App: **`apps/desk`** (Scrinium Ordinis — Kanzlei-Werkzeug). Monorepo-Hinweise: Root [`AGENTS.md`](../../AGENTS.md).
 
-## Interne Nachrichten (V1)
+## Interne Aufträge (Laufzettel)
 
-**Prinzip:** Einseitige Nachricht + optionaler Kommentar bei Statusänderung.  
-Kein Messenger — Telefon für Absprachen, Nachrichten für Aufgaben und Ergebnisse.
+**Prinzip:** Ball + Absicht. Verben: Anlegen · Übergeben · Abschließen.  
+Kein Messenger — Telefon für Absprachen, Auftrag für Ergebnis und Prüfschleifen.
 
-- Persistenz: `staff_messages` (+ Dateien; Kommentare in `staff_message_replies`)
-- Absender setzt **Priorität** (Sofort / Heute / Diese Woche / Keine) und Inhalt
-- Empfänger setzt **Status** frei: Offen · In Bearbeitung · Erledigt (+ optional Kommentar)
-- **Eingang** (`/…/eingang`): Nachrichten an mich
-- **Gesendet** (`/…/gesendet`): von mir gesendet — Status und Kommentare lesen
-- Sidebar **Nachrichten**: Nachricht schreiben · Eingang · Gesendet
-- Rückfrage / neue Richtung = **neue** Nachricht
-- Verfassen: `nachrichten-an-mitarbeiter` · Modul: [`lib/staff-messages/`](lib/staff-messages/)
+- Persistenz: `staff_messages` (+ Dateien; Protokoll in `staff_message_events`; optional `matter_id`)
+- Absender setzt **Priorität** und Inhalt; Ball geht an eine Person mit **Absicht** (Erledigen / Prüfen / Kenntnis / Warten)
+- **Akte** optional (empfohlen), bereichsbezogen
+- **Eingang** (`/…/eingang`): Ball bei mir
+- **Gesendet** (`/…/gesendet`): von mir angelegt oder zuletzt von mir übergeben
+- Sidebar **Post**: Auftrag schreiben · Eingang · Gesendet
+- Prüfschleife = Übergeben auf derselben Karte
+- Modul: [`lib/staff-messages/`](lib/staff-messages/) · UI: [`components/auftraege/`](components/auftraege/)
 
 ## Datenbank (Drizzle)
 

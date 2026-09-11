@@ -1,6 +1,6 @@
-import { InboxView } from "@/components/inbox/inbox-view";
+import { AuftragInboxView } from "@/components/auftraege/auftrag-inbox-view";
 import { requireAreaFunction } from "@/lib/area/require-function";
-import { listStaffMessagesForSender } from "@/lib/staff-messages/storage";
+import { listBallSent } from "@/lib/staff-messages/storage";
 
 export const dynamic = "force-dynamic";
 
@@ -11,16 +11,12 @@ type PageProps = {
 export default async function AreaSentPage({ params }: PageProps) {
   const { area: areaSlug } = await params;
   const { area, user } = await requireAreaFunction(areaSlug, "inbox-sent");
-  const delegatedMessages = await listStaffMessagesForSender(
-    user.tenantId,
-    user.id,
-    area
-  );
+  const messages = await listBallSent(user.tenantId, user.id, area);
 
   return (
-    <InboxView
+    <AuftragInboxView
       mailbox="gesendet"
-      delegatedMessages={delegatedMessages}
+      messages={messages}
       currentUserId={user.id}
     />
   );

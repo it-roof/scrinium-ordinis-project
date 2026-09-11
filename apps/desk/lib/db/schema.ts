@@ -50,7 +50,7 @@ export const letterStatusEnum = pgEnum("letter_status", [
   "versendet",
 ]);
 
-/** Priorität interner Mitarbeiter-Nachrichten. */
+/** Priorität interner Aufträge (Absender setzt). */
 export const staffMessagePriorityEnum = pgEnum("staff_message_priority", [
   "sofort",
   "heute",
@@ -59,11 +59,19 @@ export const staffMessagePriorityEnum = pgEnum("staff_message_priority", [
   "andere",
 ]);
 
-/** Status: Empfänger führt den Stand (V1). */
-export const staffMessageStatusEnum = pgEnum("staff_message_status", [
-  "offen",
-  "in_bearbeitung",
-  "erledigt",
+/** Absicht: wozu der Ball bei der Person liegt. */
+export const staffMessageIntentEnum = pgEnum("staff_message_intent", [
+  "erledigen",
+  "pruefen",
+  "kenntnis",
+  "warten",
+]);
+
+/** Protokoll-Ereignis (schlanke History). */
+export const staffMessageEventKindEnum = pgEnum("staff_message_event_kind", [
+  "angelegt",
+  "uebergeben",
+  "abgeschlossen",
 ]);
 
 /** Eine Kanzlei = ein Tenant auf der Multi-Tenant-Plattform. */
@@ -645,9 +653,8 @@ export const letters = pgTable(
 );
 
 /**
- * Interne Kanzlei-Aufgabe an eine Kollegin / einen Kollegen.
- * UI-Bezeichnung: „Nachricht“ / „Nachricht an Mitarbeiter“.
- * Domain: immer Aufgabe (Status, Priorität, Fälligkeit) — keine separate Message-Entität.
+ * Interner Auftrag (Laufzettel): Ball + Absicht, kein Chat.
+ * DB-Spalten sender_id / recipient_id = createdBy / ballHolder (bestehende Namen).
  */
 export const staffMessages = pgTable(
   "staff_messages",
@@ -656,38 +663,51 @@ export const staffMessages = pgTable(
     tenantId: uuid("tenant_id")
       .notNull()
       .references(() => tenants.id, { onDelete: "cascade" }),
-    /** Bereich, aus dem die Aufgabe angelegt wurde. */
+    /** Bereich, aus dem der Auftrag angelegt wurde. */
     module: moduleEnum("module").notNull().default("general"),
-    senderId: uuid("sender_id")
+    /** Wer den Auftrag angelegt hat. */
+    createdById: uuid("sender_id")
       .notNull()
       .references(() => users.id, { onDelete: "restrict" }),
-    recipientId: uuid("recipient_id")
+    /** Wer den Ball hat (dran ist). */
+    ballHolderId: uuid("recipient_id")
       .notNull()
       .references(() => users.id, { onDelete: "restrict" }),
+    /** Vorheriger Ballhalter — Default-Ziel beim Übergeben. */
+    previousBallHolderId: uuid("previous_ball_holder_id").references(
+      () => users.id,
+      { onDelete: "set null" }
+    ),
     /** Preset-Key oder `custom`. */
     topicKey: text("topic_key").notNull(),
-    /** Anzeigethema (Preset-Label oder Freitext). */
+    /** Betreff (Preset-Label oder Freitext). */
     topic: text("topic").notNull(),
     priority: staffMessagePriorityEnum("priority").notNull().default("keine"),
-    /** Optional: bis wann die Aufgabe erledigt sein soll. */
+    /** Optional: bis wann. */
     dueDate: date("due_date", { mode: "string" }),
-    status: staffMessageStatusEnum("status").notNull().default("offen"),
+    intent: staffMessageIntentEnum("intent").notNull().default("erledigen"),
     body: text("body").notNull(),
+    /** Optionaler Aktenbezug (empfohlen, nicht Pflicht). */
+    matterId: uuid("matter_id").references(() => matters.id, {
+      onDelete: "set null",
+    }),
     readAt: timestamp("read_at", { withTimezone: true, mode: "string" }),
-    completedAt: timestamp("completed_at", { withTimezone: true, mode: "string" }),
+    /** Gesetzt = abgeschlossen; null = offen. */
+    closedAt: timestamp("completed_at", { withTimezone: true, mode: "string" }),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
       .notNull()
       .defaultNow(),
   },
   (table) => ({
     tenantIdIdx: index("staff_messages_tenant_id_idx").on(table.tenantId),
-    recipientIdx: index("staff_messages_recipient_idx").on(table.recipientId),
-    senderIdx: index("staff_messages_sender_idx").on(table.senderId),
-    statusIdx: index("staff_messages_status_idx").on(table.status),
+    ballHolderIdx: index("staff_messages_recipient_idx").on(table.ballHolderId),
+    createdByIdx: index("staff_messages_sender_idx").on(table.createdById),
+    closedAtIdx: index("staff_messages_closed_at_idx").on(table.closedAt),
+    matterIdIdx: index("staff_messages_matter_id_idx").on(table.matterId),
   })
 );
 
-/** Domain-Alias: Tabelle speichert Aufgaben (UI: Nachrichten). */
+/** Domain-Alias. */
 export const staffTasks = staffMessages;
 
 export const staffMessageFiles = pgTable("staff_message_files", {
@@ -710,8 +730,9 @@ export const staffMessageFiles = pgTable("staff_message_files", {
     .defaultNow(),
 });
 
-export const staffMessageReplies = pgTable(
-  "staff_message_replies",
+/** Schlankes Übergabe-/Abschluss-Protokoll. */
+export const staffMessageEvents = pgTable(
+  "staff_message_events",
   {
     id: uuid("id").primaryKey().defaultRandom(),
     tenantId: uuid("tenant_id")
@@ -720,17 +741,25 @@ export const staffMessageReplies = pgTable(
     messageId: uuid("message_id")
       .notNull()
       .references(() => staffMessages.id, { onDelete: "cascade" }),
-    authorId: uuid("author_id")
+    kind: staffMessageEventKindEnum("kind").notNull(),
+    actorId: uuid("actor_id")
       .notNull()
       .references(() => users.id, { onDelete: "restrict" }),
-    body: text("body").notNull(),
+    fromBallHolderId: uuid("from_ball_holder_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    toBallHolderId: uuid("to_ball_holder_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    intent: staffMessageIntentEnum("intent"),
+    comment: text("comment"),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
       .notNull()
       .defaultNow(),
   },
   (table) => ({
-    tenantIdIdx: index("staff_message_replies_tenant_id_idx").on(table.tenantId),
-    messageIdIdx: index("staff_message_replies_message_id_idx").on(
+    tenantIdIdx: index("staff_message_events_tenant_id_idx").on(table.tenantId),
+    messageIdIdx: index("staff_message_events_message_id_idx").on(
       table.messageId
     ),
   })
@@ -751,8 +780,10 @@ export type ClientPerson = typeof clientPersons.$inferSelect;
 export type Matter = typeof matters.$inferSelect;
 export type StaffMessage = typeof staffMessages.$inferSelect;
 export type StaffMessageFile = typeof staffMessageFiles.$inferSelect;
-export type StaffMessageReply = typeof staffMessageReplies.$inferSelect;
+export type StaffMessageEvent = typeof staffMessageEvents.$inferSelect;
 export type StaffMessagePriority =
   (typeof staffMessagePriorityEnum.enumValues)[number];
-export type StaffMessageStatus =
-  (typeof staffMessageStatusEnum.enumValues)[number];
+export type StaffMessageIntent =
+  (typeof staffMessageIntentEnum.enumValues)[number];
+export type StaffMessageEventKind =
+  (typeof staffMessageEventKindEnum.enumValues)[number];
