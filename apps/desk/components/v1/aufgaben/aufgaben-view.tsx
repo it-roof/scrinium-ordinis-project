@@ -15,6 +15,7 @@ import {
   InboxIcon,
   ListFilterIcon,
   MicIcon,
+  PaperclipIcon,
   RotateCcwIcon,
   SearchIcon,
   SendIcon,
@@ -451,24 +452,6 @@ export function V1AufgabenView({
                   </DropdownMenuRadioItem>
                 </DropdownMenuRadioGroup>
                 <DropdownMenuSeparator />
-                <DropdownMenuLabel>Lesen</DropdownMenuLabel>
-                <DropdownMenuRadioGroup
-                  value={unreadOnly ? "unread" : "all"}
-                  onValueChange={(value) => {
-                    setUnreadOnly(value === "unread");
-                    if (value === "unread") {
-                      setFilter("offen");
-                    }
-                  }}
-                >
-                  <DropdownMenuRadioItem value="all">
-                    Alle
-                  </DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="unread">
-                    Nur ungelesen
-                  </DropdownMenuRadioItem>
-                </DropdownMenuRadioGroup>
-                <DropdownMenuSeparator />
                 <DropdownMenuLabel>Priorität</DropdownMenuLabel>
                 <DropdownMenuRadioGroup
                   value={priorityFilter}
@@ -699,17 +682,30 @@ export function V1AufgabenView({
                 {selected.files.length > 0 ? (
                   <div className="space-y-2">
                     <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                      Anhänge
+                      Dokumente
                     </h3>
-                    <ul className="space-y-1.5">
+                    <ul className="flex flex-wrap gap-2">
                       {selected.files.map((file) => (
                         <li key={file.id}>
-                          <a
-                            href={`/api/staff-messages/files/${file.id}?download=1`}
-                            className="text-sm text-foreground underline-offset-2 hover:underline"
+                          <Button
+                            asChild
+                            variant="outline"
+                            size="sm"
+                            className="h-9 max-w-full gap-2 rounded-lg border-border/80 bg-background px-3 shadow-none"
                           >
-                            {file.filename}
-                          </a>
+                            <a
+                              href={`/api/staff-messages/files/${file.id}?download=1`}
+                              title={file.filename}
+                            >
+                              <PaperclipIcon
+                                className="size-3.5 shrink-0 text-muted-foreground"
+                                aria-hidden
+                              />
+                              <span className="min-w-0 truncate">
+                                {file.filename}
+                              </span>
+                            </a>
+                          </Button>
                         </li>
                       ))}
                     </ul>
