@@ -1,12 +1,10 @@
-import { redirectLegacyFunction } from "@/lib/area/require-function";
-
-export const dynamic = "force-dynamic";
+import { redirect } from "next/navigation";
 
 type PageProps = {
   params: Promise<{ id: string }>;
 };
 
-export default async function LegacyLetterEditRedirect({ params }: PageProps) {
-  const { id } = await params;
-  await redirectLegacyFunction("letters", `/schreiben/${id}/bearbeiten`);
+export default async function LegacySchreibenEditRedirect({ params }: PageProps) {
+  await params;
+  redirect("/v1/dashboard");
 }

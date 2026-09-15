@@ -18,6 +18,8 @@ import {
   handoffStaffMessageRow,
   listStaffColleagues,
   markStaffMessageReadRow,
+  markStaffMessageUnreadRow,
+  reopenStaffMessageRow,
   staffMessageObjectKey,
 } from "./storage";
 import {
@@ -102,7 +104,7 @@ function parseCreateForm(formData: FormData):
   }
 
   if (!areaOwnsFunction(moduleRaw, "staff-messages")) {
-    return { error: "Aufträge sind in diesem Bereich nicht verfügbar." };
+    return { error: "Aufgaben sind in diesem Bereich nicht verfügbar." };
   }
 
   if (matterIdRaw && !isUuid(matterIdRaw)) {
@@ -211,7 +213,7 @@ export async function createStaffMessage(formData: FormData) {
     await discardStaffMessageObjects(uploadedKeys);
     return {
       success: false as const,
-      error: "Auftrag konnte nicht gesendet werden.",
+      error: "Aufgabe konnte nicht zugewiesen werden.",
     };
   }
 }
@@ -226,6 +228,27 @@ export async function markStaffMessageRead(messageId: string) {
   }
 
   const result = await markStaffMessageReadRow(
+    user.tenantId,
+    user.id,
+    messageId
+  );
+  if ("error" in result) {
+    return { success: false as const, error: result.error };
+  }
+  revalidateStaffMessages();
+  return { success: true as const, message: result };
+}
+
+export async function markStaffMessageUnread(messageId: string) {
+  const { error, user } = await requireStaffMessagesUser();
+  if (error || !user) {
+    return { success: false as const, error: error ?? "Nicht angemeldet." };
+  }
+  if (!isUuid(messageId)) {
+    return { success: false as const, error: "Ungültige Anfrage." };
+  }
+
+  const result = await markStaffMessageUnreadRow(
     user.tenantId,
     user.id,
     messageId
@@ -296,6 +319,29 @@ export async function closeStaffMessage(formData: FormData) {
     commentRaw || null
   );
 
+  if ("error" in result) {
+    return { success: false as const, error: result.error };
+  }
+
+  revalidateStaffMessages();
+  return { success: true as const, message: result };
+}
+
+/** Wieder öffnen */
+export async function reopenStaffMessage(messageId: string) {
+  const { error, user } = await requireStaffMessagesUser();
+  if (error || !user) {
+    return { success: false as const, error: error ?? "Nicht angemeldet." };
+  }
+  if (!isUuid(messageId)) {
+    return { success: false as const, error: "Ungültige Anfrage." };
+  }
+
+  const result = await reopenStaffMessageRow(
+    user.tenantId,
+    user.id,
+    messageId
+  );
   if ("error" in result) {
     return { success: false as const, error: result.error };
   }

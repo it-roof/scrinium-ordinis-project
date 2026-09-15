@@ -30,8 +30,8 @@ export function MessagesOverviewView({ messages, currentUserId }: Props) {
   return (
     <div className="space-y-6 px-4 py-8">
       <PageHeader
-        title="Aufträge — Übersicht"
-        description="Alle Aufträge, an denen du beteiligt bist."
+        title="Aufgaben — Übersicht"
+        description="Alle Aufgaben, an denen du beteiligt bist."
       />
 
       <div className="flex gap-2">
@@ -60,7 +60,7 @@ export function MessagesOverviewView({ messages, currentUserId }: Props) {
       <ul className="divide-y border border-border">
         {filtered.length === 0 ? (
           <li className="px-4 py-8 text-sm text-muted-foreground">
-            Keine Aufträge.
+            Keine Aufgaben.
           </li>
         ) : (
           filtered.map((message) => {

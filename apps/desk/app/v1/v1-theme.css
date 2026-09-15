@@ -1,0 +1,163 @@
+/**
+ * v1 Theme — dunkle Sidebar, rechter Bereich als warmes Papierweiß.
+ * Nur unter .v1-shell.
+ */
+.v1-shell {
+  --spacing: 0.25rem;
+  --radius: 0.75rem;
+
+  /* Papierweiß — warm, angenehm zum Dunkelblau der Sidebar */
+  --background: oklch(0.991 0.005 95);
+  --foreground: oklch(0.22 0.045 258);
+  --card: oklch(1 0.002 95);
+  --card-foreground: oklch(0.22 0.045 258);
+  --popover: oklch(1 0.002 95);
+  --popover-foreground: oklch(0.22 0.045 258);
+  --primary: oklch(0.32 0.075 250);
+  --primary-foreground: oklch(0.991 0.005 95);
+  --secondary: oklch(0.965 0.008 95);
+  --secondary-foreground: oklch(0.3 0.05 250);
+  --muted: oklch(0.965 0.007 95);
+  --muted-foreground: oklch(0.48 0.03 258);
+  --accent: oklch(0.96 0.01 95);
+  --accent-foreground: oklch(0.28 0.05 250);
+  --destructive: oklch(0.55 0.2 25);
+  --destructive-foreground: oklch(0.97 0.01 17);
+  --border: oklch(0.9 0.01 95);
+  --input: oklch(0.935 0.008 95);
+  --ring: oklch(0.55 0.07 250);
+
+  --chart-1: oklch(0.58 0.1 250);
+  --chart-2: oklch(0.68 0.1 85);
+  --chart-3: oklch(0.58 0.08 185);
+  --chart-4: oklch(0.52 0.09 230);
+  --chart-5: oklch(0.45 0.06 258);
+
+  --sidebar: oklch(0.2 0.045 258);
+  --sidebar-foreground: oklch(0.93 0.012 95);
+  --sidebar-primary: oklch(0.78 0.1 82);
+  --sidebar-primary-foreground: oklch(0.2 0.045 258);
+  --sidebar-accent: oklch(0.27 0.05 245);
+  --sidebar-accent-foreground: oklch(0.96 0.01 95);
+  --sidebar-border: oklch(0.3 0.04 258);
+  --sidebar-ring: oklch(0.78 0.1 82);
+
+  --font-sans: var(--font-rga), ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-rgo), var(--font-rga), ui-sans-serif, system-ui,
+    sans-serif;
+
+  --v1-shadow-soft: 0 1px 2px oklch(0.2 0.045 258 / 0.04),
+    0 8px 24px oklch(0.2 0.045 258 / 0.05);
+  --v1-shadow-lift: 0 2px 4px oklch(0.2 0.045 258 / 0.05),
+    0 16px 40px oklch(0.2 0.045 258 / 0.09);
+  --v1-paper-shadow: 0 1px 2px oklch(0.2 0.045 258 / 0.06),
+    0 12px 32px oklch(0.2 0.045 258 / 0.12);
+
+  color-scheme: light;
+  min-height: 100svh;
+  background: var(--sidebar);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+}
+
+.v1-shell,
+.v1-shell * {
+  border-color: var(--border);
+}
+
+.v1-shell [data-v1-accent-border="rose"] {
+  border-left-color: oklch(0.62 0.2 25);
+}
+.v1-shell [data-v1-accent-border="amber"] {
+  border-left-color: oklch(0.72 0.18 75);
+}
+.v1-shell [data-v1-accent-border="sky"] {
+  border-left-color: oklch(0.62 0.16 230);
+}
+.v1-shell [data-v1-accent-border="emerald"] {
+  border-left-color: oklch(0.62 0.16 160);
+}
+.v1-shell [data-v1-accent-border="prompts"] {
+  border-left-color: oklch(0.55 0.18 295);
+}
+
+/* Rechter Bereich = Papierblatt auf dem Dunkelblau */
+.v1-shell [data-slot="sidebar-inset"] {
+  background: var(--background);
+  box-shadow: var(--v1-paper-shadow);
+}
+
+@keyframes v1-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Einheitlicher Entrance: kurzer Fade, kein Move, kein Stagger */
+.v1-shell .v1-fade,
+.v1-shell .v1-rise,
+.v1-shell .v1-prompt-reveal {
+  animation: v1-fade 0.25s ease-out both;
+}
+
+/* Toasts im v1-Look (Card, weicher Schatten, kein richColors-Bunt) */
+.v1-shell [data-sonner-toaster] {
+  font-family: var(--font-sans);
+}
+
+.v1-shell [data-sonner-toast].v1-toast {
+  border: 1px solid color-mix(in oklch, var(--border) 80%, transparent) !important;
+  background: var(--card) !important;
+  color: var(--card-foreground) !important;
+  border-radius: var(--radius) !important;
+  box-shadow: var(--v1-shadow-soft) !important;
+  padding: 0.75rem 1rem;
+  gap: 0.625rem;
+}
+
+.v1-shell [data-sonner-toast] [data-title],
+.v1-shell [data-sonner-toast] .v1-toast-title {
+  font-size: 0.875rem !important;
+  font-weight: 500 !important;
+  letter-spacing: -0.01em;
+  color: var(--card-foreground) !important;
+}
+
+.v1-shell [data-sonner-toast] [data-description],
+.v1-shell [data-sonner-toast] .v1-toast-description {
+  font-size: 0.875rem !important;
+  color: var(--muted-foreground) !important;
+}
+
+.v1-shell [data-sonner-toast].v1-toast-success {
+  border-color: color-mix(in oklch, oklch(0.72 0.08 155) 55%, var(--border)) !important;
+  background: color-mix(in oklch, oklch(0.97 0.02 155) 70%, var(--card)) !important;
+}
+
+.v1-shell [data-sonner-toast].v1-toast-success [data-icon] {
+  color: oklch(0.52 0.11 155);
+}
+
+.v1-shell [data-sonner-toast].v1-toast-success [data-title],
+.v1-shell [data-sonner-toast].v1-toast-success .v1-toast-title {
+  color: oklch(0.38 0.06 155) !important;
+}
+
+.v1-shell [data-sonner-toast].v1-toast-error [data-icon] {
+  color: var(--destructive);
+}
+
+.v1-shell [data-sonner-toast].v1-toast-warning [data-icon] {
+  color: oklch(0.55 0.14 75);
+}
+
+/*
+ * Root-Toaster ausblenden, solange v1 aktiv ist.
+ * Sonner wrappt in <section>; data-sonner-toaster sitzt auf dem inneren <ol>.
+ */
+body:has(.v1-shell) > section:has([data-sonner-toaster]) {
+  display: none !important;
+}

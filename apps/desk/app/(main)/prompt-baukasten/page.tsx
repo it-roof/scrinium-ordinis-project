@@ -1,5 +1,5 @@
-import { redirectLegacyFunction } from "@/lib/area/require-function";
+import { redirect } from "next/navigation";
 
-export default async function LegacyPromptKitPage() {
-  await redirectLegacyFunction("prompt-kit", "/prompt-baukasten");
+export default function LegacyPromptKitRedirect() {
+  redirect("/v1/dashboard");
 }

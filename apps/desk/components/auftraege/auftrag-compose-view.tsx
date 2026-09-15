@@ -345,7 +345,7 @@ export function AuftragComposeView({
       if (matterId) {
         recordMatterUse(currentUserId, matterId);
       }
-      toast.success("Auftrag gesendet.");
+      toast.success("Aufgabe zugewiesen.");
       router.push(functionHref(module, "inbox-sent"));
       router.refresh();
     });
@@ -354,7 +354,7 @@ export function AuftragComposeView({
   return (
     <div className="mx-auto w-full max-w-2xl space-y-6 px-4 py-8">
       <h1 className="font-heading text-3xl font-medium tracking-tight">
-        Auftrag schreiben
+        Aufgabe zuweisen
       </h1>
 
       <form onSubmit={onSubmit} className="space-y-6">

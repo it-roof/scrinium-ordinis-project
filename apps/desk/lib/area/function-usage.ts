@@ -80,7 +80,7 @@ function compareByUsage(
 
 /**
  * Feste Schnellzugriff-Karten für Rechtsanwalt (Reihenfolge fix).
- * inbox wird als „Eingang“ gelabelt und führt zum Eingang.
+ * inbox wird als „Meine Aufgaben“ gelabelt und führt zur Aufgabenliste.
  */
 export const LAWYER_QUICK_VIEW_FUNCTION_IDS: AreaFunctionId[] = [
   "prompts",
@@ -89,7 +89,7 @@ export const LAWYER_QUICK_VIEW_FUNCTION_IDS: AreaFunctionId[] = [
 ];
 
 /**
- * Priorität für Sekretariat-Schnellzugriff (Fallback ohne Nutzungsdaten).
+ * Priorität für Sekretär(in)-Schnellzugriff (Fallback ohne Nutzungsdaten).
  * Es werden max. QUICK_VIEW_FUNCTION_LIMIT Karten aus allen verfügbaren Funktionen.
  */
 export const SECRETARY_QUICK_VIEW_FALLBACK_IDS: AreaFunctionId[] = [
@@ -98,7 +98,6 @@ export const SECRETARY_QUICK_VIEW_FALLBACK_IDS: AreaFunctionId[] = [
   "clients",
   "matters",
   "text-blocks",
-  "letters",
 ];
 
 /**
@@ -138,7 +137,7 @@ export function buildLawyerQuickViewFunctionIds(
   return LAWYER_QUICK_VIEW_FUNCTION_IDS.filter((id) => available.has(id));
 }
 
-/** Sekretariat: genau 6 Karten aus allen verfügbaren Funktionen (ohne Verlauf). */
+/** Sekretär(in): genau 6 Karten aus allen verfügbaren Funktionen (ohne Verlauf). */
 export function buildSecretaryQuickViewFunctionIds(
   available: ReadonlySet<AreaFunctionId>,
   usage: Record<string, number>

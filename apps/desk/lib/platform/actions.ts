@@ -303,7 +303,7 @@ export async function createTenantUserAction(input: {
   if (!deskRole) {
     return {
       success: false as const,
-      error: "Bitte eine Position wählen (Rechtsanwalt oder Sekretariat).",
+      error: "Bitte eine Position wählen (Rechtsanwalt oder Sekretär(in)).",
     };
   }
 
@@ -399,7 +399,7 @@ export async function updateTenantUserAction(input: {
   if (!deskRole) {
     return {
       success: false as const,
-      error: "Bitte eine Position wählen (Rechtsanwalt oder Sekretariat).",
+      error: "Bitte eine Position wählen (Rechtsanwalt oder Sekretär(in)).",
     };
   }
 

@@ -23,9 +23,11 @@ import { Textarea } from "@/components/ui/textarea";
 export function MatterDetailView({
   matter,
   letters,
+  showLetters = true,
 }: {
   matter: MatterRecord;
   letters: LetterRecord[];
+  showLetters?: boolean;
 }) {
   const router = useRouter();
   const basePath = useAreaBasePath() ?? "";
@@ -72,12 +74,14 @@ export function MatterDetailView({
           reference ? ` · ${reference}` : ""
         }`}
       >
-        <Button asChild className="h-10 rounded-none px-4">
-          <Link href={`${basePath}/schreiben/neu?matter=${matter.id}`}>
-            <PlusIcon data-icon="inline-start" />
-            Schreiben
-          </Link>
-        </Button>
+        {showLetters ? (
+          <Button asChild className="h-10 rounded-none px-4">
+            <Link href={`${basePath}/schreiben/neu?matter=${matter.id}`}>
+              <PlusIcon data-icon="inline-start" />
+              Schreiben
+            </Link>
+          </Button>
+        ) : null}
       </PageHeader>
 
       <form onSubmit={handleSave} className="surface-card space-y-4 p-6">
@@ -122,36 +126,38 @@ export function MatterDetailView({
         </Button>
       </form>
 
-      <section className="space-y-4">
-        <h2 className="font-heading text-xl font-medium tracking-tight">
-          Dokumente
-        </h2>
-        {letters.length === 0 ? (
-          <div className="surface-card border-dashed p-8 text-center text-sm text-muted-foreground">
-            Noch keine Schreiben in dieser Akte.
-          </div>
-        ) : (
-          <ul className="space-y-3">
-            {letters.map((letter) => (
-              <li key={letter.id} className="surface-card space-y-1 p-5">
-                <Link
-                  href={`${basePath}/schreiben/${letter.id}/bearbeiten`}
-                  className="font-heading text-lg font-medium tracking-tight hover:underline"
-                >
-                  {letter.title}
-                </Link>
-                <p className="text-sm text-muted-foreground">
-                  {LETTER_KIND_LABELS[letter.kind]} ·{" "}
-                  {LETTER_STATUS_LABELS[letter.status]}
-                  {letter.assignedToName
-                    ? ` · ${letter.assignedToName}`
-                    : ""}
-                </p>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+      {showLetters ? (
+        <section className="space-y-4">
+          <h2 className="font-heading text-xl font-medium tracking-tight">
+            Dokumente
+          </h2>
+          {letters.length === 0 ? (
+            <div className="surface-card border-dashed p-8 text-center text-sm text-muted-foreground">
+              Noch keine Schreiben in dieser Akte.
+            </div>
+          ) : (
+            <ul className="space-y-3">
+              {letters.map((letter) => (
+                <li key={letter.id} className="surface-card space-y-1 p-5">
+                  <Link
+                    href={`${basePath}/schreiben/${letter.id}/bearbeiten`}
+                    className="font-heading text-lg font-medium tracking-tight hover:underline"
+                  >
+                    {letter.title}
+                  </Link>
+                  <p className="text-sm text-muted-foreground">
+                    {LETTER_KIND_LABELS[letter.kind]} ·{" "}
+                    {LETTER_STATUS_LABELS[letter.status]}
+                    {letter.assignedToName
+                      ? ` · ${letter.assignedToName}`
+                      : ""}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      ) : null}
     </div>
   );
 }

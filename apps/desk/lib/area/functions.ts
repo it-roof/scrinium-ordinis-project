@@ -112,7 +112,7 @@ export const FUNCTIONS_BY_AREA: Record<AppModuleId, AreaFunctionId[]> = {
 };
 
 export const FUNCTION_LABELS: Record<AreaFunctionId, string> = {
-  inbox: "Eingang",
+  inbox: "Meine Aufgaben",
   "inbox-sent": "Gesendet",
   "inbox-overview": "Nachrichten Verlauf",
   clients: "Mandanten",
@@ -126,7 +126,7 @@ export const FUNCTION_LABELS: Record<AreaFunctionId, string> = {
   letters: "Schreiben",
   docs: "Dokumentation",
   templates: "Vorlagen",
-  "staff-messages": "Auftrag an Mitarbeiter",
+  "staff-messages": "Aufgabe zuweisen",
 };
 
 /** @deprecated relative Legacy-Pfade — nutze functionHref(area, id) */
@@ -134,7 +134,7 @@ export const FUNCTION_ROUTES: Record<
   AreaFunctionId,
   { href: string; label: string }
 > = {
-  inbox: { href: "/eingang", label: "Eingang" },
+  inbox: { href: "/eingang", label: "Meine Aufgaben" },
   "inbox-sent": { href: "/gesendet", label: "Gesendet" },
   "inbox-overview": {
     href: "/nachrichten-uebersicht",
@@ -149,14 +149,14 @@ export const FUNCTION_ROUTES: Record<
   "compose-email": { href: "/email-senden", label: "E-Mail senden" },
   "compose-print": { href: "/dokument-drucken", label: "Dokument drucken" },
   "text-blocks": { href: "/textbausteine", label: "Textbausteine" },
-  prompts: { href: "/prompt", label: "Prompt-Bibliothek" },
+  prompts: { href: "/v1/prompt", label: "Prompt-Bibliothek" },
   "prompt-kit": { href: "/prompt-baukasten", label: "Sachverhalt verarbeiten" },
   letters: { href: "/schreiben", label: "Schreiben" },
   docs: { href: "/dokumentation", label: "Dokumentation" },
   templates: { href: "/vorlagen", label: "Vorlagen" },
   "staff-messages": {
     href: "/nachrichten-an-mitarbeiter",
-    label: "Nachricht an Mitarbeiter",
+    label: "Aufgabe zuweisen",
   },
 };
 
@@ -184,6 +184,9 @@ export function functionIdFromPathname(
   if (pathname === "/prompt" || pathname.startsWith("/prompt/")) {
     return "prompts";
   }
+  if (pathname === "/v1/prompt" || pathname.startsWith("/v1/prompt/")) {
+    return "prompts";
+  }
   if (pathname === "/dokumentation" || pathname.startsWith("/dokumentation/")) {
     return "docs";
   }
@@ -203,11 +206,18 @@ export function functionIdFromPathname(
     pathname === "/eingang" ||
     pathname.startsWith("/eingang/") ||
     pathname === "/inbox" ||
-    pathname.startsWith("/inbox/")
+    pathname.startsWith("/inbox/") ||
+    pathname === "/v1/eingang" ||
+    pathname.startsWith("/v1/eingang/")
   ) {
     return "inbox";
   }
-  if (pathname === "/gesendet" || pathname.startsWith("/gesendet/")) {
+  if (
+    pathname === "/gesendet" ||
+    pathname.startsWith("/gesendet/") ||
+    pathname === "/v1/gesendet" ||
+    pathname.startsWith("/v1/gesendet/")
+  ) {
     return "inbox-sent";
   }
   if (pathname === "/mandanten" || pathname.startsWith("/mandanten/")) {
@@ -218,7 +228,9 @@ export function functionIdFromPathname(
   }
   if (
     pathname === "/nachrichten-an-mitarbeiter" ||
-    pathname.startsWith("/nachrichten-an-mitarbeiter/")
+    pathname.startsWith("/nachrichten-an-mitarbeiter/") ||
+    pathname === "/v1/zuweisen" ||
+    pathname.startsWith("/v1/zuweisen/")
   ) {
     return "staff-messages";
   }
@@ -267,11 +279,10 @@ export const NAV_HIDDEN_FUNCTION_IDS: AreaFunctionId[] = [
   "letters",
 ];
 
-/** Oben unter „Post“: Auftrag schreiben, Eingang, Gesendet. */
+/** Oben unter „Kommunikation“: Aufgabe zuweisen, Meine Aufgaben (Gesendet liegt darunter). */
 export const PINNED_FUNCTION_IDS: AreaFunctionId[] = [
   "staff-messages",
   "inbox",
-  "inbox-sent",
 ];
 
 export type NavGroup = {
@@ -282,7 +293,7 @@ export type NavGroup = {
 
 /** Sidebar-Labels, die vom allgemeinen Funktionsnamen abweichen. */
 const SIDEBAR_FUNCTION_LABELS: Partial<Record<AreaFunctionId, string>> = {
-  "staff-messages": "Auftrag schreiben",
+  "staff-messages": "Aufgabe zuweisen",
 };
 
 function navItemForFunction(
@@ -320,10 +331,11 @@ export function navigationGroupsForArea(
   const available = new Set(
     filterFunctionsByAllowlist(getFunctionsForArea(area), allowedFunctions)
   );
-  const isLawyer = deskRole === "rechtsanwalt";
+  const isDeskUser =
+    deskRole === "rechtsanwalt" || deskRole === "sekretariat";
   const startItem: NavItem = {
     ...navigation[0],
-    href: areaBasePath(area),
+    href: isDeskUser ? "/v1/dashboard" : areaBasePath(area),
     label: "Übersicht",
     description: "",
   };
@@ -332,18 +344,19 @@ export function navigationGroupsForArea(
     available.has(id)
   ).map((id) => navItemForFunction(area, id));
 
-  const managementItems = isLawyer
-    ? []
-    : MANAGEMENT_FUNCTION_IDS.filter((id) => available.has(id)).map((id) =>
-        navItemForFunction(area, id)
-      );
+  const managementItems =
+    deskRole === "rechtsanwalt"
+      ? []
+      : MANAGEMENT_FUNCTION_IDS.filter((id) => available.has(id)).map((id) =>
+          navItemForFunction(area, id)
+        );
 
   const toolItems = TOOL_FUNCTION_IDS.filter((id) => {
     if (!available.has(id)) {
       return false;
     }
     // Rechtsanwalt: Sachverhalt verarbeiten nicht in der Sidebar.
-    if (isLawyer && id === "prompt-kit") {
+    if (deskRole === "rechtsanwalt" && id === "prompt-kit") {
       return false;
     }
     return true;
@@ -352,7 +365,7 @@ export function navigationGroupsForArea(
   const groups: NavGroup[] = [];
   groups.push({ label: "", items: [startItem] });
   if (nachrichtenItems.length > 0) {
-    groups.push({ label: "Post", items: nachrichtenItems });
+    groups.push({ label: "Kommunikation", items: nachrichtenItems });
   }
   if (toolItems.length > 0) {
     groups.push({ label: "Funktionen", items: toolItems });

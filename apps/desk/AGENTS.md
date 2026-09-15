@@ -6,17 +6,16 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 App: **`apps/desk`** (Scrinium Ordinis — Kanzlei-Werkzeug). Monorepo-Hinweise: Root [`AGENTS.md`](../../AGENTS.md).
 
-## Interne Aufträge (Laufzettel)
+## Interne Aufgaben (Laufzettel)
 
-**Prinzip:** Ball + Absicht. Verben: Anlegen · Übergeben · Abschließen.  
-Kein Messenger — Telefon für Absprachen, Auftrag für Ergebnis und Prüfschleifen.
+**Prinzip:** Ball + Absicht. Verben: Zuweisen · Übergeben · Abschließen.  
+Kein Messenger — Telefon für Absprachen, Aufgabe für Ergebnis und Prüfschleifen.
 
 - Persistenz: `staff_messages` (+ Dateien; Protokoll in `staff_message_events`; optional `matter_id`)
 - Absender setzt **Priorität** und Inhalt; Ball geht an eine Person mit **Absicht** (Erledigen / Prüfen / Kenntnis / Warten)
 - **Akte** optional (empfohlen), bereichsbezogen
-- **Eingang** (`/…/eingang`): Ball bei mir
-- **Gesendet** (`/…/gesendet`): von mir angelegt oder zuletzt von mir übergeben
-- Sidebar **Post**: Auftrag schreiben · Eingang · Gesendet
+- **Meine Aufgaben** (`/…/eingang`): Ball bei mir; Umschalter **Gesendet** (`/…/gesendet`) liegt darunter
+- Sidebar **Kommunikation**: Aufgabe zuweisen · Meine Aufgaben
 - Prüfschleife = Übergeben auf derselben Karte
 - Modul: [`lib/staff-messages/`](lib/staff-messages/) · UI: [`components/auftraege/`](components/auftraege/)
 
@@ -35,6 +34,7 @@ Kein Messenger — Telefon für Absprachen, Auftrag für Ergebnis und Prüfschle
 - Konfiguration in `lib/auth/`
 - Ersten Tenant (falls nötig): `pnpm tenant:create`
 - Ersten Benutzer: `pnpm user:create <email> <passwort> <vorname> <nachname> [tenant-slug] [admin|employee] [rechtsanwalt|sekretariat]`
+  (Anzeige-Position: Rechtsanwalt / Sekretär(in); interne ID `sekretariat` bleibt)
 - Plattform-Super-Admin: `pnpm platform:grant <email>` (UI unter `/platform`)
 - Geschützte Routen via `middleware.ts`
 - Passwort-Policy: min. 6 Zeichen (Admin setzt Passwort; kein Self-Service-Register)

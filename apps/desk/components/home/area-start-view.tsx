@@ -7,17 +7,17 @@ import {
   BookOpenIcon,
   CheckIcon,
   ClipboardListIcon,
-  UserRoundIcon,
+  UserIcon,
   FilePenLineIcon,
   FileStackIcon,
   FileTextIcon,
   FolderOpenIcon,
-  InboxIcon,
   ListIcon,
   MailIcon,
   MailQuestionMarkIcon,
   MailWarningIcon,
-  MessageSquareIcon,
+  MessagesSquareIcon,
+  PlusIcon,
   PrinterIcon,
   ScaleIcon,
   SendIcon,
@@ -78,14 +78,14 @@ const featureMeta: Record<
 > = {
   inbox: {
     description: "Aufgaben, die bei dir liegen und abzuarbeiten sind.",
-    icon: InboxIcon,
+    icon: MessagesSquareIcon,
     iconWrap: "bg-amber-100 text-amber-800 ring-amber-200/70",
     linkClass: "text-amber-700",
     cardClass:
       "hover:border-amber-200/80 hover:bg-gradient-to-br hover:from-amber-50/50 hover:to-white",
   },
   "inbox-sent": {
-    description: "Aufgaben, die du an Mitarbeiter geschickt hast.",
+    description: "Aufgaben, die du zugewiesen oder weitergegeben hast.",
     icon: SendIcon,
     iconWrap: "bg-amber-50 text-amber-800 ring-amber-200/60",
     linkClass: "text-amber-700",
@@ -102,7 +102,7 @@ const featureMeta: Record<
   },
   clients: {
     description: "Firmen und Privatpersonen mit Akten führen.",
-    icon: UserRoundIcon,
+    icon: UserIcon,
     iconWrap: "bg-cyan-100 text-cyan-800 ring-cyan-200/70",
     linkClass: "text-cyan-700",
     cardClass:
@@ -195,13 +195,12 @@ const featureMeta: Record<
       "hover:border-rose-200/80 hover:bg-gradient-to-br hover:from-rose-50/50 hover:to-white",
   },
   "staff-messages": {
-    description:
-      "Nachricht hinterlassen, Aufgabe erteilen oder ein Dokument senden.",
-    icon: MessageSquareIcon,
-    iconWrap: "bg-blue-100 text-blue-800 ring-blue-200/70",
-    linkClass: "text-blue-700",
+    description: "Aufgabe zuweisen und den Ball übergeben.",
+    icon: PlusIcon,
+    iconWrap: "bg-amber-100 text-amber-800 ring-amber-200/70",
+    linkClass: "text-amber-700",
     cardClass:
-      "hover:border-blue-200/80 hover:bg-gradient-to-br hover:from-blue-50/50 hover:to-white",
+      "hover:border-amber-200/80 hover:bg-gradient-to-br hover:from-amber-50/50 hover:to-white",
   },
 };
 
@@ -326,7 +325,7 @@ const DASHBOARD_CARDS: {
   },
   {
     key: "unread",
-    label: "Aufträge",
+    label: "Aufgaben",
     valueSuffix: "ungelesen",
     hrefSuffix: "?unread=1",
     icon: MailIcon,
@@ -558,10 +557,9 @@ export function AreaStartView({
   const communicationIds = COMMUNICATION_FUNCTION_IDS.filter((id) =>
     available.has(id)
   );
-  /** In „Alle Funktionen“: Verlauf + Gesendet sichtbar. */
+  /** In „Alle Funktionen“: Verlauf sichtbar (Gesendet liegt unter Meine Aufgaben). */
   const lawyerKommunikationIds = [
     ...communicationIds,
-    ...(available.has("inbox-sent") ? (["inbox-sent"] as const) : []),
     ...(available.has("inbox-overview")
       ? (["inbox-overview"] as const)
       : []),
@@ -570,7 +568,7 @@ export function AreaStartView({
     available.has(id)
   );
   const secretaryNachrichtenIds = (
-    ["inbox", "inbox-sent", "staff-messages", "inbox-overview"] as const
+    ["inbox", "staff-messages", "inbox-overview"] as const
   ).filter((id) => available.has(id));
   const isSecretary = deskRole === "sekretariat";
   const quickIds =
@@ -660,7 +658,7 @@ export function AreaStartView({
           area={area}
           functionIds={quickIds}
           titleForFunction={(functionId) =>
-            functionId === "inbox" ? "Eingang" : undefined
+            functionId === "inbox" ? "Meine Aufgaben" : undefined
           }
         />
       ) : (
@@ -674,18 +672,18 @@ export function AreaStartView({
 
           {isSecretary ? (
             <FeatureSection
-              title="Post"
-              description="Schreiben, Eingang und Gesendet"
+              title="Kommunikation"
+              description="Aufgabe zuweisen und meine Aufgaben"
               area={area}
               functionIds={secretaryNachrichtenIds}
               titleForFunction={(functionId) =>
-                functionId === "inbox" ? "Eingang" : undefined
+                functionId === "inbox" ? "Meine Aufgaben" : undefined
               }
             />
           ) : (
             <FeatureSection
-              title="Post"
-              description="Aufträge an Mitarbeiter"
+              title="Kommunikation"
+              description="Aufgaben zuweisen"
               area={area}
               functionIds={lawyerKommunikationIds}
             />

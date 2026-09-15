@@ -1,12 +1,10 @@
-import { redirectLegacyFunction } from "@/lib/area/require-function";
-
-export const dynamic = "force-dynamic";
+import { redirect } from "next/navigation";
 
 type PageProps = {
   params: Promise<{ id: string }>;
 };
 
-export default async function LegacyEditPromptRedirect({ params }: PageProps) {
+export default async function LegacyPromptEditRedirect({ params }: PageProps) {
   const { id } = await params;
-  await redirectLegacyFunction("prompts", `/prompt/${id}/bearbeiten`);
+  redirect(`/v1/prompt/${id}/bearbeiten`);
 }

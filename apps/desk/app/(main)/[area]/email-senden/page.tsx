@@ -1,16 +1,10 @@
-import { renderPromptKitFlowPage } from "@/lib/prompt-kit/render-flow-page";
-
-export const dynamic = "force-dynamic";
+import { redirect } from "next/navigation";
 
 type PageProps = {
   params: Promise<{ area: string }>;
 };
 
-export default async function ComposeEmailPage({ params }: PageProps) {
-  const { area: areaSlug } = await params;
-  return renderPromptKitFlowPage({
-    areaSlug,
-    functionId: "compose-email",
-    initialFlow: "email",
-  });
+export default async function AreaComposeEmailRedirect({ params }: PageProps) {
+  await params;
+  redirect("/v1/dashboard");
 }

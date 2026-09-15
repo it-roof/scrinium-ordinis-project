@@ -50,6 +50,7 @@
 }
 
 :root {
+  --spacing: 0.25rem;
   --background: oklch(0.988 0.008 95);
   --foreground: oklch(0.24 0.04 258);
   --card: oklch(0.998 0.004 95);

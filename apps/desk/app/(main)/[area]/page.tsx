@@ -1,4 +1,5 @@
 import { and, eq } from "drizzle-orm";
+import { redirect } from "next/navigation";
 
 import { AreaStartView } from "@/components/home/area-start-view";
 import { requireAreaFromSlug } from "@/lib/area/require-function";
@@ -38,13 +39,17 @@ export default async function AreaStartPage({ params }: AreaStartPageProps) {
       .limit(1),
   ]);
 
+  if (deskRole === "rechtsanwalt" || deskRole === "sekretariat") {
+    redirect("/v1/dashboard");
+  }
+
   const greetingTitle = formatDeskGreeting({
     salutation: nameRow[0]?.salutation ?? null,
     lastName: nameRow[0]?.lastName ?? "",
   });
 
   const [dashboardStats, dashboardLists] =
-    deskRole === "rechtsanwalt" || deskRole === "sekretariat"
+    deskRole === "sekretariat"
       ? await Promise.all([
           getStaffDashboardStats(user.tenantId, user.id, area),
           getStaffDashboardLists(user.tenantId, user.id, area),

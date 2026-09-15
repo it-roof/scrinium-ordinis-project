@@ -1,5 +1,5 @@
-import { redirectLegacyFunction } from "@/lib/area/require-function";
+import { redirect } from "next/navigation";
 
-export default async function LegacyStaffMessagesPage() {
-  await redirectLegacyFunction("staff-messages", "/nachrichten-an-mitarbeiter");
+export default function LegacyStaffMessagesRedirect() {
+  redirect("/v1/zuweisen");
 }

@@ -1,7 +1,5 @@
-import { redirectLegacyFunction } from "@/lib/area/require-function";
+import { redirect } from "next/navigation";
 
-export const dynamic = "force-dynamic";
-
-export default async function LegacyPromptRedirect() {
-  await redirectLegacyFunction("prompts", "/prompt");
+export default function LegacyPromptRedirect() {
+  redirect("/v1/prompt");
 }

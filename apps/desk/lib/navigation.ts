@@ -1,16 +1,16 @@
 import {
   BookOpenIcon,
-  UserRoundIcon,
+  UserIcon,
   FilePenLineIcon,
   FileStackIcon,
   FileTextIcon,
   FolderOpenIcon,
   HomeIcon,
-  InboxIcon,
   ListIcon,
   MailIcon,
+  MessagesSquareIcon,
+  PlusIcon,
   SendIcon,
-  MessageSquareIcon,
   PrinterIcon,
   ScaleIcon,
   SettingsIcon,
@@ -46,10 +46,10 @@ export const navigation: NavItem[] = [
       "data-[active=true]:bg-violet-400/10 data-[active=true]:shadow-[inset_0_0_0_1px_oklch(0.7_0.12_290/0.22)]",
   },
   {
-    href: "/eingang",
-    label: "Eingang",
+    href: "/v1/eingang",
+    label: "Meine Aufgaben",
     description: "Aufgaben, die bei mir liegen",
-    icon: InboxIcon,
+    icon: MessagesSquareIcon,
     accent: "bg-amber-400/25 text-amber-100",
     activeClass:
       "data-[active=true]:bg-amber-400/10 data-[active=true]:shadow-[inset_0_0_0_1px_oklch(0.78_0.12_85/0.25)]",
@@ -57,7 +57,7 @@ export const navigation: NavItem[] = [
   {
     href: "/gesendet",
     label: "Gesendet",
-    description: "Nachrichten, die ich an Mitarbeiter geschickt habe",
+    description: "Aufgaben, die ich angestoßen oder weitergegeben habe",
     icon: SendIcon,
     accent: "bg-amber-400/20 text-amber-100",
     activeClass:
@@ -66,7 +66,7 @@ export const navigation: NavItem[] = [
   {
     href: "/nachrichten-uebersicht",
     label: "Verlauf",
-    description: "Verlauf aller Nachrichten und Aufgaben",
+    description: "Verlauf aller Aufgaben",
     icon: ListIcon,
     accent: "bg-amber-400/20 text-amber-100",
     activeClass:
@@ -76,7 +76,7 @@ export const navigation: NavItem[] = [
     href: "/mandanten",
     label: "Mandanten",
     description: "Firmen und Privatpersonen",
-    icon: UserRoundIcon,
+    icon: UserIcon,
     accent: "bg-cyan-400/25 text-cyan-100",
     activeClass:
       "data-[active=true]:bg-cyan-400/10 data-[active=true]:shadow-[inset_0_0_0_1px_oklch(0.7_0.1_200/0.25)]",
@@ -100,7 +100,7 @@ export const navigation: NavItem[] = [
       "data-[active=true]:bg-sky-400/10 data-[active=true]:shadow-[inset_0_0_0_1px_oklch(0.7_0.12_235/0.25)]",
   },
   {
-    href: "/prompt",
+    href: "/v1/prompt",
     label: "Prompt-Bibliothek",
     description: "Gespeicherte KI-Prompts",
     icon: SparklesIcon,
@@ -173,12 +173,12 @@ export const navigation: NavItem[] = [
   },
   {
     href: "/nachrichten-an-mitarbeiter",
-    label: "Nachricht an Mitarbeiter",
-    description: "Nachricht hinterlassen, Aufgabe erteilen oder ein Dokument senden.",
-    icon: MessageSquareIcon,
-    accent: "bg-blue-400/25 text-blue-100",
+    label: "Aufgabe zuweisen",
+    description: "Aufgabe zuweisen und den Ball übergeben.",
+    icon: PlusIcon,
+    accent: "bg-amber-400/25 text-amber-100",
     activeClass:
-      "data-[active=true]:bg-blue-400/10 data-[active=true]:shadow-[inset_0_0_0_1px_oklch(0.7_0.1_250/0.25)]",
+      "data-[active=true]:bg-amber-400/10 data-[active=true]:shadow-[inset_0_0_0_1px_oklch(0.78_0.12_85/0.25)]",
   },
 ];
 

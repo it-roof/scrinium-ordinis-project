@@ -1,7 +1,5 @@
-import { redirectLegacyFunction } from "@/lib/area/require-function";
+import { redirect } from "next/navigation";
 
-export const dynamic = "force-dynamic";
-
-export default async function LegacyTextBlocksRedirect() {
-  await redirectLegacyFunction("text-blocks", "/textbausteine");
+export default function LegacyTextBlocksRedirect() {
+  redirect("/v1/textbausteine");
 }

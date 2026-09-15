@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, gte, inArray, isNull, ne, or } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, inArray, isNotNull, isNull, ne, or } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 
 import {
@@ -286,7 +286,7 @@ export async function listStaffColleagues(
   });
 }
 
-/** Alle Aufträge, an denen der User beteiligt ist. */
+/** Alle Aufgaben, an denen der User beteiligt ist. */
 export async function listStaffMessages(
   tenantId: string,
   userId: string,
@@ -352,7 +352,7 @@ export async function listBallInbox(
   });
 }
 
-/** Gesendet: von mir angelegt oder zuletzt von mir übergeben (offen bevorzugt sichtbar). */
+/** Gesendet: von mir zugewiesen oder zuletzt von mir übergeben (offen bevorzugt sichtbar). */
 export async function listBallSent(
   tenantId: string,
   userId: string,
@@ -694,7 +694,7 @@ export async function createStaffMessageRow(
       .returning();
 
     if (!inserted) {
-      return { error: "Auftrag konnte nicht angelegt werden." };
+      return { error: "Aufgabe konnte nicht zugewiesen werden." };
     }
 
     if (files.length > 0) {
@@ -738,7 +738,7 @@ export async function createStaffMessageRow(
       .limit(1);
 
     if (!hydrated) {
-      return { error: "Auftrag angelegt, Laden fehlgeschlagen." };
+      return { error: "Aufgabe zugewiesen, Laden fehlgeschlagen." };
     }
 
     const [record] = await hydrateMessages(tx, tenantId, [hydrated]);
@@ -792,7 +792,59 @@ export async function markStaffMessageReadRow(
       .limit(1);
 
     if (!hydrated) {
-      return { error: "Auftrag nicht gefunden." };
+      return { error: "Aufgabe nicht gefunden." };
+    }
+    const [record] = await hydrateMessages(tx, tenantId, [hydrated]);
+    return record;
+  });
+}
+
+export async function markStaffMessageUnreadRow(
+  tenantId: string,
+  userId: string,
+  messageId: string
+): Promise<StaffMessageRecord | { error: string }> {
+  return withTenantDb(tenantId, async (tx) => {
+    const [updated] = await tx
+      .update(staffMessages)
+      .set({ readAt: null })
+      .where(
+        and(
+          eq(staffMessages.tenantId, tenantId),
+          eq(staffMessages.id, messageId),
+          eq(staffMessages.ballHolderId, userId),
+          isNotNull(staffMessages.readAt),
+          isNull(staffMessages.closedAt)
+        )
+      )
+      .returning({ id: staffMessages.id });
+
+    if (!updated) {
+      return { error: "Aufgabe kann nicht als ungelesen markiert werden." };
+    }
+
+    const [hydrated] = await tx
+      .select(selectMessageJoins)
+      .from(staffMessages)
+      .innerJoin(createdByUser, eq(staffMessages.createdById, createdByUser.id))
+      .innerJoin(ballHolderUser, eq(staffMessages.ballHolderId, ballHolderUser.id))
+      .leftJoin(
+        previousBallUser,
+        eq(staffMessages.previousBallHolderId, previousBallUser.id)
+      )
+      .leftJoin(matters, eq(staffMessages.matterId, matters.id))
+      .leftJoin(clients, eq(matters.clientId, clients.id))
+      .where(
+        and(
+          eq(staffMessages.tenantId, tenantId),
+          eq(staffMessages.id, messageId),
+          eq(staffMessages.ballHolderId, userId)
+        )
+      )
+      .limit(1);
+
+    if (!hydrated) {
+      return { error: "Aufgabe nicht gefunden." };
     }
     const [record] = await hydrateMessages(tx, tenantId, [hydrated]);
     return record;
@@ -953,6 +1005,69 @@ export async function closeStaffMessageRow(
   });
 }
 
+export async function reopenStaffMessageRow(
+  tenantId: string,
+  userId: string,
+  messageId: string
+): Promise<StaffMessageRecord | { error: string }> {
+  return withTenantDb(tenantId, async (tx) => {
+    const [current] = await tx
+      .select()
+      .from(staffMessages)
+      .where(
+        and(
+          eq(staffMessages.tenantId, tenantId),
+          eq(staffMessages.id, messageId),
+          eq(staffMessages.ballHolderId, userId),
+          isNotNull(staffMessages.closedAt)
+        )
+      )
+      .limit(1);
+
+    if (!current) {
+      return {
+        error: "Nur wer den Ball hat, kann die Aufgabe wieder öffnen.",
+      };
+    }
+
+    await tx
+      .update(staffMessages)
+      .set({ closedAt: null })
+      .where(eq(staffMessages.id, messageId));
+
+    await tx.insert(staffMessageEvents).values({
+      tenantId,
+      messageId,
+      kind: "wiedereroeffnet",
+      actorId: userId,
+      fromBallHolderId: userId,
+      toBallHolderId: null,
+      intent: current.intent,
+      comment: null,
+    });
+
+    const [hydrated] = await tx
+      .select(selectMessageJoins)
+      .from(staffMessages)
+      .innerJoin(createdByUser, eq(staffMessages.createdById, createdByUser.id))
+      .innerJoin(ballHolderUser, eq(staffMessages.ballHolderId, ballHolderUser.id))
+      .leftJoin(
+        previousBallUser,
+        eq(staffMessages.previousBallHolderId, previousBallUser.id)
+      )
+      .leftJoin(matters, eq(staffMessages.matterId, matters.id))
+      .leftJoin(clients, eq(matters.clientId, clients.id))
+      .where(eq(staffMessages.id, messageId))
+      .limit(1);
+
+    if (!hydrated) {
+      return { error: "Wiederöffnen gespeichert, Laden fehlgeschlagen." };
+    }
+    const [record] = await hydrateMessages(tx, tenantId, [hydrated]);
+    return record;
+  });
+}
+
 export async function deleteStaffMessageRow(
   tenantId: string,
   userId: string,
@@ -972,7 +1087,7 @@ export async function deleteStaffMessageRow(
       .limit(1);
 
     if (!row) {
-      return { error: "Auftrag nicht gefunden." };
+      return { error: "Aufgabe nicht gefunden." };
     }
     if (row.createdById !== userId && row.ballHolderId !== userId) {
       return { error: "Keine Berechtigung." };

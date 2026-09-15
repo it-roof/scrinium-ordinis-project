@@ -50,7 +50,7 @@ export const letterStatusEnum = pgEnum("letter_status", [
   "versendet",
 ]);
 
-/** Priorität interner Aufträge (Absender setzt). */
+/** Priorität interner Aufgaben (Absender setzt). */
 export const staffMessagePriorityEnum = pgEnum("staff_message_priority", [
   "sofort",
   "heute",
@@ -72,6 +72,7 @@ export const staffMessageEventKindEnum = pgEnum("staff_message_event_kind", [
   "angelegt",
   "uebergeben",
   "abgeschlossen",
+  "wiedereroeffnet",
 ]);
 
 /** Eine Kanzlei = ein Tenant auf der Multi-Tenant-Plattform. */
@@ -108,7 +109,7 @@ export const users = pgTable("users", {
   passwordHash: text("password_hash").notNull(),
   role: roleEnum("role").notNull().default("employee"),
   /**
-   * Position in der Kanzlei (Rechtsanwalt / Sekretariat).
+   * Position in der Kanzlei (Rechtsanwalt / Sekretär(in)).
    * Steuert Schreibtisch und Funktionszugriff. null = noch nicht gesetzt
    * (alle Funktionen der freigeschalteten Bereiche, sofern keine Allowlist).
    */
@@ -653,7 +654,7 @@ export const letters = pgTable(
 );
 
 /**
- * Interner Auftrag (Laufzettel): Ball + Absicht, kein Chat.
+ * Interne Aufgabe (Laufzettel): Ball + Absicht, kein Chat.
  * DB-Spalten sender_id / recipient_id = createdBy / ballHolder (bestehende Namen).
  */
 export const staffMessages = pgTable(
@@ -663,9 +664,9 @@ export const staffMessages = pgTable(
     tenantId: uuid("tenant_id")
       .notNull()
       .references(() => tenants.id, { onDelete: "cascade" }),
-    /** Bereich, aus dem der Auftrag angelegt wurde. */
+    /** Bereich, aus dem die Aufgabe zugewiesen wurde. */
     module: moduleEnum("module").notNull().default("general"),
-    /** Wer den Auftrag angelegt hat. */
+    /** Wer die Aufgabe zugewiesen hat. */
     createdById: uuid("sender_id")
       .notNull()
       .references(() => users.id, { onDelete: "restrict" }),

@@ -17,23 +17,36 @@ import {
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import { requireSessionUser } from "@/lib/tenant/session";
+import { resolveUserDisplayName } from "@/lib/users/names";
 
-export async function updateMyProfileAction(input: { name: string }) {
+export async function updateMyProfileAction(input: {
+  firstName: string;
+  lastName: string;
+}) {
   const user = await requireSessionUser();
   if (!user) {
     return { success: false as const, error: "Nicht angemeldet." };
   }
 
-  const name = input.name.trim();
-  if (!name) {
-    return { success: false as const, error: "Bitte einen Namen angeben." };
+  const firstName = input.firstName.trim();
+  const lastName = input.lastName.trim();
+  if (!firstName || !lastName) {
+    return {
+      success: false as const,
+      error: "Bitte Vorname und Nachname angeben.",
+    };
   }
 
-  await db.update(users).set({ name }).where(eq(users.id, user.id));
+  const name = resolveUserDisplayName({ firstName, lastName });
+
+  await db
+    .update(users)
+    .set({ firstName, lastName, name })
+    .where(eq(users.id, user.id));
   revalidatePath("/einstellungen");
   revalidatePath("/", "layout");
 
-  return { success: true as const, name };
+  return { success: true as const, firstName, lastName, name };
 }
 
 export async function changeMyPasswordAction(input: {

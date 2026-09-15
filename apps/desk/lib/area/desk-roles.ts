@@ -7,37 +7,20 @@ export type DeskRoleId = (typeof DESK_ROLE_IDS)[number];
 
 export const DESK_ROLE_LABELS: Record<DeskRoleId, string> = {
   rechtsanwalt: "Rechtsanwalt",
-  sekretariat: "Sekretariat",
+  sekretariat: "Sekretär(in)",
 };
 
 /**
  * Funktionen je Position.
- * Compose-IDs bleiben im Profil (Deep-Links / Prompt-Kit), auch wenn sie
- * vorerst aus Sidebar/Schreibtisch ausgeblendet sind.
+ * Compose-/Schreiben-IDs und Nachrichten-Verlauf sind bewusst nicht mehr enthalten.
  */
 export const FUNCTIONS_BY_DESK_ROLE: Record<DeskRoleId, AreaFunctionId[]> = {
-  rechtsanwalt: [
-    "inbox",
-    "inbox-sent",
-    "inbox-overview",
-    "clients",
-    "matters",
-    "prompts",
-    "prompt-kit",
-    "compose-letter",
-    "compose-email",
-    "compose-print",
-    "letters",
-    "text-blocks",
-    "staff-messages",
-  ],
+  rechtsanwalt: ["inbox", "inbox-sent", "prompts", "staff-messages"],
   sekretariat: [
     "inbox",
     "inbox-sent",
-    "inbox-overview",
     "clients",
     "matters",
-    "letters",
     "text-blocks",
     "staff-messages",
   ],

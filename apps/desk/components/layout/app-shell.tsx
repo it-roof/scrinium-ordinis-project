@@ -379,7 +379,10 @@ function SidebarNavItems({
             : isAreaStart
               ? pathname === item.href
               : pathname === item.href ||
-                pathname.startsWith(`${item.href}/`);
+                pathname.startsWith(`${item.href}/`) ||
+                (isInboxNavHref(item.href) &&
+                  (pathname === "/gesendet" ||
+                    pathname.endsWith("/gesendet")));
         const showInboxCount = isInboxNavHref(item.href) && inboxCount > 0;
 
         return (

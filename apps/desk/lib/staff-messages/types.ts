@@ -8,8 +8,8 @@ import type {
 export type { StaffMessageIntent, StaffMessagePriority, StaffMessageEventKind };
 
 /**
- * Interner Auftrag = Laufzettel (Ball + Absicht).
- * Verben: Anlegen · Übergeben · Abschließen. Kein Chat.
+ * Interne Aufgabe = Laufzettel (Ball + Absicht).
+ * Verben: Zuweisen · Übergeben · Abschließen. Kein Chat.
  */
 
 export type StaffTaskPriority = StaffMessagePriority;
@@ -109,11 +109,13 @@ export function priorityActiveClass(priority: StaffMessagePriority): string {
 export function eventKindLabel(kind: StaffMessageEventKind): string {
   switch (kind) {
     case "angelegt":
-      return "Angelegt";
+      return "Zugewiesen";
     case "uebergeben":
       return "Weitergegeben";
     case "abgeschlossen":
       return "Fertig";
+    case "wiedereroeffnet":
+      return "Wieder geöffnet";
     default:
       return kind;
   }

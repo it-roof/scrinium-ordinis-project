@@ -1,7 +1,5 @@
-import { redirectLegacyFunction } from "@/lib/area/require-function";
+import { redirect } from "next/navigation";
 
-export const dynamic = "force-dynamic";
-
-export default async function LegacyLetterCreateRedirect() {
-  await redirectLegacyFunction("letters", "/schreiben/neu");
+export default function LegacySchreibenNeuRedirect() {
+  redirect("/v1/dashboard");
 }

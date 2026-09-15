@@ -14,10 +14,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export function AccountSettingsForm({
-  name: initialName,
+  firstName: initialFirstName,
+  lastName: initialLastName,
   email,
 }: {
-  name: string;
+  firstName: string;
+  lastName: string;
   email: string;
 }) {
   const router = useRouter();
@@ -25,7 +27,8 @@ export function AccountSettingsForm({
   const [passwordPending, startPassword] = useTransition();
   const [linkPending, startLink] = useTransition();
 
-  const [name, setName] = useState(initialName);
+  const [firstName, setFirstName] = useState(initialFirstName);
+  const [lastName, setLastName] = useState(initialLastName);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -34,7 +37,7 @@ export function AccountSettingsForm({
     event.preventDefault();
 
     startProfile(async () => {
-      const result = await updateMyProfileAction({ name });
+      const result = await updateMyProfileAction({ firstName, lastName });
       if (!result.success) {
         toast.error(result.error);
         return;
@@ -87,23 +90,34 @@ export function AccountSettingsForm({
             Konto
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Name und Login-E-Mail für deinen Zugang.
+            Vorname, Nachname und Login-E-Mail für deinen Zugang.
           </p>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
-            <Label htmlFor="account-name">Name</Label>
+            <Label htmlFor="account-first-name">Vorname</Label>
             <Input
-              id="account-name"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
+              id="account-first-name"
+              value={firstName}
+              onChange={(event) => setFirstName(event.target.value)}
               required
-              autoComplete="name"
+              autoComplete="given-name"
               className="h-10 rounded-none"
             />
           </div>
           <div className="space-y-2">
+            <Label htmlFor="account-last-name">Nachname</Label>
+            <Input
+              id="account-last-name"
+              value={lastName}
+              onChange={(event) => setLastName(event.target.value)}
+              required
+              autoComplete="family-name"
+              className="h-10 rounded-none"
+            />
+          </div>
+          <div className="space-y-2 sm:col-span-2">
             <Label htmlFor="account-email">E-Mail</Label>
             <Input
               id="account-email"

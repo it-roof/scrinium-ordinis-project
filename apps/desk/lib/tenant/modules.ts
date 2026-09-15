@@ -54,7 +54,7 @@ export const getUserEffectiveModules = cache(
   }
 );
 
-/** Position (Rechtsanwalt / Sekretariat) aus der DB. */
+/** Position (Rechtsanwalt / Sekretär(in)) aus der DB. */
 export const getUserDeskRole = cache(
   async (userId: string, tenantId: string): Promise<DeskRole | null> => {
     const [row] = await db
@@ -69,7 +69,7 @@ export const getUserDeskRole = cache(
 
 /**
  * Effektive Funktions-Allowlist des Users.
- * Position (Rechtsanwalt/Sekretariat) ∩ optionale Einzel-Allowlist.
+ * Position (Rechtsanwalt/Sekretär(in)) ∩ optionale Einzel-Allowlist.
  * null = alle Funktionen der freigeschalteten Bereiche.
  */
 export const getUserAllowedFunctions = cache(

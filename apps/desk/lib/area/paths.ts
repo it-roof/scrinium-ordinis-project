@@ -65,6 +65,20 @@ export function functionHref(
   area: AppModuleId,
   functionId: AreaFunctionId
 ): string {
+  // v1-Shell: diese Funktionen sind nicht mehr bereichsgebunden in der URL.
+  const v1Routes: Partial<Record<AreaFunctionId, string>> = {
+    prompts: "/v1/prompt",
+    inbox: "/v1/eingang",
+    "inbox-sent": "/v1/gesendet",
+    "staff-messages": "/v1/zuweisen",
+    clients: "/v1/mandanten",
+    matters: "/v1/akten",
+    "text-blocks": "/v1/textbausteine",
+  };
+  const v1Href = v1Routes[functionId];
+  if (v1Href) {
+    return v1Href;
+  }
   return `${areaBasePath(area)}/${FUNCTION_PATH_SEGMENTS[functionId]}`;
 }
 
@@ -76,6 +90,9 @@ export function parseAreaFromPathname(pathname: string): AppModuleId | null {
 }
 
 export function parseAreaBasePath(pathname: string): string | null {
+  if (pathname === "/v1" || pathname.startsWith("/v1/")) {
+    return "/v1";
+  }
   const area = parseAreaFromPathname(pathname);
   return area ? areaBasePath(area) : null;
 }
