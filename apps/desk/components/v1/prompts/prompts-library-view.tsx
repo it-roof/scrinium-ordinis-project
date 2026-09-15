@@ -156,7 +156,7 @@ export function V1PromptsLibraryView({
   }
 
   return (
-    <div className="relative flex flex-1 flex-col">
+    <div className="relative flex min-h-0 flex-1 flex-col overflow-y-auto">
       <div className="@container/main mx-auto flex w-full max-w-5xl flex-1 flex-col px-4 md:px-6">
         <header className="flex flex-col gap-6 border-b border-border/15 pt-8 pb-6 sm:flex-row sm:items-end sm:justify-between md:pt-10 md:pb-8">
           <div className="min-w-0 space-y-3">

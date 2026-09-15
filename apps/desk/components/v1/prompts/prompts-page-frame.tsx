@@ -13,7 +13,7 @@ export function V1PromptsPageFrame({
   className,
 }: V1PromptsPageFrameProps) {
   return (
-    <div className={cn("v1-prompt-atelier flex flex-1 flex-col", className)}>
+    <div className={cn("v1-prompt-atelier flex min-h-0 flex-1 flex-col overflow-y-auto", className)}>
       <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-10 px-5 py-8 md:gap-12 md:px-8 md:py-12 lg:px-10">
         {children}
       </div>

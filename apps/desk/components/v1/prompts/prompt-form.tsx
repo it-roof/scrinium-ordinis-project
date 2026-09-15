@@ -168,7 +168,7 @@ export function V1PromptForm({
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-6 p-4 md:p-6">
+    <div className="mx-auto flex min-h-0 w-full max-w-4xl flex-1 flex-col gap-6 overflow-y-auto p-4 md:p-6">
       <Button asChild variant="ghost" size="sm" className="w-fit px-0">
         <Link href={`${PROMPT_BASE}?mode=verwalten`}>
           <ArrowLeftIcon />
