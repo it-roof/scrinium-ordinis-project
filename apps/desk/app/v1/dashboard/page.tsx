@@ -9,10 +9,12 @@ import {
 import type { AreaFunctionId } from "@/lib/area/functions";
 import { FUNCTION_LABELS } from "@/lib/area/functions";
 import { functionHref } from "@/lib/area/paths";
+import { parseDashboardViewPreference } from "@/lib/dashboard/view-preference";
 import type { AppModuleId } from "@/lib/modules";
 import { getStaffDashboardStats } from "@/lib/staff-messages/storage";
 import { formatDeskGreeting } from "@/lib/users/names";
 import { and, eq } from "drizzle-orm";
+import { redirect } from "next/navigation";
 
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
@@ -25,15 +27,12 @@ type PageProps = {
 
 type QuickCardId =
   | "prompts"
+  | "notes"
   | "staff-messages"
   | "inbox"
   | "clients"
   | "matters"
   | "text-blocks";
-
-function parseView(raw: string | undefined): DeskView {
-  return raw === "all" ? "all" : "quick";
-}
 
 function isAllowed(
   allowedFunctions: AreaFunctionId[] | null,
@@ -50,6 +49,10 @@ const CARD_META: Record<
     description:
       "KI-Prompts speichern, suchen und mit einem Klick kopieren.",
     hrefFor: (area) => functionHref(area, "prompts"),
+  },
+  notes: {
+    description: "Persönliche Notizen — nur für dich, mit Diktat.",
+    hrefFor: (area) => functionHref(area, "notes"),
   },
   "staff-messages": {
     description: "Aufgabe an Mitarbeitende zuweisen oder weitergeben.",
@@ -94,13 +97,13 @@ function toCard(
 export default async function Page({ searchParams }: PageProps) {
   const ctx = await requireV1DeskUser();
   const { view: viewRaw } = await searchParams;
-  const view = parseView(viewRaw);
 
   const [nameRow, stats] = await Promise.all([
     db
       .select({
         salutation: users.salutation,
         lastName: users.lastName,
+        dashboardView: users.dashboardView,
       })
       .from(users)
       .where(and(eq(users.id, ctx.userId), eq(users.tenantId, ctx.tenantId)))
@@ -108,11 +111,23 @@ export default async function Page({ searchParams }: PageProps) {
     getStaffDashboardStats(ctx.tenantId, ctx.userId, ctx.area),
   ]);
 
+  const preferredView = parseDashboardViewPreference(
+    nameRow[0]?.dashboardView
+  );
+  const hasExplicitView = viewRaw === "all" || viewRaw === "quick";
+  const view: DeskView = hasExplicitView
+    ? parseDashboardViewPreference(viewRaw)
+    : preferredView;
+
+  if (!hasExplicitView && preferredView === "all") {
+    redirect("/v1/dashboard?view=all");
+  }
+
   const allowed = ctx.allowedFunctions;
 
-  const lawyerQuick = (["prompts", "staff-messages", "inbox"] as const).filter(
-    (id) => isAllowed(allowed, id)
-  );
+  const lawyerQuick = (
+    ["prompts", "notes", "staff-messages", "inbox"] as const
+  ).filter((id) => isAllowed(allowed, id));
   const secretaryQuick = (
     ["inbox", "staff-messages", "clients", "matters", "text-blocks"] as const
   ).filter((id) => isAllowed(allowed, id));
@@ -121,7 +136,7 @@ export default async function Page({ searchParams }: PageProps) {
     ctx.deskRole === "sekretariat" ? secretaryQuick : lawyerQuick;
 
   const toolIds = (
-    ["prompts", "text-blocks"] as const satisfies readonly QuickCardId[]
+    ["prompts", "notes", "text-blocks"] as const satisfies readonly QuickCardId[]
   ).filter((id) => isAllowed(allowed, id));
 
   const communicationIds = (
@@ -132,13 +147,15 @@ export default async function Page({ searchParams }: PageProps) {
     ["clients", "matters"] as const satisfies readonly QuickCardId[]
   ).filter((id) => isAllowed(allowed, id));
 
+  // „Alle Funktionen“: Werkzeuge getrennt von Verwaltung
+  const allFunctionIds: QuickCardId[] = [...toolIds];
+
   const quickFunctions = quickIds.map((id) => toCard(id, ctx.area));
-  const functions = [...toolIds, ...managementIds].map((id) =>
-    toCard(id, ctx.area)
-  );
+  const functions = allFunctionIds.map((id) => toCard(id, ctx.area));
   const communicationFunctions = communicationIds.map((id) =>
     toCard(id, ctx.area)
   );
+  const managementFunctions = managementIds.map((id) => toCard(id, ctx.area));
 
   const profile = nameRow[0];
   const greeting = formatDeskGreeting({
@@ -156,6 +173,7 @@ export default async function Page({ searchParams }: PageProps) {
         quickFunctions={quickFunctions}
         functions={functions}
         communicationFunctions={communicationFunctions}
+        managementFunctions={managementFunctions}
       />
     </V1AppShell>
   );

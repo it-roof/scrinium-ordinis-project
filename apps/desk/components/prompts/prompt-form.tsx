@@ -9,7 +9,10 @@ import { toast } from "sonner";
 import { PageHeader } from "@/components/layout/page-header";
 import { PromptTagsInput } from "@/components/prompts/prompt-tags-input";
 import { createPrompt, updatePrompt } from "@/lib/prompts/actions";
-import type { PromptInput } from "@/lib/prompts/types";
+import {
+  formatPromptNumber,
+  type PromptInput,
+} from "@/lib/prompts/types";
 import { useAreaBasePath } from "@/lib/area/use-area-path";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,6 +36,11 @@ export function PromptForm({
   const basePath = useAreaBasePath() ?? "";
   const promptBase = `${basePath}/prompt`;
   const manageBase = `${promptBase}/verwalten`;
+  const [numberInput, setNumberInput] = useState(
+    initialValues?.number != null
+      ? formatPromptNumber(initialValues.number)
+      : ""
+  );
   const [title, setTitle] = useState(initialValues?.title ?? "");
   const [content, setContent] = useState(initialValues?.content ?? "");
   const [tags, setTags] = useState(initialValues?.tags ?? []);
@@ -41,7 +49,10 @@ export function PromptForm({
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    const input = { title, content, tags };
+    const trimmedNumber = numberInput.trim();
+    const number =
+      trimmedNumber === "" ? null : Number.parseInt(trimmedNumber, 10);
+    const input = { number, title, content, tags };
 
     startTransition(async () => {
       const result =
@@ -86,6 +97,27 @@ export function PromptForm({
         className="surface-card flex min-h-0 flex-1 flex-col overflow-hidden"
       >
         <div className="space-y-6 p-6">
+          <div className="grid max-w-[8rem] gap-2">
+            <Label htmlFor="prompt-number">Nummer</Label>
+            <Input
+              id="prompt-number"
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              value={numberInput}
+              onChange={(event) => setNumberInput(event.target.value)}
+              onBlur={() => {
+                const parsed = Number.parseInt(numberInput.trim(), 10);
+                if (Number.isInteger(parsed) && parsed >= 1) {
+                  setNumberInput(formatPromptNumber(parsed));
+                }
+              }}
+              placeholder={mode === "create" ? "Auto" : undefined}
+              required={mode === "edit"}
+              className="h-11 rounded-xl tabular-nums"
+            />
+          </div>
+
           <div className="grid gap-2">
             <Label htmlFor="title">Titel</Label>
             <Input

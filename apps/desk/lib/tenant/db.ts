@@ -19,3 +19,24 @@ export async function withTenantDb<T>(
     return fn(tx);
   });
 }
+
+/**
+ * Wie withTenantDb, zusätzlich Owner-Kontext für user-private Tabellen (RLS).
+ */
+export async function withTenantUserDb<T>(
+  tenantId: string,
+  userId: string,
+  fn: (
+    tx: Parameters<Parameters<typeof db.transaction>[0]>[0]
+  ) => Promise<T>
+): Promise<T> {
+  return db.transaction(async (tx) => {
+    await tx.execute(
+      sql`select set_config('app.current_tenant_id', ${tenantId}, true)`
+    );
+    await tx.execute(
+      sql`select set_config('app.current_user_id', ${userId}, true)`
+    );
+    return fn(tx);
+  });
+}

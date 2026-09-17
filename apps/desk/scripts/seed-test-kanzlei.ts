@@ -14,7 +14,6 @@ async function main() {
     "../lib/clients/storage"
   );
   const { createMatterRow } = await import("../lib/matters/storage");
-  const { createPromptRow } = await import("../lib/prompts/storage");
   const { createStaffMessageRow } = await import(
     "../lib/staff-messages/storage"
   );
@@ -586,66 +585,6 @@ async function main() {
     }
   }
 
-  // ── Prompt-Bibliothek (Rechtsanwalt) ─────────────────────────────────────
-  const promptSeeds: Array<{
-    title: string;
-    content: string;
-    tags: string[];
-  }> = [
-    {
-      title: "Schriftsatz — Kernaussagen extrahieren",
-      content:
-        "Fasse den folgenden Schriftsatz in fünf Bullet Points zusammen. Markiere Fristen, Anträge und strittige Punkte getrennt.",
-      tags: ["Schriftsatz", "Analyse"],
-    },
-    {
-      title: "Mandantentelefonat — Gesprächsnotiz",
-      content:
-        "Formuliere aus den Stichpunkten eine kurze, professionelle Gesprächsnotiz für die Akte: Anrufer, Anliegen, zugesagte nächsten Schritte, offene Fragen.",
-      tags: ["Telefon", "Akte"],
-    },
-    {
-      title: "Vergleichsvorschlag höflich formulieren",
-      content:
-        "Formuliere einen höflichen Vergleichsvorschlag an die Gegenseite. Ton: sachlich, ohne Schuldeingeständnis. Lasse Platzhalter für Betrag und Frist.",
-      tags: ["Vergleich", "Korrespondenz"],
-    },
-    {
-      title: "Fristkontrolle — Checkliste",
-      content:
-        "Erstelle eine Checkliste zur Fristkontrolle für die genannte Angelegenheit: berechnete Frist, Zustellung, Wiedervorlage, Verantwortliche.",
-      tags: ["Frist", "Checkliste"],
-    },
-    {
-      title: "Klageentwurf — Gliederung",
-      content:
-        "Schlage eine klare Gliederung für einen Klageentwurf vor (Parteien, Sachverhalt, Anträge, Begründung). Nutze nur die gelieferten Fakten.",
-      tags: ["Klage", "Entwurf"],
-    },
-    {
-      title: "E-Mail an Mandanten — Zwischenstand",
-      content:
-        "Schreibe eine kurze E-Mail an den Mandanten mit Zwischenstand: was erledigt ist, was noch offen ist, nächster Termin. Kein Juristendeutsch.",
-      tags: ["Mandant", "E-Mail"],
-    },
-    {
-      title: "Vertragsprüfung — Risikohinweise",
-      content:
-        "Prüfe den Vertragsentwurf auf typische Risiken (Haftung, Kündigung, Schriftform, Gerichtsstand). Liste nur konkrete Fundstellen mit kurzer Begründung.",
-      tags: ["Vertrag", "Prüfung"],
-    },
-    {
-      title: "Nachlass — fehlende Unterlagen",
-      content:
-        "Erstelle eine höfliche Liste fehlender Unterlagen für ein Erbscheinsverfahren, die wir dem Mandanten schicken können.",
-      tags: ["Nachlass", "Mandant"],
-    },
-  ];
-
-  for (const prompt of promptSeeds) {
-    await createPromptRow(tenant.id, prompt);
-  }
-
   // ── Textbausteine (Sekretär(in)) ─────────────────────────────────────────
   const textBlockSeeds: Array<{
     title: string;
@@ -734,7 +673,7 @@ async function main() {
   console.log("  Mandanten:      5  → Sekretär(in)");
   console.log("  Akten:          5  → Sekretär(in)");
   console.log(`  Textbausteine:  ${textBlockSeeds.length}  → Sekretär(in)`);
-  console.log(`  Prompts:        ${promptSeeds.length}  → Rechtsanwalt`);
+  console.log("  Prompts:        gemeinsam (Katalog Dr. Schneiderbanger)");
   console.log(`  Aufgaben:       ${jobs.length}  → beide (Jason ↔ Elizabeth)`);
   console.log("  User:           Jason (RA) ↔ Elizabeth (Sekretär(in))");
 }

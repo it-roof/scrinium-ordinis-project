@@ -36,6 +36,9 @@ export const deskRoleEnum = pgEnum("desk_role", [
 /** Formelle Anrede für Begrüßung (Herr / Frau). */
 export const userSalutationEnum = pgEnum("user_salutation", ["herr", "frau"]);
 
+/** Standard-Übersicht auf dem Dashboard (Schnellzugriff / Alle Funktionen). */
+export const dashboardViewEnum = pgEnum("dashboard_view", ["quick", "all"]);
+
 /** Mandant: Firma oder Privatperson. */
 export const clientKindEnum = pgEnum("client_kind", ["company", "person"]);
 
@@ -106,6 +109,8 @@ export const users = pgTable("users", {
   lastName: text("last_name").notNull().default(""),
   /** Formelle Anrede: Herr / Frau (für Begrüßung). */
   salutation: userSalutationEnum("salutation"),
+  /** Standard-Dashboard: Schnellzugriff oder Alle Funktionen. */
+  dashboardView: dashboardViewEnum("dashboard_view").notNull().default("quick"),
   passwordHash: text("password_hash").notNull(),
   role: roleEnum("role").notNull().default("employee"),
   /**
@@ -234,20 +239,30 @@ export const textBlockTagAssignments = pgTable(
   })
 );
 
-export const prompts = pgTable("prompts", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  tenantId: uuid("tenant_id")
-    .notNull()
-    .references(() => tenants.id, { onDelete: "cascade" }),
-  title: text("title").notNull(),
-  content: text("content").notNull(),
-  createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
-    .notNull()
-    .defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
-    .notNull()
-    .defaultNow(),
-});
+export const prompts = pgTable(
+  "prompts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    /** Katalog-Nummer innerhalb der Kanzlei (für Sortierung / Referenz). */
+    promptNumber: integer("prompt_number").notNull(),
+    title: text("title").notNull(),
+    content: text("content").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    tenantPromptNumberUnique: uniqueIndex(
+      "prompts_tenant_prompt_number_unique"
+    ).on(table.tenantId, table.promptNumber),
+  })
+);
 
 export const promptTags = pgTable(
   "prompt_tags",
@@ -774,6 +789,80 @@ export type UserSalutation = (typeof userSalutationEnum.enumValues)[number];
 export type PlatformRole = (typeof platformRoleEnum.enumValues)[number];
 export type ContentModule = (typeof moduleEnum.enumValues)[number];
 export type UserSmtpSettings = typeof userSmtpSettings.$inferSelect;
+
+/**
+ * Persönliche Notizen — nur Owner (user_id), nicht teilbar.
+ * RLS: tenant + owner via app.current_tenant_id / app.current_user_id.
+ */
+export const userNotes = pgTable(
+  "user_notes",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    title: text("title").notNull().default(""),
+    body: text("body").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    tenantUserIdx: index("user_notes_tenant_user_idx").on(
+      table.tenantId,
+      table.userId
+    ),
+    tenantUserUpdatedIdx: index("user_notes_tenant_user_updated_idx").on(
+      table.tenantId,
+      table.userId,
+      table.updatedAt
+    ),
+  })
+);
+
+export type UserNote = typeof userNotes.$inferSelect;
+
+/**
+ * Dateien an persönlichen Notizen — nur Owner (user_id).
+ * RLS: tenant + owner via app.current_tenant_id / app.current_user_id.
+ */
+export const userNoteFiles = pgTable(
+  "user_note_files",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    noteId: uuid("note_id")
+      .notNull()
+      .references(() => userNotes.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    storageKey: text("storage_key").notNull().unique(),
+    filename: text("filename").notNull(),
+    mimeType: text("mime_type").notNull(),
+    sizeBytes: integer("size_bytes").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    tenantUserIdx: index("user_note_files_tenant_user_idx").on(
+      table.tenantId,
+      table.userId
+    ),
+    noteIdIdx: index("user_note_files_note_id_idx").on(table.noteId),
+  })
+);
+
+export type UserNoteFileRow = typeof userNoteFiles.$inferSelect;
 export type Letter = typeof letters.$inferSelect;
 export type LetterStatus = (typeof letterStatusEnum.enumValues)[number];
 export type Client = typeof clients.$inferSelect;

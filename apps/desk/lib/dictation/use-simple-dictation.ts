@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
+import { applyDictationCommands } from "@/lib/dictation/apply-dictation-commands";
+
 type SpeechRecognitionResultLike = {
   readonly isFinal: boolean;
   readonly 0: { readonly transcript: string };
@@ -127,7 +129,7 @@ export function useSimpleDictation() {
       );
     }
     syncInterim("");
-    return sessionTextRef.current;
+    return applyDictationCommands(sessionTextRef.current);
   }, [clearRestartTimer, syncInterim, syncSessionText]);
 
   const startListening = useCallback(() => {
@@ -264,9 +266,9 @@ export function useSimpleDictation() {
     };
   }, [clearRestartTimer]);
 
-  const liveText = interim
-    ? appendTranscript(sessionText, interim)
-    : sessionText;
+  const liveText = applyDictationCommands(
+    interim ? appendTranscript(sessionText, interim) : sessionText
+  );
   const hasSession = listening || sessionText.length > 0 || interim.length > 0;
 
   return {
@@ -286,5 +288,5 @@ export function mergeDictationIntoValue(
   current: string,
   dictated: string
 ): string {
-  return appendTranscript(current, dictated);
+  return appendTranscript(current, applyDictationCommands(dictated));
 }

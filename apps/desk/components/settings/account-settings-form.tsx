@@ -6,21 +6,28 @@ import { toast } from "sonner";
 
 import { requestMyPasswordResetLinkAction } from "@/lib/auth/password-reset-actions";
 import {
+  DASHBOARD_VIEW_OPTIONS,
+  type DashboardViewPreference,
+} from "@/lib/dashboard/view-preference";
+import {
   changeMyPasswordAction,
   updateMyProfileAction,
 } from "@/lib/settings/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 
 export function AccountSettingsForm({
   firstName: initialFirstName,
   lastName: initialLastName,
   email,
+  dashboardView: initialDashboardView,
 }: {
   firstName: string;
   lastName: string;
   email: string;
+  dashboardView: DashboardViewPreference;
 }) {
   const router = useRouter();
   const [profilePending, startProfile] = useTransition();
@@ -29,6 +36,8 @@ export function AccountSettingsForm({
 
   const [firstName, setFirstName] = useState(initialFirstName);
   const [lastName, setLastName] = useState(initialLastName);
+  const [dashboardView, setDashboardView] =
+    useState<DashboardViewPreference>(initialDashboardView);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -37,13 +46,17 @@ export function AccountSettingsForm({
     event.preventDefault();
 
     startProfile(async () => {
-      const result = await updateMyProfileAction({ firstName, lastName });
+      const result = await updateMyProfileAction({
+        firstName,
+        lastName,
+        dashboardView,
+      });
       if (!result.success) {
         toast.error(result.error);
         return;
       }
 
-      toast.success("Name gespeichert.");
+      toast.success("Einstellungen gespeichert.");
       router.refresh();
     });
   }
@@ -133,12 +146,41 @@ export function AccountSettingsForm({
           </div>
         </div>
 
+        <div className="space-y-3 border-t border-border/60 pt-4">
+          <div>
+            <Label>Dashboard-Übersicht</Label>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Welche Ansicht beim Öffnen des Dashboards standardmäßig aktiv ist.
+            </p>
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {DASHBOARD_VIEW_OPTIONS.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => setDashboardView(option.value)}
+                className={cn(
+                  "rounded-none border px-3 py-3 text-left transition-colors",
+                  dashboardView === option.value
+                    ? "border-foreground/25 bg-muted"
+                    : "border-border hover:bg-muted/40"
+                )}
+              >
+                <span className="block text-sm font-medium">{option.label}</span>
+                <span className="mt-1 block text-xs text-muted-foreground">
+                  {option.description}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+
         <Button
           type="submit"
           disabled={profilePending}
           className="h-10 rounded-none px-4"
         >
-          {profilePending ? "Wird gespeichert…" : "Name speichern"}
+          {profilePending ? "Wird gespeichert…" : "Speichern"}
         </Button>
       </form>
 

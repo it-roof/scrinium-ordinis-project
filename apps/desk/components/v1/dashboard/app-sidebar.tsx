@@ -4,9 +4,8 @@ import {
   FolderOpen,
   LayoutDashboard,
   Library,
-  MessagesSquare,
-  Plus,
   Sparkles,
+  StickyNote,
   Users,
 } from "lucide-react"
 import Link from "next/link"
@@ -91,26 +90,6 @@ export function AppSidebar({
   deskRole?: DeskRoleId
   allowedFunctions?: AreaFunctionId[] | null
 }) {
-  const communicationItems: NavItem[] = (
-    [
-      {
-        title: "Meine Aufgaben",
-        url: "/v1/eingang",
-        icon: MessagesSquare,
-        functionId: "inbox",
-      },
-      {
-        title: "Aufgaben zuweisen",
-        url: "/v1/zuweisen",
-        icon: Plus,
-        functionId: "staff-messages",
-      },
-    ] as const satisfies readonly NavItem[]
-  ).filter(
-    (item) =>
-      !item.functionId || isAllowed(allowedFunctions, item.functionId)
-  )
-
   const functionItems: NavItem[] = (
     [
       {
@@ -118,6 +97,12 @@ export function AppSidebar({
         url: "/v1/prompt",
         icon: Sparkles,
         functionId: "prompts",
+      },
+      {
+        title: "Notizen",
+        url: "/v1/notizen",
+        icon: StickyNote,
+        functionId: "notes",
       },
       {
         title: "Textbausteine",
@@ -131,28 +116,28 @@ export function AppSidebar({
       !item.functionId || isAllowed(allowedFunctions, item.functionId)
   )
 
-  const managementItems: NavItem[] =
-    deskRole === "sekretariat"
-      ? (
-          [
-            {
-              title: "Mandanten",
-              url: "/v1/mandanten",
-              icon: Users,
-              functionId: "clients",
-            },
+  const managementItems: NavItem[] = (
+    [
+      {
+        title: "Mandanten",
+        url: "/v1/mandanten",
+        icon: Users,
+        functionId: "clients" as const,
+      },
+      ...(deskRole === "sekretariat"
+        ? [
             {
               title: "Akten",
               url: "/v1/akten",
               icon: FolderOpen,
-              functionId: "matters",
+              functionId: "matters" as const,
             },
-          ] as const satisfies readonly NavItem[]
-        ).filter(
-          (item) =>
-            !item.functionId || isAllowed(allowedFunctions, item.functionId)
-        )
-      : []
+          ]
+        : []),
+    ] satisfies NavItem[]
+  ).filter(
+    (item) => !item.functionId || isAllowed(allowedFunctions, item.functionId)
+  )
 
   return (
     <Sidebar collapsible="offcanvas" {...props}>
@@ -183,9 +168,8 @@ export function AppSidebar({
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarGroup>
-        <NavSection label="Kommunikation" items={communicationItems} />
         <NavSection label="Funktionen" items={functionItems} />
-        <NavSection label="Verwaltung" items={managementItems} />
+        <NavSection label="Daten" items={managementItems} />
         <NavSecondary className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>

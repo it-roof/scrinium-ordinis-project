@@ -22,6 +22,7 @@ import {
   ScaleIcon,
   SendIcon,
   SparklesIcon,
+  StickyNoteIcon,
   type LucideIcon,
 } from "lucide-react";
 
@@ -159,6 +160,14 @@ const featureMeta: Record<
     linkClass: "text-violet-700",
     cardClass:
       "hover:border-violet-200/80 hover:bg-gradient-to-br hover:from-violet-50/50 hover:to-white",
+  },
+  notes: {
+    description: "Persönliche Notizen — nur für dich, mit Diktat.",
+    icon: StickyNoteIcon,
+    iconWrap: "bg-orange-100 text-orange-800 ring-orange-200/70",
+    linkClass: "text-orange-700",
+    cardClass:
+      "hover:border-orange-200/80 hover:bg-gradient-to-br hover:from-orange-50/50 hover:to-white",
   },
   docs: {
     description: "Interne Anleitungen und Prozesse.",

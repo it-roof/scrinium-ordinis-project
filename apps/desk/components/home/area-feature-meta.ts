@@ -13,6 +13,7 @@ import {
   ScaleIcon,
   SendIcon,
   SparklesIcon,
+  StickyNoteIcon,
   type LucideIcon,
 } from "lucide-react";
 
@@ -114,6 +115,14 @@ export const AREA_FEATURE_META: Record<AreaFunctionId, AreaFeatureMeta> = {
     linkClass: "text-violet-700/80 group-hover:text-violet-900",
     tintClass: "hover:ring-violet-300/35",
     glowClass: "bg-violet-300/35",
+  },
+  notes: {
+    description: "Persönliche Notizen — nur für dich, mit Diktat.",
+    icon: StickyNoteIcon,
+    iconWrap: "bg-orange-50/90 text-orange-800/85 ring-orange-200/45",
+    linkClass: "text-orange-800/75 group-hover:text-orange-900",
+    tintClass: "hover:ring-orange-300/35",
+    glowClass: "bg-orange-300/40",
   },
   docs: {
     description: "Interne Anleitungen und Prozesse.",

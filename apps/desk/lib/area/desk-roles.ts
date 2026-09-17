@@ -15,7 +15,14 @@ export const DESK_ROLE_LABELS: Record<DeskRoleId, string> = {
  * Compose-/Schreiben-IDs und Nachrichten-Verlauf sind bewusst nicht mehr enthalten.
  */
 export const FUNCTIONS_BY_DESK_ROLE: Record<DeskRoleId, AreaFunctionId[]> = {
-  rechtsanwalt: ["inbox", "inbox-sent", "prompts", "staff-messages"],
+  rechtsanwalt: [
+    "inbox",
+    "inbox-sent",
+    "prompts",
+    "notes",
+    "staff-messages",
+    "clients",
+  ],
   sekretariat: [
     "inbox",
     "inbox-sent",

@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, max, ne, sql } from "drizzle-orm";
 
 import {
   promptTagAssignments,
@@ -7,6 +7,7 @@ import {
 } from "@/lib/db/schema";
 import { withTenantDb } from "@/lib/tenant/db";
 
+import { getPromptCatalogTenantId } from "./catalog";
 import { normalizeTagList, normalizeTagName, tagKey } from "./tag-utils";
 import type {
   Prompt,
@@ -28,12 +29,68 @@ function toPromptTag(row: TagRow): PromptTag {
 function toPrompt(row: PromptRow, tags: PromptTag[]): Prompt {
   return {
     id: row.id,
+    number: row.promptNumber,
     title: row.title,
     content: row.content,
     tags,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };
+}
+
+function isUniqueViolation(error: unknown): boolean {
+  let current: unknown = error;
+  for (let i = 0; i < 4 && current; i += 1) {
+    if (
+      typeof current === "object" &&
+      current !== null &&
+      "code" in current &&
+      (current as { code?: string }).code === "23505"
+    ) {
+      return true;
+    }
+    if (
+      typeof current === "object" &&
+      current !== null &&
+      "cause" in current
+    ) {
+      current = (current as { cause: unknown }).cause;
+      continue;
+    }
+    break;
+  }
+  return false;
+}
+
+async function nextPromptNumber(
+  tx: Parameters<Parameters<typeof withTenantDb>[1]>[0],
+  tenantId: string
+): Promise<number> {
+  const [row] = await tx
+    .select({ value: max(prompts.promptNumber) })
+    .from(prompts)
+    .where(eq(prompts.tenantId, tenantId));
+
+  return (row?.value ?? 0) + 1;
+}
+
+async function resolvePromptNumber(
+  tx: Parameters<Parameters<typeof withTenantDb>[1]>[0],
+  tenantId: string,
+  inputNumber: number | null
+): Promise<{ ok: true; number: number } | { ok: false; error: string }> {
+  if (inputNumber === null) {
+    return { ok: true, number: await nextPromptNumber(tx, tenantId) };
+  }
+
+  if (!Number.isInteger(inputNumber) || inputNumber < 1) {
+    return {
+      ok: false,
+      error: "Bitte eine ganze Zahl ab 1 als Nummer angeben.",
+    };
+  }
+
+  return { ok: true, number: inputNumber };
 }
 
 async function loadTagsByPromptIds(
@@ -158,13 +215,14 @@ async function syncPromptTags(
     );
 }
 
-export async function getPrompts(tenantId: string): Promise<Prompt[]> {
+export async function getPrompts(): Promise<Prompt[]> {
+  const tenantId = await getPromptCatalogTenantId();
   return withTenantDb(tenantId, async (tx) => {
     const rows = await tx
       .select()
       .from(prompts)
       .where(eq(prompts.tenantId, tenantId))
-      .orderBy(asc(prompts.title));
+      .orderBy(asc(prompts.promptNumber), asc(prompts.title));
 
     const tagMap = await loadTagsByPromptIds(
       tx,
@@ -175,10 +233,8 @@ export async function getPrompts(tenantId: string): Promise<Prompt[]> {
   });
 }
 
-export async function getPromptById(
-  tenantId: string,
-  id: string
-): Promise<Prompt | null> {
+export async function getPromptById(id: string): Promise<Prompt | null> {
+  const tenantId = await getPromptCatalogTenantId();
   return withTenantDb(tenantId, async (tx) => {
     const [row] = await tx
       .select()
@@ -196,7 +252,41 @@ export async function getPromptById(
   });
 }
 
-export async function getAllPromptTagNames(tenantId: string): Promise<string[]> {
+/** Liefert den Prompt mit dieser Nummer, optional einen Eintrag ausschließen (Bearbeiten). */
+export async function findPromptByNumber(
+  promptNumber: number,
+  excludeId?: string
+): Promise<{ id: string; number: number; title: string } | null> {
+  if (!Number.isInteger(promptNumber) || promptNumber < 1) {
+    return null;
+  }
+
+  const tenantId = await getPromptCatalogTenantId();
+  return withTenantDb(tenantId, async (tx) => {
+    const conditions = [
+      eq(prompts.tenantId, tenantId),
+      eq(prompts.promptNumber, promptNumber),
+    ];
+    if (excludeId) {
+      conditions.push(ne(prompts.id, excludeId));
+    }
+
+    const [row] = await tx
+      .select({
+        id: prompts.id,
+        number: prompts.promptNumber,
+        title: prompts.title,
+      })
+      .from(prompts)
+      .where(and(...conditions))
+      .limit(1);
+
+    return row ?? null;
+  });
+}
+
+export async function getAllPromptTagNames(): Promise<string[]> {
+  const tenantId = await getPromptCatalogTenantId();
   return withTenantDb(tenantId, async (tx) => {
     const rows = await tx
       .select({ name: promptTags.name })
@@ -208,9 +298,10 @@ export async function getAllPromptTagNames(tenantId: string): Promise<string[]> 
   });
 }
 
-export async function listPromptTagsWithCounts(
-  tenantId: string
-): Promise<PromptTagWithCount[]> {
+export async function listPromptTagsWithCounts(): Promise<
+  PromptTagWithCount[]
+> {
+  const tenantId = await getPromptCatalogTenantId();
   return withTenantDb(tenantId, async (tx) => {
     const rows = await tx
       .select({
@@ -236,57 +327,123 @@ export async function listPromptTagsWithCounts(
 }
 
 export async function createPromptRow(
-  tenantId: string,
   input: PromptInput
-): Promise<Prompt> {
+): Promise<Prompt | { error: string }> {
+  const tenantId = await getPromptCatalogTenantId();
   return withTenantDb(tenantId, async (tx) => {
-    const [row] = await tx
-      .insert(prompts)
-      .values({
-        tenantId,
-        title: input.title.trim(),
-        content: input.content.trim(),
-      })
-      .returning();
+    const resolved = await resolvePromptNumber(tx, tenantId, input.number);
+    if (!resolved.ok) {
+      return { error: resolved.error };
+    }
 
-    await syncPromptTags(tx, tenantId, row.id, input.tags);
+    try {
+      const [row] = await tx
+        .insert(prompts)
+        .values({
+          tenantId,
+          promptNumber: resolved.number,
+          title: input.title.trim(),
+          content: input.content.trim(),
+        })
+        .returning();
 
-    const tagMap = await loadTagsByPromptIds(tx, [row.id]);
+      await syncPromptTags(tx, tenantId, row.id, input.tags);
 
-    return toPrompt(row, tagMap.get(row.id) ?? []);
+      const tagMap = await loadTagsByPromptIds(tx, [row.id]);
+
+      return toPrompt(row, tagMap.get(row.id) ?? []);
+    } catch (error) {
+      if (isUniqueViolation(error)) {
+        return { error: "Diese Nummer ist bereits vergeben." };
+      }
+      throw error;
+    }
   });
 }
 
 export async function updatePromptRow(
-  tenantId: string,
   id: string,
   input: PromptInput
-): Promise<Prompt | null> {
+): Promise<Prompt | { error: string } | null> {
+  const tenantId = await getPromptCatalogTenantId();
   return withTenantDb(tenantId, async (tx) => {
-    const [row] = await tx
-      .update(prompts)
-      .set({
-        title: input.title.trim(),
-        content: input.content.trim(),
-        updatedAt: new Date().toISOString(),
-      })
-      .where(and(eq(prompts.id, id), eq(prompts.tenantId, tenantId)))
-      .returning();
-
-    if (!row) {
-      return null;
+    if (input.number === null) {
+      return { error: "Bitte eine Nummer angeben." };
     }
 
-    await syncPromptTags(tx, tenantId, id, input.tags);
+    const resolved = await resolvePromptNumber(tx, tenantId, input.number);
+    if (!resolved.ok) {
+      return { error: resolved.error };
+    }
 
-    const tagMap = await loadTagsByPromptIds(tx, [id]);
+    try {
+      const [row] = await tx
+        .update(prompts)
+        .set({
+          promptNumber: resolved.number,
+          title: input.title.trim(),
+          content: input.content.trim(),
+          updatedAt: new Date().toISOString(),
+        })
+        .where(and(eq(prompts.id, id), eq(prompts.tenantId, tenantId)))
+        .returning();
 
-    return toPrompt(row, tagMap.get(id) ?? []);
+      if (!row) {
+        return null;
+      }
+
+      await syncPromptTags(tx, tenantId, id, input.tags);
+
+      const tagMap = await loadTagsByPromptIds(tx, [id]);
+
+      return toPrompt(row, tagMap.get(id) ?? []);
+    } catch (error) {
+      if (isUniqueViolation(error)) {
+        return { error: "Diese Nummer ist bereits vergeben." };
+      }
+      throw error;
+    }
+  });
+}
+
+export async function updatePromptNumberRow(
+  id: string,
+  promptNumber: number
+): Promise<Prompt | { error: string } | null> {
+  if (!Number.isInteger(promptNumber) || promptNumber < 1) {
+    return {
+      error: "Bitte eine ganze Zahl ab 1 als Nummer angeben.",
+    };
+  }
+
+  const tenantId = await getPromptCatalogTenantId();
+  return withTenantDb(tenantId, async (tx) => {
+    try {
+      const [row] = await tx
+        .update(prompts)
+        .set({
+          promptNumber,
+          updatedAt: new Date().toISOString(),
+        })
+        .where(and(eq(prompts.id, id), eq(prompts.tenantId, tenantId)))
+        .returning();
+
+      if (!row) {
+        return null;
+      }
+
+      const tagMap = await loadTagsByPromptIds(tx, [id]);
+      return toPrompt(row, tagMap.get(id) ?? []);
+    } catch (error) {
+      if (isUniqueViolation(error)) {
+        return { error: "Diese Nummer ist bereits vergeben." };
+      }
+      throw error;
+    }
   });
 }
 
 export async function renamePromptTagRow(
-  tenantId: string,
   tagId: string,
   nextNameRaw: string
 ): Promise<
@@ -301,6 +458,7 @@ export async function renamePromptTagRow(
     };
   }
 
+  const tenantId = await getPromptCatalogTenantId();
   return withTenantDb(tenantId, async (tx) => {
     const [current] = await tx
       .select()
@@ -389,10 +547,8 @@ export async function renamePromptTagRow(
   });
 }
 
-export async function deletePromptRow(
-  tenantId: string,
-  id: string
-): Promise<boolean> {
+export async function deletePromptRow(id: string): Promise<boolean> {
+  const tenantId = await getPromptCatalogTenantId();
   return withTenantDb(tenantId, async (tx) => {
     const deleted = await tx
       .delete(prompts)

@@ -54,6 +54,7 @@ export const FUNCTION_PATH_SEGMENTS: Record<AreaFunctionId, string> = {
   "compose-print": "dokument-drucken",
   "text-blocks": "textbausteine",
   prompts: "prompt",
+  notes: "notizen",
   "prompt-kit": "prompt-baukasten",
   letters: "schreiben",
   docs: "dokumentation",
@@ -68,6 +69,7 @@ export function functionHref(
   // v1-Shell: diese Funktionen sind nicht mehr bereichsgebunden in der URL.
   const v1Routes: Partial<Record<AreaFunctionId, string>> = {
     prompts: "/v1/prompt",
+    notes: "/v1/notizen",
     inbox: "/v1/eingang",
     "inbox-sent": "/v1/gesendet",
     "staff-messages": "/v1/zuweisen",

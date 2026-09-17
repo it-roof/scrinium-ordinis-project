@@ -21,6 +21,7 @@ export const AREA_FUNCTION_IDS = [
   "compose-print",
   "text-blocks",
   "prompts",
+  "notes",
   "prompt-kit",
   "letters",
   "docs",
@@ -75,6 +76,10 @@ export function normalizeOptionalAllowedFunctions(
     unique.add("inbox-sent");
     unique.add("inbox-overview");
   }
+  // Notizen: neue RA-Funktion — bestehende Allowlists mit Prompts mitziehen
+  if (unique.has("prompts")) {
+    unique.add("notes");
+  }
   return [...unique];
 }
 
@@ -98,6 +103,7 @@ export const FUNCTIONS_BY_AREA: Record<AppModuleId, AreaFunctionId[]> = {
     "clients",
     "matters",
     "prompts",
+    "notes",
     "compose-letter",
     "compose-email",
     "compose-print",
@@ -122,6 +128,7 @@ export const FUNCTION_LABELS: Record<AreaFunctionId, string> = {
   "compose-print": "Dokument drucken",
   "text-blocks": "Textbausteine",
   prompts: "Prompt-Bibliothek",
+  notes: "Notizen",
   "prompt-kit": "Sachverhalt verarbeiten",
   letters: "Schreiben",
   docs: "Dokumentation",
@@ -150,6 +157,7 @@ export const FUNCTION_ROUTES: Record<
   "compose-print": { href: "/dokument-drucken", label: "Dokument drucken" },
   "text-blocks": { href: "/textbausteine", label: "Textbausteine" },
   prompts: { href: "/v1/prompt", label: "Prompt-Bibliothek" },
+  notes: { href: "/v1/notizen", label: "Notizen" },
   "prompt-kit": { href: "/prompt-baukasten", label: "Sachverhalt verarbeiten" },
   letters: { href: "/schreiben", label: "Schreiben" },
   docs: { href: "/dokumentation", label: "Dokumentation" },
@@ -259,6 +267,7 @@ export const MANAGEMENT_FUNCTION_IDS: AreaFunctionId[] = ["clients", "matters"];
 /** Sidebar-Gruppe Funktionen (Werkzeuge). */
 export const TOOL_FUNCTION_IDS: AreaFunctionId[] = [
   "prompts",
+  "notes",
   "text-blocks",
   "docs",
   "templates",

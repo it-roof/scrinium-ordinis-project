@@ -3,11 +3,13 @@
 import { useMemo } from "react";
 
 import { tagKey } from "@/lib/prompts/tag-utils";
-import type { Prompt } from "@/lib/prompts/types";
+import { formatPromptNumber, type Prompt } from "@/lib/prompts/types";
 
 export const UNTAGGED_PROMPT_FILTER = "__untagged__";
 
 export type PromptTagFilter = string | "all";
+
+export type PromptSortOrder = "number-asc" | "number-desc";
 
 export function countUntaggedPrompts(items: Prompt[]) {
   return items.filter((item) => item.tags.length === 0).length;
@@ -38,12 +40,48 @@ export function getPromptTagOptions(items: Prompt[]) {
 export function usePromptListFilter(
   items: Prompt[],
   search: string,
-  tagFilter: PromptTagFilter
+  tagFilter: PromptTagFilter,
+  sortOrder: PromptSortOrder = "number-asc"
 ) {
   const tagOptions = useMemo(() => getPromptTagOptions(items), [items]);
 
   const filteredItems = useMemo(() => {
     const query = search.trim().toLowerCase();
+    const numericQuery = /^\d+$/.test(query) ? Number.parseInt(query, 10) : null;
+
+    function matchesNumberExactly(item: Prompt): boolean {
+      if (numericQuery === null || !Number.isInteger(numericQuery)) {
+        return false;
+      }
+      return (
+        item.number === numericQuery ||
+        formatPromptNumber(item.number) === query ||
+        String(item.number) === query
+      );
+    }
+
+    function matchesTitle(item: Prompt): boolean {
+      return item.title.toLowerCase().includes(query);
+    }
+
+    function matchesBodyOrTags(item: Prompt): boolean {
+      return (
+        item.content.toLowerCase().includes(query) ||
+        item.tags.some((tag) => tag.name.toLowerCase().includes(query))
+      );
+    }
+
+    /** 0 = Nummer exakt, 1 = Titel, 2 = Text/Tags/Nummern-Teiltreffer */
+    function searchRank(item: Prompt): number {
+      if (!query) return 0;
+      if (numericQuery !== null && Number.isInteger(numericQuery)) {
+        if (matchesNumberExactly(item)) return 0;
+        if (matchesTitle(item)) return 1;
+        return 2;
+      }
+      if (matchesTitle(item)) return 1;
+      return 2;
+    }
 
     return items
       .filter((item) => {
@@ -63,13 +101,28 @@ export function usePromptListFilter(
         }
 
         return (
-          item.title.toLowerCase().includes(query) ||
-          item.content.toLowerCase().includes(query) ||
-          item.tags.some((tag) => tag.name.toLowerCase().includes(query))
+          matchesNumberExactly(item) ||
+          String(item.number).includes(query) ||
+          formatPromptNumber(item.number).includes(query) ||
+          matchesTitle(item) ||
+          matchesBodyOrTags(item)
         );
       })
-      .sort((left, right) => left.title.localeCompare(right.title, "de"));
-  }, [items, search, tagFilter]);
+      .sort((left, right) => {
+        if (query) {
+          const byRank = searchRank(left) - searchRank(right);
+          if (byRank !== 0) {
+            return byRank;
+          }
+        }
+
+        const byNumber =
+          sortOrder === "number-asc"
+            ? left.number - right.number
+            : right.number - left.number;
+        return byNumber || left.title.localeCompare(right.title, "de");
+      });
+  }, [items, search, tagFilter, sortOrder]);
 
   return { tagOptions, filteredItems };
 }

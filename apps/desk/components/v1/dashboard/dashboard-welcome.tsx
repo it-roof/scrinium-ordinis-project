@@ -8,7 +8,7 @@ import {
   IconUsers,
   type Icon,
 } from "@tabler/icons-react";
-import { Library, Sparkles } from "lucide-react";
+import { Library, Sparkles, StickyNote } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 
@@ -21,6 +21,7 @@ import {
   CardTitle,
 } from "@/components/v1/ui/card";
 import type { AppModuleId } from "@/lib/modules";
+import { updateMyDashboardViewAction } from "@/lib/settings/actions";
 import type { StaffDashboardStats } from "@/lib/staff-messages/storage";
 import { cn } from "@/lib/utils";
 
@@ -41,16 +42,26 @@ type Props = {
   quickFunctions: DashboardFunctionItem[];
   functions: DashboardFunctionItem[];
   communicationFunctions: DashboardFunctionItem[];
+  managementFunctions: DashboardFunctionItem[];
 };
 
 const FUNCTION_META: Record<
   string,
-  { icon: Icon | typeof Sparkles | typeof Library; iconClass: string; linkClass: string }
+  {
+    icon: Icon | typeof Sparkles | typeof Library | typeof StickyNote;
+    iconClass: string;
+    linkClass: string;
+  }
 > = {
   prompts: {
     icon: Sparkles,
     iconClass: "bg-violet-100 text-violet-700 ring-violet-200/70",
     linkClass: "text-violet-700/80 group-hover:text-violet-900",
+  },
+  notes: {
+    icon: StickyNote,
+    iconClass: "bg-orange-100 text-orange-800 ring-orange-200/70",
+    linkClass: "text-orange-800/80 group-hover:text-orange-950",
   },
   "staff-messages": {
     icon: IconPlus,
@@ -181,11 +192,14 @@ export function DashboardWelcome({
   quickFunctions,
   functions,
   communicationFunctions,
+  managementFunctions,
 }: Props) {
   const router = useRouter();
   const pathname = usePathname();
+  const showManagementSection = managementFunctions.length > 0;
 
   function setView(next: DeskView) {
+    void updateMyDashboardViewAction(next);
     if (next === "all") {
       router.push(`${pathname}?view=all`);
       return;
@@ -237,6 +251,22 @@ export function DashboardWelcome({
                   </p>
                 </div>
                 <FunctionCards items={functions} />
+              </section>
+            ) : null}
+
+            {showManagementSection ? (
+              <section className="space-y-4">
+                <div className="space-y-0.5">
+                  <h2 className="font-heading text-xl font-medium tracking-tight">
+                    Daten
+                  </h2>
+                  <p className="text-base text-muted-foreground">
+                    {managementFunctions.some((item) => item.id === "matters")
+                      ? "Mandanten und Akten verwalten."
+                      : "Mandanten anlegen und pflegen."}
+                  </p>
+                </div>
+                <FunctionCards items={managementFunctions} />
               </section>
             ) : null}
 

@@ -20,6 +20,7 @@ export default async function SettingsPage() {
       firstName: users.firstName,
       lastName: users.lastName,
       name: users.name,
+      dashboardView: users.dashboardView,
     })
     .from(users)
     .where(and(eq(users.id, user.id), eq(users.tenantId, user.tenantId)))
@@ -29,6 +30,7 @@ export default async function SettingsPage() {
   const lastName = profile?.lastName?.trim() || "";
   const displayName =
     formatUserName({ firstName, lastName }) || user.name?.trim() || "";
+  const dashboardView = profile?.dashboardView === "all" ? "all" : "quick";
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-10">
@@ -41,6 +43,7 @@ export default async function SettingsPage() {
         firstName={firstName}
         lastName={lastName}
         email={user.email?.trim().toLowerCase() || ""}
+        dashboardView={dashboardView}
       />
 
       <SmtpSettingsForm

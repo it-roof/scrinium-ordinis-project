@@ -1,0 +1,49 @@
+import { NextResponse } from "next/server";
+
+import { getUserNoteFileById } from "@/lib/notes/storage";
+import { getObjectSignedUrl } from "@/lib/storage/s3";
+import { assertUserCanAccessAreaFunction } from "@/lib/tenant/access";
+import { getSessionUser } from "@/lib/tenant/session";
+
+type RouteContext = {
+  params: Promise<{ id: string }>;
+};
+
+export async function GET(request: Request, context: RouteContext) {
+  const user = await getSessionUser();
+
+  if (!user) {
+    return NextResponse.json({ error: "Nicht angemeldet." }, { status: 401 });
+  }
+
+  const denied = await assertUserCanAccessAreaFunction(
+    user.id,
+    user.tenantId,
+    "notes"
+  );
+  if (denied) {
+    return NextResponse.json({ error: denied }, { status: 403 });
+  }
+
+  const { id } = await context.params;
+  const file = await getUserNoteFileById(user.tenantId, user.id, id);
+
+  if (!file) {
+    return NextResponse.json({ error: "Datei nicht gefunden." }, { status: 404 });
+  }
+
+  const forceDownload =
+    new URL(request.url).searchParams.get("download") === "1";
+
+  try {
+    const signedUrl = await getObjectSignedUrl(file.storageKey, 300, {
+      downloadFilename: forceDownload ? file.filename : undefined,
+    });
+    return NextResponse.redirect(signedUrl);
+  } catch {
+    return NextResponse.json(
+      { error: "Datei konnte nicht geladen werden." },
+      { status: 500 }
+    );
+  }
+}
