@@ -1,5 +1,6 @@
 import {
   BookOpenIcon,
+  ClipboardListIcon,
   UserIcon,
   FilePenLineIcon,
   FileStackIcon,
@@ -129,6 +130,15 @@ export const AREA_FEATURE_META: Record<AreaFunctionId, AreaFeatureMeta> = {
     linkClass: "text-slate-800/75 group-hover:text-slate-900",
     tintClass: "hover:ring-slate-300/35",
     glowClass: "bg-slate-300/35",
+  },
+  "client-intake": {
+    description:
+      "Aufnahmebogen per Link an Mandanten senden und Antworten prüfen.",
+    icon: ClipboardListIcon,
+    iconWrap: "bg-blue-50/90 text-blue-800/85 ring-blue-200/45",
+    linkClass: "text-blue-800/75 group-hover:text-blue-900",
+    tintClass: "hover:ring-blue-300/35",
+    glowClass: "bg-blue-300/35",
   },
   letters: {
     description: "Entwürfe mit Platzhaltern — als PDF oder Word ausgeben.",

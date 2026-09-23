@@ -1,8 +1,11 @@
 import {
-  BookOpenIcon,
+  BotIcon,
+  ClipboardListIcon,
+  FilePenLineIcon,
   FileStackIcon,
   FolderOpenIcon,
   MessagesSquareIcon,
+  ScaleIcon,
   SendIcon,
   SparklesIcon,
   StickyNoteIcon,
@@ -30,20 +33,10 @@ export type LabFunctionCard = {
 /** Bereich „Funktionen“ — Werkzeuge. */
 export const LAB_FUNCTIONS: ReadonlyArray<LabFunctionCard> = [
   {
-    title: "KI-Analyse",
-    body: "Sachverhalt aus der Akte prüfen.\nEntwurf zur Freigabe erhalten.",
-    href: "/r/analyse",
-    icon: SparklesIcon,
-    tone: {
-      accent: "#5b4d8a",
-      soft: "color-mix(in srgb, #9b8fd0 22%, transparent)",
-    },
-  },
-  {
     title: "Prompt-Bibliothek",
     body: "Bewährte Prompts speichern.\nSchnell suchen und kopieren.",
     href: "/prompt",
-    icon: BookOpenIcon,
+    icon: SparklesIcon,
     tone: {
       accent: "#6b4580",
       soft: "color-mix(in srgb, #b88fd0 20%, transparent)",
@@ -59,20 +52,30 @@ export const LAB_FUNCTIONS: ReadonlyArray<LabFunctionCard> = [
       soft: "color-mix(in srgb, #e0a070 20%, transparent)",
     },
   },
+  {
+    title: "Mandats-Aufnahmebogen",
+    body: "Link an Mandanten senden.\nStammdaten in Schritten erfassen.",
+    href: "/aufnahmebogen",
+    icon: ClipboardListIcon,
+    tone: {
+      accent: "#3d5a80",
+      soft: "color-mix(in srgb, #7a9cc0 22%, transparent)",
+    },
+  },
+  {
+    title: "Vertragsanalyse",
+    body: "Vertragstext prüfen lassen.\nLücken, AGB und Formulierungen.",
+    href: "/vertragsanalyse",
+    icon: FilePenLineIcon,
+    tone: {
+      accent: "#4a5568",
+      soft: "color-mix(in srgb, #94a3b8 22%, transparent)",
+    },
+  },
 ];
 
 /** Bereich „Daten“ — fachliche Stammdaten. */
 export const LAB_DATA: ReadonlyArray<LabFunctionCard> = [
-  {
-    title: "Mandanten",
-    body: "Stammdaten und Kontakte.\nEinwilligungen im Blick behalten.",
-    href: "/r/mandanten",
-    icon: UserIcon,
-    tone: {
-      accent: "#2f7a72",
-      soft: "color-mix(in srgb, #6dbfb4 20%, transparent)",
-    },
-  },
   {
     title: "Akten",
     body: "Mandate im Überblick.\nNach Mandant und Zeichen finden.",
@@ -81,6 +84,16 @@ export const LAB_DATA: ReadonlyArray<LabFunctionCard> = [
     tone: {
       accent: "#3d6b8a",
       soft: "color-mix(in srgb, #7eb0d0 22%, transparent)",
+    },
+  },
+  {
+    title: "Mandanten",
+    body: "Stammdaten und Kontakte.\nEinwilligungen im Blick behalten.",
+    href: "/r/mandanten",
+    icon: UserIcon,
+    tone: {
+      accent: "#2f7a72",
+      soft: "color-mix(in srgb, #6dbfb4 20%, transparent)",
     },
   },
 ];
@@ -115,6 +128,26 @@ export const LAB_MORE: ReadonlyArray<LabFunctionCard> = [
     tone: {
       accent: "#3f6b55",
       soft: "color-mix(in srgb, #7cbc9a 20%, transparent)",
+    },
+  },
+  {
+    title: "KI",
+    body: "Einfacher Chat mit der KI.\nFormulierungen und Orientierung.",
+    href: "/ki",
+    icon: BotIcon,
+    tone: {
+      accent: "#2f6f6a",
+      soft: "color-mix(in srgb, #6db5ae 20%, transparent)",
+    },
+  },
+  {
+    title: "KI-Analyse",
+    body: "Sachverhalt aus der Akte prüfen.\nEntwurf zur Freigabe erhalten.",
+    href: "/r/analyse",
+    icon: ScaleIcon,
+    tone: {
+      accent: "#5b4d8a",
+      soft: "color-mix(in srgb, #9b8fd0 22%, transparent)",
     },
   },
 ];

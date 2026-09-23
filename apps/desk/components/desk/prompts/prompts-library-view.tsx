@@ -189,13 +189,16 @@ export function V1PromptsLibraryView({
 
   return (
     <div className="relative flex min-h-0 flex-1 flex-col overflow-y-auto">
-      <div className="@container/main mx-auto flex w-full max-w-5xl flex-1 flex-col px-4 md:px-6">
-        <header className="flex flex-col gap-6 border-b border-border/15 pt-8 pb-6 sm:flex-row sm:items-end sm:justify-between md:pt-10 md:pb-8">
-          <div className="min-w-0 space-y-3">
-            <h1 className="font-heading text-3xl font-medium tracking-tight text-foreground md:text-[2.35rem] md:leading-[1.15]">
+      <div className="@container/main mx-auto flex w-full max-w-5xl flex-1 flex-col px-6 pt-12 pb-14 md:px-10 md:pt-14">
+        <header className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+          <div className="flex max-w-2xl flex-col">
+            <p className="b-eyebrow" style={{ color: "var(--b-accent)" }}>
+              Funktionen
+            </p>
+            <h1 className="b-display b-title mt-3 font-medium tracking-[-0.02em] md:mt-3.5">
               Prompt-Bibliothek
             </h1>
-            <p className="max-w-md text-sm leading-relaxed text-muted-foreground md:text-[0.95rem]">
+            <p className="b-lead mt-2 max-w-none text-[1.0625rem] leading-[1.55] md:mt-2.5">
               {isManage
                 ? "Gemeinsame Bibliothek für alle Kanzleien — anlegen, bearbeiten und löschen."
                 : "Gemeinsame Bibliothek für alle Kanzleien — durchsuchen und kopieren."}
@@ -220,7 +223,7 @@ export function V1PromptsLibraryView({
           </div>
         </header>
 
-        <div className="flex flex-col gap-6 py-6 md:gap-8 md:py-8">
+        <div className="mt-10 flex flex-col gap-6 md:gap-8">
           <div>
             <V1PromptsFilterBar
               items={items}

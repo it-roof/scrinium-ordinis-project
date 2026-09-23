@@ -26,6 +26,7 @@ export const AREA_FUNCTION_IDS = [
   "ai-chat",
   "case-facts-analysis",
   "contract-analysis",
+  "client-intake",
   "letters",
   "docs",
   "templates",
@@ -79,6 +80,9 @@ export function normalizeOptionalAllowedFunctions(
   if (unique.has("prompts") || unique.has("matters")) {
     unique.add("case-facts-analysis");
   }
+  if (unique.has("clients")) {
+    unique.add("client-intake");
+  }
   return [...unique];
 }
 
@@ -107,6 +111,7 @@ export const FUNCTIONS_BY_AREA: Record<AppModuleId, AreaFunctionId[]> = {
     "text-blocks",
     "case-facts-analysis",
     "contract-analysis",
+    "client-intake",
     "staff-messages",
   ],
   tax: [
@@ -135,6 +140,7 @@ export const FUNCTION_LABELS: Record<AreaFunctionId, string> = {
   "ai-chat": "KI",
   "case-facts-analysis": "KI-Analyse",
   "contract-analysis": "Vertragsanalyse",
+  "client-intake": "Mandats-Aufnahmebogen",
   letters: "Schreiben",
   docs: "Dokumentation",
   templates: "Vorlagen",
@@ -205,6 +211,12 @@ export function functionIdFromPathname(
   ) {
     return "contract-analysis";
   }
+  if (
+    pathname === "/aufnahmebogen" ||
+    pathname.startsWith("/aufnahmebogen/")
+  ) {
+    return "client-intake";
+  }
 
   return null;
 }
@@ -232,6 +244,7 @@ export const TOOL_FUNCTION_IDS: AreaFunctionId[] = [
   "ai-chat",
   "case-facts-analysis",
   "contract-analysis",
+  "client-intake",
   "prompts",
   "notes",
   "letters",

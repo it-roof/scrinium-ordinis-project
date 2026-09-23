@@ -19,6 +19,8 @@ describe("DESK_ROLE_BUNDLES", () => {
     expect(DESK_ROLE_BUNDLES.rechtsanwalt.functions).toContain(
       "contract-analysis"
     );
+    expect(DESK_ROLE_BUNDLES.rechtsanwalt.functions).toContain("client-intake");
+    expect(DESK_ROLE_BUNDLES.sekretariat.functions).toContain("client-intake");
     expect(DESK_ROLE_BUNDLES.sekretariat.functions).not.toContain("prompts");
     expect(DESK_ROLE_BUNDLES.sekretariat.functions).toContain("letters");
     expect(DESK_ROLE_BUNDLES.sekretariat.functions).not.toContain(

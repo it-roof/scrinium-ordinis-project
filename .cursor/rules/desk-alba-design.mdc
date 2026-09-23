@@ -1,0 +1,36 @@
+---
+description: Desk-UI immer am Alba-Dashboard (brand-lab) ausrichten
+alwaysApply: true
+---
+
+# Desk-UI: Alba-Dashboard als Design-Referenz
+
+Neue und umgebaute Desk-Oberflächen orientieren sich **immer** am aktuellen Dashboard-Design (Alba / brand-lab), nicht am Legacy-shadcn-Look.
+
+## Referenz
+
+| Was | Wo |
+|-----|-----|
+| Tokens & Typo | `apps/desk/app/neues-design/brand-lab.css` |
+| Shell / Nav | `apps/desk/components/neues-design/alba-shell.tsx` |
+| Seiten-Muster | `dashboard-alba.tsx`, `settings-alba.tsx` |
+| App-Shell | `DeskAppShell` → `AlbaShell` |
+
+## Pflicht
+
+- Wrapper: `brand-lab-root brand-alba brand-alba-manrope` (+ Appearance wo Shell)
+- Typo: `b-eyebrow`, `b-display` / `b-title` (Manrope medium), `b-lead`, `b-meta`
+- Actions: `b-btn b-btn-primary` / `b-btn-ghost` — keine neuen shadcn-`Button`-Varianten als Default
+- Farben über CSS-Variablen (`--b-ink`, `--b-muted`, `--b-line`, `--b-soft`, `--b-bg`, `--b-accent`)
+- Formulare: gleiche Sprache wie Einstellungen / `lab-intake` (Inputs, Chips, Panels)
+- Deutsche UI-Texte; ruhig, kanzleitauglich, wenig Chrome
+
+## Nie (Default)
+
+- Neue Seiten im alten muted/border-shadcn-Dashboard-Stil
+- Inter/System als Display-Font; purple/glow/Card-Hero-Bloat
+- Parallel-Design „nur schnell shadcn“ neben Alba
+
+## Ausnahme
+
+Bestehende Legacy-Screens nur anfassen, wenn die Aufgabe sie betrifft — dann auf Alba ziehen, nicht halb modernisieren.

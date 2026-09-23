@@ -103,7 +103,7 @@ export function AccountSettingsForm({
             Konto
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Vorname, Nachname und Login-E-Mail für deinen Zugang.
+            Vorname, Nachname und Login-E-Mail für Ihren Zugang.
           </p>
         </div>
 

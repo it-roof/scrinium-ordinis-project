@@ -63,6 +63,11 @@ Siehe [`.cursor/rules/area-content-isolation.mdc`](../../.cursor/rules/area-cont
 - Platform: schlanke `PlatformShell` (Super-Admin ohne Desk-Rolle)
 - Bare `/{practice}` → `/dashboard` (mit Rolle) bzw. `/` (ohne Position)
 
+## UI-Design (Alba / brand-lab)
+
+**Referenz für alle neuen und umgebauten Surfaces:** Dashboard Alba (`components/neues-design/dashboard-alba.tsx`, `alba-shell.tsx`, `app/neues-design/brand-lab.css`).  
+Nicht Legacy-shadcn als Default. Rule: [`.cursor/rules/desk-alba-design.mdc`](../../.cursor/rules/desk-alba-design.mdc).
+
 ## Enterprise Lightweight
 
 Professionelle Standards, minimale Komplexität. Siehe `.cursor/rules/enterprise-lightweight.mdc`.
@@ -86,7 +91,7 @@ Modul-Dokumentation: [`docs/README.md`](docs/README.md) · Erstes Modul: [Textba
 - Tabellen: `ai_consents`, `ai_audit`, `ai_drafts`, `ai_jobs`, `matter_parties`
 - **KI-Chat** (`/ki`, Function `ai-chat`): Klartext-Chat, Session-only (kein DB-Verlauf); UI-Disclaimer gegen Mandanten-/Falldaten; Audit content-frei ohne `client_id`
 - **KI-Analyse** (Akte): Vorschau → Residual-Gate → Job → Entwurf — mit Pseudonymisierung ([`docs/ai-pseudonymization.md`](docs/ai-pseudonymization.md)); EU-Region + EU-Modell-ID; Job-Owner-only; early clear + TTL
-- **Vertragsanalyse** (`/vertragsanalyse`, Function `contract-analysis`): Paste → Pseudonym-Vorschau/Gate → Sync-Analyse (Session-Ergebnis, kein Job/Draft); gleicher Pseudonym-Stack wie Analyse, ohne Akte
+- **Vertragsanalyse** (`/vertragsanalyse`, Function `contract-analysis`): Workspace Session-only — PDF/DOCX oder Sachverhalt → Erstanalyse → Gegenfragen → verbesserten Vertrag + DOCX-Download ([`lib/ai/contract-kit/`](lib/ai/contract-kit/)). Upload derzeit roh an Bedrock (Document); Absolut-Regel TODO in [`docs/ai-pseudonymization.md`](docs/ai-pseudonymization.md). Datei wird nicht gespeichert.
 - Env: `AWS_REGION` (eu-*), `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `BEDROCK_MODEL_ID` (eu.*), optional `AI_PSEUDONYM_GATE`
 - Dev-Debug: nur Test-Kanzlei — `AI_DEBUG=1` + `AI_DEBUG_TENANT_SLUG=test-kanzlei` → `/ai-debug` (kein Super-Admin / keine Platform-UI)
 - Tests: siehe Abschnitt Tests oben

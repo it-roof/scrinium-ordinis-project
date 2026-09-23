@@ -46,6 +46,12 @@ export const dashboardViewEnum = pgEnum("dashboard_view", ["quick", "all"]);
 /** Mandant: Firma oder Privatperson. */
 export const clientKindEnum = pgEnum("client_kind", ["company", "person"]);
 
+/** Status einer Aufnahmebogen-Einladung. */
+export const clientIntakeInviteStatusEnum = pgEnum(
+  "client_intake_invite_status",
+  ["open", "submitted", "revoked", "expired"]
+);
+
 /** Plattform-weit (nicht Kanzlei-Admin). Nur Tenant-/User-Verwaltung, keine Fachdaten anderer Tenants. */
 export const platformRoleEnum = pgEnum("platform_role", ["super_admin"]);
 
@@ -1143,6 +1149,86 @@ export const userNoteFiles = pgTable(
   })
 );
 
+/** Einladung zum Mandats-Aufnahmebogen (öffentlicher Token-Link). */
+export const clientIntakeInvites = pgTable(
+  "client_intake_invites",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    module: moduleEnum("module").notNull().default("legal"),
+    tokenHash: text("token_hash").notNull(),
+    recipientEmail: text("recipient_email").notNull(),
+    recipientName: text("recipient_name").notNull().default(""),
+    createdBy: uuid("created_by")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    status: clientIntakeInviteStatusEnum("status").notNull().default("open"),
+    expiresAt: timestamp("expires_at", { withTimezone: true, mode: "string" })
+      .notNull(),
+    submittedAt: timestamp("submitted_at", {
+      withTimezone: true,
+      mode: "string",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    tokenHashUnique: uniqueIndex("client_intake_invites_token_hash_unique").on(
+      table.tokenHash
+    ),
+    tenantIdIdx: index("client_intake_invites_tenant_id_idx").on(table.tenantId),
+    tenantStatusIdx: index("client_intake_invites_tenant_status_idx").on(
+      table.tenantId,
+      table.status
+    ),
+  })
+);
+
+/** Ausgefüllter Mandats-Aufnahmebogen. */
+export const clientIntakeSubmissions = pgTable(
+  "client_intake_submissions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    inviteId: uuid("invite_id")
+      .notNull()
+      .references(() => clientIntakeInvites.id, { onDelete: "cascade" }),
+    clientId: uuid("client_id").references(() => clients.id, {
+      onDelete: "set null",
+    }),
+    partyKind: clientKindEnum("party_kind").notNull(),
+    payload: jsonb("payload").$type<Record<string, unknown>>().notNull(),
+    missingItems: jsonb("missing_items")
+      .$type<string[]>()
+      .notNull()
+      .default([]),
+    signaturePng: text("signature_png"),
+    consents: jsonb("consents")
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default({}),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    inviteIdUnique: uniqueIndex("client_intake_submissions_invite_id_unique").on(
+      table.inviteId
+    ),
+    tenantIdIdx: index("client_intake_submissions_tenant_id_idx").on(
+      table.tenantId
+    ),
+    clientIdIdx: index("client_intake_submissions_client_id_idx").on(
+      table.clientId
+    ),
+  })
+);
+
 export type UserNoteFileRow = typeof userNoteFiles.$inferSelect;
 export type Letter = typeof letters.$inferSelect;
 export type LetterStatus = (typeof letterStatusEnum.enumValues)[number];
@@ -1167,3 +1253,8 @@ export type StaffMessageIntent =
   (typeof staffMessageIntentEnum.enumValues)[number];
 export type StaffMessageEventKind =
   (typeof staffMessageEventKindEnum.enumValues)[number];
+export type ClientIntakeInvite = typeof clientIntakeInvites.$inferSelect;
+export type ClientIntakeSubmission =
+  typeof clientIntakeSubmissions.$inferSelect;
+export type ClientIntakeInviteStatus =
+  (typeof clientIntakeInviteStatusEnum.enumValues)[number];

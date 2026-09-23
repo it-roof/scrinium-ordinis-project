@@ -13,6 +13,7 @@ describe("hrefFor", () => {
     expect(hrefFor("notes")).toBe("/notizen");
     expect(hrefFor("ai-chat")).toBe("/ki");
     expect(hrefFor("contract-analysis")).toBe("/vertragsanalyse");
+    expect(hrefFor("client-intake")).toBe("/aufnahmebogen");
     expect(hrefFor("inbox")).toBe("/eingang");
     expect(hrefFor("inbox-sent")).toBe("/gesendet");
     expect(hrefFor("staff-messages")).toBe("/zuweisen");

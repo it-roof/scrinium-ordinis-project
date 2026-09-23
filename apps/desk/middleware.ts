@@ -140,9 +140,17 @@ export function middleware(request: NextRequest) {
   const isPasswordResetPage =
     pathname === "/passwort-vergessen" ||
     pathname === "/passwort-zuruecksetzen";
+  const isPublicIntake =
+    pathname === "/aufnahme" || pathname.startsWith("/aufnahme/");
+  const isDatenschutzPage = pathname === "/datenschutz-erstinformation";
   const isLoggedIn = hasAuthSessionCookie(request.cookies);
 
-  if (isLoginPage || isPasswordResetPage) {
+  if (
+    isLoginPage ||
+    isPasswordResetPage ||
+    isPublicIntake ||
+    isDatenschutzPage
+  ) {
     const response = NextResponse.next({
       request: { headers: requestHeaders },
     });

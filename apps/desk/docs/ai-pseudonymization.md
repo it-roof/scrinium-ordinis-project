@@ -2,7 +2,15 @@
 
 Stand: Produktentscheidung Scrinium Ordinis Desk · Anwaltsgeheimnis / DSGVO.
 
-Klartext darf die eigene Infrastruktur erst **nach** Pseudonymisierung Richtung Bedrock (EU) verlassen — **für die KI-Analyse (Akten-Sachverhalt) und die Vertragsanalyse**. Der freie **KI-Chat** (`/ki`) sendet bewusst Klartext (Session-only, Disclaimer in der UI: keine Mandanten-/Falldaten). Es gibt **keine 100 %-Garantie**; Ziel ist maximale praktische Absicherung bei einfacher UX für Anwälte.
+Klartext darf die eigene Infrastruktur erst **nach** Pseudonymisierung Richtung Bedrock (EU) verlassen — **für die KI-Analyse (Akten-Sachverhalt)**. Der freie **KI-Chat** (`/ki`) sendet bewusst Klartext (Session-only, Disclaimer in der UI: keine Mandanten-/Falldaten). Es gibt **keine 100 %-Garantie**; Ziel ist maximale praktische Absicherung bei einfacher UX für Anwälte.
+
+### TODO — Absolut-Regel für Vertrags-Dokumente nachziehen
+
+**Zielbild (noch nicht aktiv):** Auch Word/PDF-Uploads (inkl. Scans) dürfen Bedrock erst **nach** lokaler Pseudonymisierung erreichen (z. B. OCR → Stufe 1+2 → Gate, oder Scan ablehnen).
+
+**Übergang (aktuell):** Vertragsanalyse-Workspace (`startContractWorkspace`) sendet **PDF/DOCX-Bytes ungeschwärzt** an Claude via Bedrock Converse Document (EU); Folge-Turns und Sachverhalt-Paste sind Klartext im Session-Chat. Begründung: Scan-PDFs / Workspace-MVP; Produktentscheidung „erst roh, Regel später“. UI zeigt einen Kurz-Hinweis.
+
+Nachziehen, wenn geprüft: OCR und/oder Vision nur auf redigiertem Inhalt — dann Roh-Pfad entfernen. Legacy One-Shot-Actions mit Pseudonym-Paste bleiben im Code, sind aber nicht die Workspace-UI.
 
 ## Stufe 1 (aktiv)
 

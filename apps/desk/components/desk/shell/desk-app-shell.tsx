@@ -3,9 +3,7 @@ import { and, eq } from "drizzle-orm";
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 
-import { AppSidebar } from "@/components/desk/dashboard/app-sidebar";
-import { SiteHeader } from "@/components/desk/dashboard/site-header";
-import { SidebarInset, SidebarProvider } from "@/components/desk/ui/sidebar";
+import { AlbaShell } from "@/components/neues-design/alba-shell";
 import {
   ACTIVE_AREA_COOKIE,
   firstAvailableArea,
@@ -19,18 +17,18 @@ import {
   slugForPractice,
 } from "@/lib/area/paths";
 import { auth } from "@/lib/auth";
-import { userCanAccessAiDebug } from "@/lib/ai/debug-access";
 import { db } from "@/lib/db";
-import { checkDatabaseConnection } from "@/lib/db/health";
 import { users } from "@/lib/db/schema";
 import type { AppModuleId } from "@/lib/modules";
-import { getTenantDisplayBrand } from "@/lib/tenant/brand";
+import { getTenantUiContext } from "@/lib/tenant/brand";
 import {
   getUserAllowedFunctions,
   getUserDeskRole,
   getUserEffectiveModules,
 } from "@/lib/tenant/modules";
 import { formatUserName } from "@/lib/users/names";
+
+import "@/app/neues-design/brand-lab.css";
 
 export type DeskSessionContext = {
   userId: string;
@@ -41,6 +39,7 @@ export type DeskSessionContext = {
   displayName: string;
   email: string;
   brandLabel: string;
+  tenantName: string;
 };
 
 /** @deprecated Nutze DeskSessionContext */
@@ -79,10 +78,10 @@ export async function requireDeskUser(options?: {
     redirect("/login");
   }
 
-  const [deskRole, brandLabel, nameRow, allowedFunctions, modules] =
+  const [deskRole, tenantUi, nameRow, allowedFunctions, modules] =
     await Promise.all([
       getUserDeskRole(session.user.id, session.user.tenantId),
-      getTenantDisplayBrand(session.user.tenantId),
+      getTenantUiContext(session.user.tenantId),
       db
         .select({
           firstName: users.firstName,
@@ -136,7 +135,8 @@ export async function requireDeskUser(options?: {
     allowedFunctions,
     displayName,
     email: profile?.email ?? session.user.email ?? "",
-    brandLabel,
+    brandLabel: tenantUi.brandLabel,
+    tenantName: tenantUi.tenantName,
   };
 }
 
@@ -176,50 +176,34 @@ type DeskAppShellProps = {
 export async function DeskAppShell({
   ctx,
   children,
-  headerTitle = "Übersicht",
+  headerTitle: _headerTitle = "Übersicht",
 }: DeskAppShellProps) {
-  const [dbConnected, showAiDebug, practices] = await Promise.all([
-    checkDatabaseConnection(),
-    userCanAccessAiDebug({
-      tenantId: ctx.tenantId,
-    }),
-    getUserEffectiveModules(ctx.userId, ctx.tenantId),
-  ]);
+  void _headerTitle;
 
   return (
-    <SidebarProvider
-      className="h-full min-h-0"
+    <div
       style={
         {
-          "--sidebar-width": "17rem",
-          "--header-height": "calc(var(--spacing) * 12)",
+          "--font-alba-manrope": "var(--font-manrope)",
+          "--radius": "0.25rem",
         } as CSSProperties
       }
     >
-      <AppSidebar
-        variant="sidebar"
-        brandLabel={ctx.brandLabel}
-        area={ctx.area}
-        deskRole={ctx.deskRole}
-        allowedFunctions={ctx.allowedFunctions}
-        practices={practices}
-        showAiDebug={showAiDebug}
+      <AlbaShell
+        showAppearanceSwitch
+        fillMain
+        tenantName={ctx.tenantName}
         user={{
           name: ctx.displayName,
+          roleLabel: DESK_ROLE_LABELS[ctx.deskRole],
           email: ctx.email,
         }}
-      />
-      <SidebarInset className="min-h-0 overflow-hidden bg-background">
-        <SiteHeader
-          title={headerTitle}
-          roleLabel={DESK_ROLE_LABELS[ctx.deskRole]}
-          dbConnected={dbConnected}
-        />
+      >
         <div className="v1-fade flex min-h-0 flex-1 flex-col overflow-hidden">
           {children}
         </div>
-      </SidebarInset>
-    </SidebarProvider>
+      </AlbaShell>
+    </div>
   );
 }
 

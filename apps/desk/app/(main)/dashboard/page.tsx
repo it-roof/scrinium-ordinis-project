@@ -46,6 +46,7 @@ export default async function Page() {
       <DashboardAlba
         greeting={greeting}
         showAppearanceSwitch
+        tenantName={ctx.tenantName}
         user={{
           name: ctx.displayName,
           roleLabel: DESK_ROLE_LABELS[ctx.deskRole],

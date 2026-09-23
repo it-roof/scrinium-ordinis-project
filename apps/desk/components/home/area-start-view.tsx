@@ -176,6 +176,15 @@ const featureMeta: Record<
     cardClass:
       "hover:border-slate-200/80 hover:bg-gradient-to-br hover:from-slate-50/50 hover:to-white",
   },
+  "client-intake": {
+    description:
+      "Aufnahmebogen per Link an Mandanten senden und Antworten prüfen.",
+    icon: ClipboardListIcon,
+    iconWrap: "bg-blue-100 text-blue-800 ring-blue-200/70",
+    linkClass: "text-blue-700",
+    cardClass:
+      "hover:border-blue-200/80 hover:bg-gradient-to-br hover:from-blue-50/50 hover:to-white",
+  },
   letters: {
     description: "Entwürfe mit Platzhaltern — als PDF oder Word ausgeben.",
     icon: FilePenLineIcon,
