@@ -17,14 +17,10 @@ export function LoginForm({
   const brand = brandLabel?.trim() || PRODUCT_WORDMARK;
 
   return (
-    <div className="flex w-full flex-col gap-6">
-      <p className="b-eyebrow" style={{ color: "var(--b-accent)" }}>
-        {brand}
-      </p>
-
+    <div className="flex w-full flex-col items-center gap-6">
       {passwordless ? (
         <p
-          className="rounded-[0.85rem] border px-4 py-3 text-[0.8125rem] leading-snug"
+          className="w-full rounded-[0.85rem] border px-4 py-3 text-[0.8125rem] leading-snug"
           style={{
             borderColor: "color-mix(in srgb, #b45309 35%, var(--b-line))",
             background: "color-mix(in srgb, #b45309 8%, var(--b-bg-elev))",
@@ -35,7 +31,7 @@ export function LoginForm({
         </p>
       ) : null}
 
-      <form action={formAction} className="lab-login-panel flex flex-col gap-5">
+      <form action={formAction} className="lab-login-panel flex w-full flex-col gap-5">
         <h1 className="b-display text-[1.5rem] font-medium tracking-[-0.02em] md:text-[1.625rem]">
           Anmelden
         </h1>
@@ -97,6 +93,8 @@ export function LoginForm({
           {isPending ? "Anmelden…" : "Anmelden"}
         </button>
       </form>
+
+      <p className="b-meta text-center">{brand}</p>
     </div>
   );
 }
