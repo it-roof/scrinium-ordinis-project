@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useActionState } from "react";
 
 import { PRODUCT_WORDMARK } from "@scrinium/brand";
@@ -18,15 +17,10 @@ export function LoginForm({
   const brand = brandLabel?.trim() || PRODUCT_WORDMARK;
 
   return (
-    <div className="flex w-full flex-col gap-8">
-      <header className="flex flex-col gap-1.5">
-        <p className="b-eyebrow" style={{ color: "var(--b-accent)" }}>
-          {brand}
-        </p>
-        <h1 className="b-display text-[1.75rem] font-medium tracking-[-0.02em] md:text-[2rem]">
-          Anmelden
-        </h1>
-      </header>
+    <div className="flex w-full flex-col gap-6">
+      <p className="b-eyebrow" style={{ color: "var(--b-accent)" }}>
+        {brand}
+      </p>
 
       {passwordless ? (
         <p
@@ -42,6 +36,10 @@ export function LoginForm({
       ) : null}
 
       <form action={formAction} className="lab-login-panel flex flex-col gap-5">
+        <h1 className="b-display text-[1.5rem] font-medium tracking-[-0.02em] md:text-[1.625rem]">
+          Anmelden
+        </h1>
+
         <div className="grid gap-1.5">
           <label
             htmlFor="email"
@@ -99,20 +97,6 @@ export function LoginForm({
           {isPending ? "Anmelden…" : "Anmelden"}
         </button>
       </form>
-
-      {passwordless ? null : (
-        <div className="flex flex-col items-center gap-2 text-center">
-          <Link
-            href="/passwort-vergessen"
-            className="b-meta font-medium transition-colors hover:text-[var(--b-ink)]"
-          >
-            Passwort vergessen?
-          </Link>
-          <p className="b-meta max-w-xs">
-            Nach mehreren Fehlversuchen wird der Zugang vorübergehend gesperrt.
-          </p>
-        </div>
-      )}
     </div>
   );
 }
