@@ -1,5 +1,6 @@
 import {
   type AnyPgColumn,
+  boolean,
   date,
   index,
   integer,
@@ -23,6 +24,7 @@ export const moduleEnum = pgEnum("module", [
   "restructuring-insolvency",
   "consulting",
   "administration",
+  "notary",
 ]);
 
 export const roleEnum = pgEnum("user_role", ["admin", "employee"]);
@@ -31,6 +33,8 @@ export const roleEnum = pgEnum("user_role", ["admin", "employee"]);
 export const deskRoleEnum = pgEnum("desk_role", [
   "rechtsanwalt",
   "sekretariat",
+  "steuerberater",
+  "stb_sekretariat",
 ]);
 
 /** Formelle Anrede für Begrüßung (Herr / Frau). */
@@ -51,6 +55,56 @@ export const letterStatusEnum = pgEnum("letter_status", [
   "zur_pruefung",
   "freigegeben",
   "versendet",
+]);
+
+/** Rolle einer Partei an der Akte (Gegner / Beteiligter / Sonstige). */
+export const matterPartyRoleEnum = pgEnum("matter_party_role", [
+  "opponent",
+  "party",
+  "other",
+]);
+
+/** KI-Einwilligung des Mandanten (Historie; neuester Eintrag gilt). */
+export const aiConsentStatusEnum = pgEnum("ai_consent_status", [
+  "granted",
+  "revoked",
+]);
+
+/** Status eines asynchronen KI-Jobs. */
+export const aiJobStatusEnum = pgEnum("ai_job_status", [
+  "pending",
+  "running",
+  "succeeded",
+  "failed",
+]);
+
+/** Pipeline timeline for AI_DEBUG (pseudonymized text only). */
+export type AiDebugStep = {
+  at: string;
+  step: string;
+  detail?: string;
+};
+
+export type AiDebugTrace = {
+  steps: AiDebugStep[];
+  /** Pseudonymized user message sent to the model — never plaintext PII. */
+  pseudonymizedUserMessage?: string;
+  /** Model reply still with placeholders (before repersonalize). */
+  rawModelResponse?: string;
+  model?: string;
+  inputTokens?: number;
+  outputTokens?: number;
+  latencyMs?: number;
+  placeholderCount?: number;
+  unknownPlaceholders?: string[];
+  errorCode?: string;
+};
+
+/** Status eines KI-Entwurfs (Freigabe durch Anwalt). */
+export const aiDraftStatusEnum = pgEnum("ai_draft_status", [
+  "draft",
+  "approved",
+  "discarded",
 ]);
 
 /** Priorität interner Aufgaben (Absender setzt). */
@@ -614,6 +668,233 @@ export const matters = pgTable(
   })
 );
 
+/**
+ * Gegner / Beteiligte / Sonstige an einer Akte.
+ * Mandant kommt indirekt über matters.client_id.
+ */
+export const matterParties = pgTable(
+  "matter_parties",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    matterId: uuid("matter_id")
+      .notNull()
+      .references(() => matters.id, { onDelete: "cascade" }),
+    role: matterPartyRoleEnum("role").notNull().default("opponent"),
+    kind: clientKindEnum("kind").notNull().default("company"),
+    name: text("name").notNull(),
+    firstName: text("first_name").notNull().default(""),
+    lastName: text("last_name").notNull().default(""),
+    street: text("street").notNull().default(""),
+    postalCode: text("postal_code").notNull().default(""),
+    city: text("city").notNull().default(""),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    tenantMatterIdx: index("matter_parties_tenant_matter_idx").on(
+      table.tenantId,
+      table.matterId
+    ),
+  })
+);
+
+/**
+ * KI-Einwilligung des Mandanten — jeder Statuswechsel = neuer Eintrag.
+ * Maßgeblich ist der neueste Eintrag je (tenant_id, client_id).
+ */
+export const aiConsents = pgTable(
+  "ai_consents",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    clientId: uuid("client_id")
+      .notNull()
+      .references(() => clients.id, { onDelete: "cascade" }),
+    status: aiConsentStatusEnum("status").notNull(),
+    /** Ausdrücklicher Verzicht nach § 43e Abs. 6 BRAO. */
+    waiver43e: boolean("waiver_43e").notNull().default(false),
+    grantedAt: timestamp("granted_at", { withTimezone: true, mode: "string" }),
+    revokedAt: timestamp("revoked_at", { withTimezone: true, mode: "string" }),
+    /** Verweis auf hochgeladenen Nachweis (optional). */
+    evidence: text("evidence"),
+    recordedBy: uuid("recorded_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    tenantClientIdx: index("ai_consents_tenant_client_idx").on(
+      table.tenantId,
+      table.clientId
+    ),
+  })
+);
+
+/**
+ * KI-Audit ohne Inhalte (kein Prompt, keine Antwort, kein Mapping).
+ */
+export const aiAudit = pgTable(
+  "ai_audit",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    clientId: uuid("client_id")
+      .notNull()
+      .references(() => clients.id, { onDelete: "cascade" }),
+    matterId: uuid("matter_id").references(() => matters.id, {
+      onDelete: "set null",
+    }),
+    task: text("task").notNull(),
+    model: text("model").notNull(),
+    inputTokens: integer("input_tokens"),
+    outputTokens: integer("output_tokens"),
+    latencyMs: integer("latency_ms"),
+    placeholderCount: integer("placeholder_count"),
+    previewConfirmed: boolean("preview_confirmed").notNull().default(false),
+    success: boolean("success").notNull(),
+    errorCode: text("error_code"),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    tenantCreatedIdx: index("ai_audit_tenant_created_idx").on(
+      table.tenantId,
+      table.createdAt
+    ),
+  })
+);
+
+/**
+ * KI-Entwurf mit Freigabestatus (Phase 4).
+ * Speicherung in der Akte nur nach Freigabe durch Rechtsanwalt.
+ */
+export const aiDrafts = pgTable(
+  "ai_drafts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    clientId: uuid("client_id")
+      .notNull()
+      .references(() => clients.id, { onDelete: "cascade" }),
+    matterId: uuid("matter_id")
+      .notNull()
+      .references(() => matters.id, { onDelete: "cascade" }),
+    task: text("task").notNull(),
+    status: aiDraftStatusEnum("status").notNull().default("draft"),
+    /** Re-personalisierter Entwurf (Klartext nach Freigabe-Workflow). */
+    content: text("content").notNull(),
+    createdBy: uuid("created_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    approvedBy: uuid("approved_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    approvedAt: timestamp("approved_at", {
+      withTimezone: true,
+      mode: "string",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    tenantMatterIdx: index("ai_drafts_tenant_matter_idx").on(
+      table.tenantId,
+      table.matterId
+    ),
+  })
+);
+
+/**
+ * Async KI-Job (lange Bedrock-Läufe).
+ * input_facts wird nach Abschluss gelöscht (Datenminimierung).
+ */
+export const aiJobs = pgTable(
+  "ai_jobs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    clientId: uuid("client_id")
+      .notNull()
+      .references(() => clients.id, { onDelete: "cascade" }),
+    matterId: uuid("matter_id")
+      .notNull()
+      .references(() => matters.id, { onDelete: "cascade" }),
+    task: text("task").notNull(),
+    status: aiJobStatusEnum("status").notNull().default("pending"),
+    /** Temporary plaintext facts — cleared as soon as the worker loads them. */
+    inputFacts: text("input_facts"),
+    manualMarks: jsonb("manual_marks").$type<string[]>().notNull().default([]),
+    /** Residuals the lawyer confirmed as non-PII (subset of gate list). */
+    dismissedResiduals: jsonb("dismissed_residuals")
+      .$type<string[]>()
+      .notNull()
+      .default([]),
+    previewConfirmed: boolean("preview_confirmed").notNull().default(false),
+    draftId: uuid("draft_id").references(() => aiDrafts.id, {
+      onDelete: "set null",
+    }),
+    unknownPlaceholders: jsonb("unknown_placeholders")
+      .$type<string[]>()
+      .notNull()
+      .default([]),
+    errorCode: text("error_code"),
+    /**
+     * Dev-only pipeline timeline (pseudonymized text). Written only when
+     * AI_DEBUG=1; never shown to lawyers.
+     */
+    debugTrace: jsonb("debug_trace").$type<AiDebugTrace | null>(),
+    startedAt: timestamp("started_at", { withTimezone: true, mode: "string" }),
+    finishedAt: timestamp("finished_at", {
+      withTimezone: true,
+      mode: "string",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    tenantMatterIdx: index("ai_jobs_tenant_matter_idx").on(
+      table.tenantId,
+      table.matterId
+    ),
+    tenantStatusIdx: index("ai_jobs_tenant_status_idx").on(
+      table.tenantId,
+      table.status
+    ),
+  })
+);
+
 /** Anwaltsschreiben / E-Mail / Vermerk — Textentwurf mit Export PDF/Word. */
 export const letters = pgTable(
   "letters",
@@ -868,6 +1149,15 @@ export type LetterStatus = (typeof letterStatusEnum.enumValues)[number];
 export type Client = typeof clients.$inferSelect;
 export type ClientPerson = typeof clientPersons.$inferSelect;
 export type Matter = typeof matters.$inferSelect;
+export type MatterParty = typeof matterParties.$inferSelect;
+export type MatterPartyRole = (typeof matterPartyRoleEnum.enumValues)[number];
+export type AiConsent = typeof aiConsents.$inferSelect;
+export type AiConsentStatus = (typeof aiConsentStatusEnum.enumValues)[number];
+export type AiAuditRow = typeof aiAudit.$inferSelect;
+export type AiDraft = typeof aiDrafts.$inferSelect;
+export type AiDraftStatus = (typeof aiDraftStatusEnum.enumValues)[number];
+export type AiJob = typeof aiJobs.$inferSelect;
+export type AiJobStatus = (typeof aiJobStatusEnum.enumValues)[number];
 export type StaffMessage = typeof staffMessages.$inferSelect;
 export type StaffMessageFile = typeof staffMessageFiles.$inferSelect;
 export type StaffMessageEvent = typeof staffMessageEvents.$inferSelect;

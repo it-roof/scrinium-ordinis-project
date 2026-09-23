@@ -15,7 +15,7 @@ Grundsatz: **Professionelle Standards, minimale Komplexität.** Jedes Feature mu
 - **Generische Fehlermeldungen** beim Login (kein „User existiert nicht“)
 - **Schema-Änderungen** nur via Drizzle-Migrationen
 - **Typed** (TypeScript), explizite Fehlerbehandlung
-- **Deutsche UI**, englische Code-Identifiers
+- **Deutsche UI**, **englische Code-/DB-Identifier** (Tabellen, Spalten, Dateien, Funktionen, Enums, Error-Codes). Fachsprache nur in UI-Labels und Nutzertexten — nie in Schema oder Code-Namen (`tenant_id` nicht `kanzlei_id`, `client_id` nicht `mandant_id`)
 
 ## Lightweight statt Enterprise-Bloat
 

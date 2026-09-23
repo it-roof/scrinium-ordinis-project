@@ -15,9 +15,9 @@ export const APP_MODULES = [
       "Dokumentation und Vorlagen für die Steuerberatung.",
   },
   {
-    id: "restructuring-insolvency",
-    label: "Sanierung & Insolvenz",
-    chipColor: "bg-amber-400",
+    id: "notary",
+    label: "Notariat",
+    chipColor: "bg-stone-400",
     startDescription:
       "Für diesen Bereich sind noch keine Funktionen freigeschaltet.",
   },
@@ -31,6 +31,9 @@ export const APP_MODULES = [
 ] as const;
 
 export type AppModuleId = (typeof APP_MODULES)[number]["id"];
+
+/** Fachwelt / Datentrennung — Zielbegriff Practice (DB oft noch `module`). */
+export type PracticeId = AppModuleId;
 
 export const ALL_APP_MODULE_IDS: AppModuleId[] = APP_MODULES.map((m) => m.id);
 

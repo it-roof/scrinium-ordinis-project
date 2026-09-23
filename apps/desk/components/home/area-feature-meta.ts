@@ -5,11 +5,8 @@ import {
   FileStackIcon,
   FileTextIcon,
   FolderOpenIcon,
-  ListIcon,
-  MailIcon,
   MessagesSquareIcon,
   PlusIcon,
-  PrinterIcon,
   ScaleIcon,
   SendIcon,
   SparklesIcon,
@@ -49,14 +46,6 @@ export const AREA_FEATURE_META: Record<AreaFunctionId, AreaFeatureMeta> = {
     tintClass: "hover:ring-amber-300/30",
     glowClass: "bg-amber-300/35",
   },
-  "inbox-overview": {
-    description: "Verlauf aller Nachrichten und Aufgaben.",
-    icon: ListIcon,
-    iconWrap: "bg-amber-50/80 text-amber-800/80 ring-amber-200/40",
-    linkClass: "text-amber-800/70 group-hover:text-amber-900",
-    tintClass: "hover:ring-amber-300/30",
-    glowClass: "bg-amber-300/35",
-  },
   clients: {
     description: "Firmen und Privatpersonen mit Akten führen.",
     icon: UserIcon,
@@ -72,32 +61,6 @@ export const AREA_FEATURE_META: Record<AreaFunctionId, AreaFeatureMeta> = {
     linkClass: "text-sky-800/75 group-hover:text-sky-900",
     tintClass: "hover:ring-sky-300/35",
     glowClass: "bg-sky-300/40",
-  },
-  "compose-letter": {
-    description: "Anwaltsschreiben oder Brief entwerfen.",
-    icon: FileTextIcon,
-    iconWrap: "bg-rose-50/90 text-rose-800/85 ring-rose-200/45",
-    linkClass: "text-rose-800/75 group-hover:text-rose-900",
-    tintClass: "hover:ring-rose-300/35",
-    glowClass: "bg-rose-300/35",
-  },
-  "compose-email": {
-    description:
-      "Kurze E-Mail per KI — mit {{TEXT}} zum Ersetzen in Scrinium.",
-    icon: MailIcon,
-    iconWrap: "bg-sky-50/90 text-sky-800/85 ring-sky-200/45",
-    linkClass: "text-sky-800/75 group-hover:text-sky-900",
-    tintClass: "hover:ring-sky-300/35",
-    glowClass: "bg-sky-300/40",
-  },
-  "compose-print": {
-    description:
-      "Markdown-Inhalt einfügen — daraus wird ein PDF erzeugt und im Browser geöffnet.",
-    icon: PrinterIcon,
-    iconWrap: "bg-amber-50/90 text-amber-800/85 ring-amber-200/45",
-    linkClass: "text-amber-800/75 group-hover:text-amber-900",
-    tintClass: "hover:ring-amber-300/35",
-    glowClass: "bg-amber-300/40",
   },
   "text-blocks": {
     description:
@@ -141,9 +104,9 @@ export const AREA_FEATURE_META: Record<AreaFunctionId, AreaFeatureMeta> = {
     tintClass: "hover:ring-emerald-300/35",
     glowClass: "bg-emerald-300/40",
   },
-  "prompt-kit": {
+  "case-facts-analysis": {
     description:
-      "Fallschilderung eingeben und daraus einen KI-Prompt erzeugen.",
+      "Sachverhalt aus einer Akte mit KI analysieren — Entwurf zur Prüfung.",
     icon: ScaleIcon,
     iconWrap: "bg-indigo-50/90 text-indigo-800/85 ring-indigo-200/45",
     linkClass: "text-indigo-800/75 group-hover:text-indigo-900",

@@ -7,7 +7,9 @@ import { ArrowLeftIcon, PlusIcon, Trash2Icon } from "lucide-react";
 import { toast } from "sonner";
 
 import { PageHeader } from "@/components/layout/page-header";
+import { ClientAiConsentSection } from "@/components/ai/client-ai-consent-section";
 import { useAreaBasePath } from "@/lib/area/use-area-path";
+import type { AiConsentView } from "@/lib/ai/consent-actions";
 import {
   createPerson,
   deletePerson,
@@ -55,14 +57,20 @@ export function ClientDetailView({
   client,
   initialPersons,
   initialMatters,
+  initialConsent,
 }: {
   client: ClientRecord;
   initialPersons: ClientPersonRecord[];
   initialMatters: MatterRecord[];
+  initialConsent: AiConsentView;
 }) {
   const router = useRouter();
   const basePath = useAreaBasePath() ?? "";
   const isCompany = client.kind === "company";
+  const matterHref = (matterId: string) =>
+    basePath
+      ? `${basePath}/akten/${matterId}`
+      : `/akten/${matterId}`;
 
   const [name, setName] = useState(client.name);
   const [salutation, setSalutation] = useState(client.salutation);
@@ -409,6 +417,11 @@ export function ClientDetailView({
           Speichern
         </Button>
       </form>
+
+      <ClientAiConsentSection
+        clientId={client.id}
+        initialConsent={initialConsent}
+      />
 
       {isCompany ? (
         <section className="space-y-4">
@@ -774,7 +787,7 @@ export function ClientDetailView({
               >
                 <div className="min-w-0 space-y-1">
                   <Link
-                    href={`${basePath}/akten/${matter.id}`}
+                    href={matterHref(matter.id)}
                     className="font-heading text-lg font-medium tracking-tight hover:underline"
                   >
                     {matter.title}

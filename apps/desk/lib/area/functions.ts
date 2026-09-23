@@ -1,10 +1,15 @@
 import type { ActiveArea } from "@/lib/area/active-area";
-import type { DeskRoleId } from "@/lib/area/desk-roles";
+import {
+  isAttorneyDeskRole,
+  isDeskRoleId,
+  type DeskRoleId,
+} from "@/lib/area/desk-roles";
 import {
   areaBasePath,
   areaFromSlug,
   functionHref,
   FUNCTION_PATH_SEGMENTS,
+  DESK_FLAT_HREFS,
 } from "@/lib/area/paths";
 import type { AppModuleId } from "@/lib/modules";
 import { navigation, type NavItem } from "@/lib/navigation";
@@ -13,16 +18,12 @@ import { navigation, type NavItem } from "@/lib/navigation";
 export const AREA_FUNCTION_IDS = [
   "inbox",
   "inbox-sent",
-  "inbox-overview",
   "clients",
   "matters",
-  "compose-letter",
-  "compose-email",
-  "compose-print",
   "text-blocks",
   "prompts",
   "notes",
-  "prompt-kit",
+  "case-facts-analysis",
   "letters",
   "docs",
   "templates",
@@ -38,10 +39,6 @@ export function isAreaFunctionId(value: string): value is AreaFunctionId {
 /**
  * User-Funktions-Allowlist: null = alle Funktionen der freigeschalteten Bereiche.
  * Array = nur diese Funktionen (zusätzlich zur Bereichs-Zuordnung).
- *
- * Compose-Funktionen (Schreiben/E-Mail/Druck) werden mitgeführt, wenn
- * „Sachverhalt verarbeiten“ oder „Schreiben“ freigeschaltet ist — damit
- * bestehende Allowlists nach Feature-Erweiterung nicht leer bleiben.
  *
  * „Nachricht an Mitarbeiter“ wird mitgeführt, wenn der User bereits
  * mindestens eine andere Recht-Funktion in der Allowlist hat.
@@ -61,11 +58,6 @@ export function normalizeOptionalAllowedFunctions(
       unique.add(item);
     }
   }
-  if (unique.has("prompt-kit") || unique.has("letters")) {
-    unique.add("compose-letter");
-    unique.add("compose-email");
-    unique.add("compose-print");
-  }
   const hasOtherLegalFunction = FUNCTIONS_BY_AREA.legal.some(
     (id) => id !== "staff-messages" && unique.has(id)
   );
@@ -74,11 +66,14 @@ export function normalizeOptionalAllowedFunctions(
   }
   if (unique.has("inbox")) {
     unique.add("inbox-sent");
-    unique.add("inbox-overview");
   }
   // Notizen: neue RA-Funktion — bestehende Allowlists mit Prompts mitziehen
   if (unique.has("prompts")) {
     unique.add("notes");
+  }
+  // KI-Analyse: mitziehen wenn Prompts oder Akten freigeschaltet
+  if (unique.has("prompts") || unique.has("matters")) {
+    unique.add("case-facts-analysis");
   }
   return [...unique];
 }
@@ -99,73 +94,43 @@ export const FUNCTIONS_BY_AREA: Record<AppModuleId, AreaFunctionId[]> = {
   legal: [
     "inbox",
     "inbox-sent",
-    "inbox-overview",
     "clients",
     "matters",
     "prompts",
     "notes",
-    "compose-letter",
-    "compose-email",
-    "compose-print",
     "letters",
     "text-blocks",
-    "prompt-kit",
+    "case-facts-analysis",
     "staff-messages",
   ],
-  tax: ["docs", "templates"],
-  "restructuring-insolvency": [],
+  tax: [
+    "inbox",
+    "inbox-sent",
+    "clients",
+    "matters",
+    "notes",
+    "text-blocks",
+    "staff-messages",
+    "docs",
+    "templates",
+  ],
+  notary: [],
   administration: [],
 };
 
 export const FUNCTION_LABELS: Record<AreaFunctionId, string> = {
   inbox: "Meine Aufgaben",
   "inbox-sent": "Gesendet",
-  "inbox-overview": "Nachrichten Verlauf",
   clients: "Mandanten",
   matters: "Akten",
-  "compose-letter": "Schreiben erstellen",
-  "compose-email": "E-Mail senden",
-  "compose-print": "Dokument drucken",
   "text-blocks": "Textbausteine",
   prompts: "Prompt-Bibliothek",
   notes: "Notizen",
-  "prompt-kit": "Sachverhalt verarbeiten",
+  "case-facts-analysis": "KI-Analyse",
   letters: "Schreiben",
   docs: "Dokumentation",
   templates: "Vorlagen",
   "staff-messages": "Aufgabe zuweisen",
-};
-
-/** @deprecated relative Legacy-Pfade — nutze functionHref(area, id) */
-export const FUNCTION_ROUTES: Record<
-  AreaFunctionId,
-  { href: string; label: string }
-> = {
-  inbox: { href: "/eingang", label: "Meine Aufgaben" },
-  "inbox-sent": { href: "/gesendet", label: "Gesendet" },
-  "inbox-overview": {
-    href: "/nachrichten-uebersicht",
-    label: "Nachrichten Verlauf",
-  },
-  clients: { href: "/mandanten", label: "Mandanten" },
-  matters: { href: "/akten", label: "Akten" },
-  "compose-letter": {
-    href: "/schreiben-erstellen",
-    label: "Schreiben erstellen",
-  },
-  "compose-email": { href: "/email-senden", label: "E-Mail senden" },
-  "compose-print": { href: "/dokument-drucken", label: "Dokument drucken" },
-  "text-blocks": { href: "/textbausteine", label: "Textbausteine" },
-  prompts: { href: "/v1/prompt", label: "Prompt-Bibliothek" },
-  notes: { href: "/v1/notizen", label: "Notizen" },
-  "prompt-kit": { href: "/prompt-baukasten", label: "Sachverhalt verarbeiten" },
-  letters: { href: "/schreiben", label: "Schreiben" },
-  docs: { href: "/dokumentation", label: "Dokumentation" },
-  templates: { href: "/vorlagen", label: "Vorlagen" },
-  "staff-messages": {
-    href: "/nachrichten-an-mitarbeiter",
-    label: "Aufgabe zuweisen",
-  },
 };
 
 const SEGMENT_TO_FUNCTION = Object.fromEntries(
@@ -178,21 +143,14 @@ export function functionIdFromPathname(
   const match = pathname.match(/^\/[^/]+\/([^/]+)/);
   if (match && areaFromSlug(pathname.split("/")[1] ?? "")) {
     const segment = match[1];
-    // Legacy: /recht/inbox → eingang
-    if (segment === "inbox") {
-      return "inbox";
-    }
     return SEGMENT_TO_FUNCTION[segment] ?? null;
   }
 
-  // Legacy flat routes
+  // Flache Desk-Routen (ohne Practice-Prefix)
   if (pathname === "/textbausteine" || pathname.startsWith("/textbausteine/")) {
     return "text-blocks";
   }
   if (pathname === "/prompt" || pathname.startsWith("/prompt/")) {
-    return "prompts";
-  }
-  if (pathname === "/v1/prompt" || pathname.startsWith("/v1/prompt/")) {
     return "prompts";
   }
   if (pathname === "/dokumentation" || pathname.startsWith("/dokumentation/")) {
@@ -201,31 +159,13 @@ export function functionIdFromPathname(
   if (pathname === "/vorlagen" || pathname.startsWith("/vorlagen/")) {
     return "templates";
   }
-  if (
-    pathname === "/prompt-baukasten" ||
-    pathname.startsWith("/prompt-baukasten/")
-  ) {
-    return "prompt-kit";
-  }
   if (pathname === "/schreiben" || pathname.startsWith("/schreiben/")) {
     return "letters";
   }
-  if (
-    pathname === "/eingang" ||
-    pathname.startsWith("/eingang/") ||
-    pathname === "/inbox" ||
-    pathname.startsWith("/inbox/") ||
-    pathname === "/v1/eingang" ||
-    pathname.startsWith("/v1/eingang/")
-  ) {
+  if (pathname === "/eingang" || pathname.startsWith("/eingang/")) {
     return "inbox";
   }
-  if (
-    pathname === "/gesendet" ||
-    pathname.startsWith("/gesendet/") ||
-    pathname === "/v1/gesendet" ||
-    pathname.startsWith("/v1/gesendet/")
-  ) {
+  if (pathname === "/gesendet" || pathname.startsWith("/gesendet/")) {
     return "inbox-sent";
   }
   if (pathname === "/mandanten" || pathname.startsWith("/mandanten/")) {
@@ -234,13 +174,19 @@ export function functionIdFromPathname(
   if (pathname === "/akten" || pathname.startsWith("/akten/")) {
     return "matters";
   }
+  if (pathname === "/analyse" || pathname.startsWith("/analyse/")) {
+    return "case-facts-analysis";
+  }
   if (
     pathname === "/nachrichten-an-mitarbeiter" ||
     pathname.startsWith("/nachrichten-an-mitarbeiter/") ||
-    pathname === "/v1/zuweisen" ||
-    pathname.startsWith("/v1/zuweisen/")
+    pathname === "/zuweisen" ||
+    pathname.startsWith("/zuweisen/")
   ) {
     return "staff-messages";
+  }
+  if (pathname === "/notizen" || pathname.startsWith("/notizen/")) {
+    return "notes";
   }
 
   return null;
@@ -268,25 +214,15 @@ export const MANAGEMENT_FUNCTION_IDS: AreaFunctionId[] = ["clients", "matters"];
 export const TOOL_FUNCTION_IDS: AreaFunctionId[] = [
   "prompts",
   "notes",
+  "case-facts-analysis",
+  "letters",
   "text-blocks",
   "docs",
   "templates",
-  "prompt-kit",
 ];
 
 /** Sidebar-Gruppe Kommunikation. */
 export const COMMUNICATION_FUNCTION_IDS: AreaFunctionId[] = ["staff-messages"];
-
-/**
- * Vorerst nicht in Schreibtisch/Sidebar — Routen und Berechtigungen bleiben aktiv.
- * Zugang z. B. über Sachverhalt verarbeiten oder direkte URLs.
- */
-export const NAV_HIDDEN_FUNCTION_IDS: AreaFunctionId[] = [
-  "compose-letter",
-  "compose-email",
-  "compose-print",
-  "letters",
-];
 
 /** Oben unter „Kommunikation“: Aufgabe zuweisen, Meine Aufgaben (Gesendet liegt darunter). */
 export const PINNED_FUNCTION_IDS: AreaFunctionId[] = [
@@ -309,10 +245,10 @@ function navItemForFunction(
   area: AppModuleId,
   functionId: AreaFunctionId
 ): NavItem {
+  const flat = DESK_FLAT_HREFS[functionId];
+  const segmentHref = `/${FUNCTION_PATH_SEGMENTS[functionId]}`;
   const template = navigation.find(
-    (item) =>
-      item.href === `/${FUNCTION_PATH_SEGMENTS[functionId]}` ||
-      item.href === FUNCTION_ROUTES[functionId].href
+    (item) => item.href === flat || item.href === segmentHref
   );
 
   return {
@@ -340,11 +276,10 @@ export function navigationGroupsForArea(
   const available = new Set(
     filterFunctionsByAllowlist(getFunctionsForArea(area), allowedFunctions)
   );
-  const isDeskUser =
-    deskRole === "rechtsanwalt" || deskRole === "sekretariat";
+  const isDeskUser = deskRole !== null && isDeskRoleId(deskRole);
   const startItem: NavItem = {
     ...navigation[0],
-    href: isDeskUser ? "/v1/dashboard" : areaBasePath(area),
+    href: isDeskUser ? "/dashboard" : areaBasePath(area),
     label: "Übersicht",
     description: "",
   };
@@ -353,23 +288,17 @@ export function navigationGroupsForArea(
     available.has(id)
   ).map((id) => navItemForFunction(area, id));
 
-  const managementItems =
-    deskRole === "rechtsanwalt"
-      ? []
-      : MANAGEMENT_FUNCTION_IDS.filter((id) => available.has(id)).map((id) =>
-          navItemForFunction(area, id)
-        );
+  const attorneyLike = isAttorneyDeskRole(deskRole);
 
-  const toolItems = TOOL_FUNCTION_IDS.filter((id) => {
-    if (!available.has(id)) {
-      return false;
-    }
-    // Rechtsanwalt: Sachverhalt verarbeiten nicht in der Sidebar.
-    if (deskRole === "rechtsanwalt" && id === "prompt-kit") {
-      return false;
-    }
-    return true;
-  }).map((id) => navItemForFunction(area, id));
+  const managementItems = attorneyLike
+    ? []
+    : MANAGEMENT_FUNCTION_IDS.filter((id) => available.has(id)).map((id) =>
+        navItemForFunction(area, id)
+      );
+
+  const toolItems = TOOL_FUNCTION_IDS.filter((id) => available.has(id)).map(
+    (id) => navItemForFunction(area, id)
+  );
 
   const groups: NavGroup[] = [];
   groups.push({ label: "", items: [startItem] });

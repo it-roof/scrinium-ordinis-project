@@ -7,6 +7,7 @@ async function main() {
   const { DEFAULT_TENANT_SLUG } = await import("@scrinium/brand");
   const { hashPassword } = await import("../lib/auth/password");
   const { validatePassword } = await import("../lib/auth/password-policy");
+  const { isDeskRoleId } = await import("../lib/area/desk-roles");
   const { db } = await import("../lib/db");
   const { tenants, users } = await import("../lib/db/schema");
   const { resolveUserDisplayName } = await import("../lib/users/names");
@@ -20,7 +21,7 @@ async function main() {
 
   if (!emailArg || !password || !firstNameArg || !lastNameArg) {
     console.error(
-      "Verwendung: pnpm user:create <email> <passwort> <vorname> <nachname> [tenant-slug] [admin|employee] [rechtsanwalt|sekretariat] [herr|frau]"
+      "Verwendung: pnpm user:create <email> <passwort> <vorname> <nachname> [tenant-slug] [admin|employee] [rechtsanwalt|sekretariat|steuerberater|stb_sekretariat] [herr|frau]"
     );
     console.error(`  tenant-slug default: ${DEFAULT_TENANT_SLUG}`);
     console.error("  Position default: rechtsanwalt");
@@ -44,7 +45,7 @@ async function main() {
       roleArg = token;
       continue;
     }
-    if (token === "rechtsanwalt" || token === "sekretariat") {
+    if (isDeskRoleId(token)) {
       deskRoleArg = token;
       continue;
     }
@@ -56,8 +57,7 @@ async function main() {
   }
 
   const role = roleArg === "admin" ? "admin" : "employee";
-  const deskRole =
-    deskRoleArg === "sekretariat" ? "sekretariat" : "rechtsanwalt";
+  const deskRole = isDeskRoleId(deskRoleArg) ? deskRoleArg : "rechtsanwalt";
   const salutation = salutationArg === "frau" ? "frau" : "herr";
 
   const passwordError = validatePassword(password);

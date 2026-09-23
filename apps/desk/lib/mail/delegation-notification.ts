@@ -1,13 +1,8 @@
-import { functionHref } from "@/lib/area/paths";
+import { hrefFor } from "@/lib/area/paths";
 import { getAppBaseUrl, sendSystemMail } from "@/lib/mail/system";
-import { isAppModuleId, type AppModuleId } from "@/lib/modules";
 
-function inboxUrl(module: string): string {
-  const base = getAppBaseUrl();
-  if (isAppModuleId(module)) {
-    return `${base}${functionHref(module, "inbox")}`;
-  }
-  return `${base}${functionHref("legal" as AppModuleId, "inbox")}`;
+function inboxUrl(): string {
+  return `${getAppBaseUrl()}${hrefFor("inbox")}`;
 }
 
 export async function sendDelegationAssignmentMail(input: {
@@ -18,7 +13,8 @@ export async function sendDelegationAssignmentMail(input: {
   module: string;
   assignmentNote?: string;
 }): Promise<{ ok: true } | { ok: false; error: string }> {
-  const link = inboxUrl(input.module);
+  void input.module;
+  const link = inboxUrl();
   const lines = [
     `Hallo ${input.assigneeName},`,
     "",
@@ -32,7 +28,7 @@ export async function sendDelegationAssignmentMail(input: {
 
   lines.push(
     "",
-    "Unter Nachrichten findest du die Aufgabe:",
+    "Unter Meine Aufgaben findest du die Aufgabe:",
     link,
     "",
     "Scrinium Ordinis"
@@ -40,7 +36,7 @@ export async function sendDelegationAssignmentMail(input: {
 
   return sendSystemMail({
     to: input.to,
-    subject: "Scrinium Ordinis — Neue Aufgabe in Nachrichten",
+    subject: "Scrinium Ordinis — Neue Aufgabe",
     text: lines.join("\n"),
   });
 }

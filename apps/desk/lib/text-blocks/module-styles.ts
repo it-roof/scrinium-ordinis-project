@@ -31,6 +31,13 @@ export const moduleStyles: Record<
     pill: "bg-indigo-600 text-white shadow-sm shadow-indigo-600/20",
     wash: "bg-gradient-to-br from-indigo-50/60 via-white to-white",
   },
+  notary: {
+    badge: "bg-stone-50/90 text-stone-950 ring-stone-200/60",
+    accent: "border-l-stone-400",
+    dot: "bg-stone-500",
+    pill: "bg-stone-700 text-white shadow-sm shadow-stone-600/20",
+    wash: "bg-gradient-to-br from-stone-50/70 via-white to-white",
+  },
   "restructuring-insolvency": {
     badge: "bg-amber-50/90 text-amber-950 ring-amber-200/60",
     accent: "border-l-amber-400",

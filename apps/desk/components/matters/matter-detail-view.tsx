@@ -6,7 +6,12 @@ import { useState, useTransition } from "react";
 import { ArrowLeftIcon, PlusIcon } from "lucide-react";
 import { toast } from "sonner";
 
+import { MatterCaseFactsAnalysisSection } from "@/components/ai/matter-case-facts-analysis-section";
+import { MatterPartiesSection } from "@/components/ai/matter-parties-section";
 import { PageHeader } from "@/components/layout/page-header";
+import type { ConsentStatusView } from "@/lib/ai/consent";
+import type { AiDraftRecord } from "@/lib/ai/drafts-storage";
+import type { MatterPartyRecord } from "@/lib/ai/parties-storage";
 import { useAreaBasePath } from "@/lib/area/use-area-path";
 import type { MatterRecord } from "@/lib/clients/types";
 import {
@@ -24,10 +29,18 @@ export function MatterDetailView({
   matter,
   letters,
   showLetters = true,
+  parties = [],
+  consentStatus = "none",
+  canApprove = false,
+  drafts = [],
 }: {
   matter: MatterRecord;
   letters: LetterRecord[];
   showLetters?: boolean;
+  parties?: MatterPartyRecord[];
+  consentStatus?: ConsentStatusView;
+  canApprove?: boolean;
+  drafts?: AiDraftRecord[];
 }) {
   const router = useRouter();
   const basePath = useAreaBasePath() ?? "";
@@ -125,6 +138,15 @@ export function MatterDetailView({
           Speichern
         </Button>
       </form>
+
+      <MatterPartiesSection matterId={matter.id} initialParties={parties} />
+
+      <MatterCaseFactsAnalysisSection
+        matterId={matter.id}
+        consentStatus={consentStatus}
+        canApprove={canApprove}
+        initialDrafts={drafts}
+      />
 
       {showLetters ? (
         <section className="space-y-4">

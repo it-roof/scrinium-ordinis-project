@@ -33,8 +33,8 @@ Kein Messenger — Telefon für Absprachen, Aufgabe für Ergebnis und Prüfschle
 - Session enthält `id`, `role`, **`tenantId`**
 - Konfiguration in `lib/auth/`
 - Ersten Tenant (falls nötig): `pnpm tenant:create`
-- Ersten Benutzer: `pnpm user:create <email> <passwort> <vorname> <nachname> [tenant-slug] [admin|employee] [rechtsanwalt|sekretariat]`
-  (Anzeige-Position: Rechtsanwalt / Sekretär(in); interne ID `sekretariat` bleibt)
+- Ersten Benutzer: `pnpm user:create <email> <passwort> <vorname> <nachname> [tenant-slug] [admin|employee] [desk-role] [herr|frau]`
+  Desk-Rollen: `rechtsanwalt` · `sekretariat` · `steuerberater` · `stb_sekretariat` (Default: `rechtsanwalt`)
 - Plattform-Super-Admin: `pnpm platform:grant <email>` (UI unter `/platform`)
 - Geschützte Routen via `middleware.ts`
 - Passwort-Policy: min. 6 Zeichen (Admin setzt Passwort; kein Self-Service-Register)
@@ -48,8 +48,20 @@ Siehe Root [`.cursor/rules/multi-tenant-isolation.mdc`](../../.cursor/rules/mult
 **Zusätzlich:** Innerhalb einer Kanzlei sind Fachinhalte **bereichsgetrennt** (Recht ≠ Steuer).  
 Siehe [`.cursor/rules/area-content-isolation.mdc`](../../.cursor/rules/area-content-isolation.mdc).
 
+**Zielbild Zugriff / Practice / Rolle / URLs** (verbindlich für neue Arbeit):  
+[`docs/architecture-access-routing.md`](docs/architecture-access-routing.md) · Rule [`.cursor/rules/access-practice-routing.mdc`](../../.cursor/rules/access-practice-routing.mdc)
+
+- **Rollen-Matrix:** `lib/area/desk-roles.ts` — Role = Bundle (Practices + Functions). Effektive Rechte: `getUserAllowedFunctions` / `getUserEffectiveModules`. Guards: `requireDeskUser({ requireFunction })`, `requireDeskPractice`.
+- Haupt-Shell: Route-Group `app/(main)/` — alle kanonischen URLs (inkl. `/`, `/dashboard`, `/einstellungen`, `/platform`).
+- Practice-scoped Daten: `/r/mandanten`, `/r/akten`, `/r/schreiben`, `/s/dokumentation`, `/s/vorlagen`, …  
+  (Slugs: Recht=`r`, Steuer=`s`, Notariat=`n`, Verwaltung=`verwaltung`)
+- Links: `hrefFor` in `lib/area/paths.ts` (Vitest: `paths.test.ts`)
 - Fachzugriffe über `withTenantDb(tenantId, …)` (`lib/tenant/db.ts`)
 - Session-Helfer: `lib/tenant/session.ts`
+- Routing: `hrefFor` / `PRACTICE_SLUGS` · `requireDeskPractice` für Practice-URLs
+- Enum-Erweiterung: Migration `0062_desk_role_tax`, `0063_module_notary` (`pnpm db:migrate`)
+- Platform: schlanke `PlatformShell` (Super-Admin ohne Desk-Rolle)
+- Bare `/{practice}` → `/dashboard` (mit Rolle) bzw. `/` (ohne Position)
 
 ## Enterprise Lightweight
 
@@ -58,3 +70,22 @@ Professionelle Standards, minimale Komplexität. Siehe `.cursor/rules/enterprise
 ## Module
 
 Modul-Dokumentation: [`docs/README.md`](docs/README.md) · Erstes Modul: [Textbausteine](docs/modules/text-blocks.md)
+
+## Tests (Vitest)
+
+- Runner: Vitest in `apps/desk` — `pnpm test` (Root) bzw. `pnpm --filter @scrinium/desk test`
+- Dateien: `lib/**/*.test.ts` neben der Logik
+- Fokus: reine kritische Logik (Pseudonymisierung, Consent-Status, EU-Modell-ID, Fehlertexte)
+- `server-only` wird in `vitest.setup.ts` gemockt
+- Kein Jest/Cypress parallel; E2E (Playwright) später separat
+- Neue kritische `lib/`-Helfer: mind. Happy Path + ein Grenzfall
+
+## KI-Gateway (Bedrock EU)
+
+- Code: [`lib/ai/`](lib/ai/) — nur serverseitig (`server-only`), Modell-ID muss mit `eu.` beginnen
+- Tabellen: `ai_consents`, `ai_audit`, `ai_drafts`, `ai_jobs`, `matter_parties`
+- Ablauf: Vorschau → Residual-Gate → Job starten (`after`) → UI pollt Status → Entwurf
+- Pseudonymisierung: [`docs/ai-pseudonymization.md`](docs/ai-pseudonymization.md) — Stufe 1+2 lokal, Default-Gate `AI_PSEUDONYM_GATE=block` (Alternative `warn` dokumentiert); EU-Region + EU-Modell-ID enforced; Job-Owner-only Status; early clear + TTL auf Klartext am Job
+- Env: `AWS_REGION` (eu-*), `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `BEDROCK_MODEL_ID` (eu.*), optional `AI_PSEUDONYM_GATE`
+- Dev-Debug: nur Test-Kanzlei — `AI_DEBUG=1` + `AI_DEBUG_TENANT_SLUG=test-kanzlei` → `/ai-debug` (kein Super-Admin / keine Platform-UI)
+- Tests: siehe Abschnitt Tests oben

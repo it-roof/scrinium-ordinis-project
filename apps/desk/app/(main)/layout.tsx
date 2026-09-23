@@ -1,24 +1,16 @@
-import { cookies, headers } from "next/headers";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { TooltipProvider } from "@/components/desk/ui/tooltip";
+import { Toaster } from "@/components/desk/ui/sonner";
 import { auth } from "@/lib/auth";
-import {
-  ACTIVE_AREA_COOKIE,
-  parseActiveArea,
-} from "@/lib/area/active-area";
-import { parseAreaFromPathname } from "@/lib/area/paths";
-import { PRODUCT_WORDMARK } from "@/lib/brand";
-import { AppShell } from "@/components/layout/app-shell";
-import { checkDatabaseConnection } from "@/lib/db/health";
-import { countInboxItems } from "@/lib/letters/storage";
-import { getTenantDisplayBrand } from "@/lib/tenant/brand";
-import {
-  getUserAllowedFunctions,
-  getUserDeskRole,
-  getUserEffectiveModules,
-} from "@/lib/tenant/modules";
 import { isPlatformSuperAdmin } from "@/lib/tenant/session";
 
+import "./desk-theme.css";
+
+/**
+ * Haupt-App-Shell. Route-group (main) — URLs ohne Prefix.
+ */
 export default async function MainLayout({
   children,
 }: {
@@ -38,65 +30,17 @@ export default async function MainLayout({
   }
 
   if (!isSuperAdmin && pathname.startsWith("/platform")) {
-    redirect("/");
+    redirect("/dashboard");
   }
 
-  const areaFromPath = parseAreaFromPathname(pathname);
-
-  const [
-    brandLabel,
-    enabledModules,
-    dbConnected,
-    cookieStore,
-    inboxCount,
-    allowedFunctions,
-    deskRole,
-  ] = await Promise.all([
-      isSuperAdmin
-        ? Promise.resolve(PRODUCT_WORDMARK)
-        : getTenantDisplayBrand(session.user.tenantId),
-      isSuperAdmin
-        ? Promise.resolve([])
-        : getUserEffectiveModules(session.user.id, session.user.tenantId),
-      checkDatabaseConnection(),
-      cookies(),
-      isSuperAdmin
-        ? Promise.resolve(0)
-        : countInboxItems(
-            session.user.tenantId,
-            session.user.id,
-            areaFromPath ?? undefined
-          ),
-      isSuperAdmin
-        ? Promise.resolve(null)
-        : getUserAllowedFunctions(session.user.id, session.user.tenantId),
-      isSuperAdmin
-        ? Promise.resolve(null)
-        : getUserDeskRole(session.user.id, session.user.tenantId),
-    ]);
-
-  const initialActiveArea =
-    areaFromPath && enabledModules.includes(areaFromPath)
-      ? areaFromPath
-      : parseActiveArea(
-          cookieStore.get(ACTIVE_AREA_COOKIE)?.value,
-          enabledModules
-        );
-
   return (
-    <AppShell
-      user={{
-        ...session.user,
-        deskRole,
-      }}
-      brandLabel={brandLabel}
-      allowedAreas={enabledModules}
-      initialActiveArea={initialActiveArea}
-      dbConnected={dbConnected}
-      inboxCount={inboxCount}
-      allowedFunctions={allowedFunctions}
-    >
-      {children}
-    </AppShell>
+    <TooltipProvider>
+      <div className="v1-shell fixed inset-0 z-50 flex flex-col overflow-hidden">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          {children}
+        </div>
+        <Toaster />
+      </div>
+    </TooltipProvider>
   );
 }

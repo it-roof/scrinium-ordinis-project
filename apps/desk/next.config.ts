@@ -9,6 +9,8 @@ const nextConfig: NextConfig = {
   // Monorepo-Root für File-Tracing von @scrinium/brand
   outputFileTracingRoot: path.join(configDir, "../.."),
   transpilePackages: ["@scrinium/brand"],
+  // KI-Aufrufe (Bedrock) können 30–120s dauern
+  serverExternalPackages: ["@aws-sdk/client-bedrock-runtime"],
   experimental: {
     serverActions: {
       // Staff-Messages: bis 50 MB je Datei (siehe lib/staff-messages/types.ts)

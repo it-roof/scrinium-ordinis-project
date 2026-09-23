@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { areaOwnsFunction } from "@/lib/area/functions";
+import { hrefFor } from "@/lib/area/paths";
 import type { AppModuleId } from "@/lib/modules";
 import { isAppModuleId } from "@/lib/modules";
 import { assertUserCanAccessContentModule } from "@/lib/tenant/access";
@@ -24,9 +25,7 @@ import {
 
 function revalidateTemplates(module: AppModuleId) {
   revalidatePath("/", "layout");
-  if (module === "tax") {
-    revalidatePath("/steuer/vorlagen");
-  }
+  revalidatePath(hrefFor("templates", module));
 }
 
 async function assertTemplatesModuleAccess(
@@ -244,6 +243,6 @@ export async function deleteTemplate(id: string) {
   }
 
   revalidatePath("/", "layout");
-  revalidatePath("/steuer/vorlagen");
+  revalidatePath(hrefFor("templates", existing.module as AppModuleId));
   return { success: true as const };
 }

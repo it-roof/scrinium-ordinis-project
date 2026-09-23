@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 const AREA_UNDERLINE: Record<string, string> = {
   legal: "decoration-indigo-500",
   tax: "decoration-lime-500",
-  "restructuring-insolvency": "decoration-amber-500",
+  notary: "decoration-stone-500",
   administration: "decoration-rose-500",
 };
 

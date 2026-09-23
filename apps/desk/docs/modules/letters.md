@@ -1,6 +1,6 @@
 # Modul: Schreiben
 
-> **Code-Name:** `letters` · **UI-Name:** Schreiben · **Route:** `/recht/schreiben`
+> **Code-Name:** `letters` · **UI-Name:** Schreiben · **Route:** `/r/schreiben`
 
 Textentwürfe (Schreiben, E-Mail, Aktenvermerk) mit Platzhaltern `{{NAME}}`, Export als Anwaltsschreiben nach **PDF** und **Word**. Keine KI-Anbindung — Paste / `.md`-Upload aus externer KI.
 
@@ -38,7 +38,7 @@ Siehe auch [Arbeitsbereich](./workspace.md) (Mandant → Akte → Dokumente / Ei
 
 | | |
 |---|---|
-| Seiten | `app/(main)/[area]/schreiben/…` |
+| Seiten | `app/(main)/[practice]/schreiben/…` |
 | UI | `components/letters/` |
 | CRUD / Workflow | `lib/letters/actions.ts`, `storage.ts` |
 | Platzhalter | `lib/letters/placeholders.ts` |

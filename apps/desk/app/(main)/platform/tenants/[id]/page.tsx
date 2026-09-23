@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 
+import { PlatformShell } from "@/components/platform/platform-shell";
 import { PlatformTenantDetailView } from "@/components/platform/platform-tenant-detail-view";
 import {
   getTenantById,
@@ -26,5 +27,9 @@ export default async function PlatformTenantPage({
 
   const users = await listUsersForTenant(tenant.id);
 
-  return <PlatformTenantDetailView tenant={tenant} users={users} />;
+  return (
+    <PlatformShell title={tenant.name}>
+      <PlatformTenantDetailView tenant={tenant} users={users} />
+    </PlatformShell>
+  );
 }

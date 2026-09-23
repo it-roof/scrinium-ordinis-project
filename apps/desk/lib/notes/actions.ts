@@ -134,8 +134,8 @@ export async function createUserNote(formData: FormData) {
       return { success: false as const, error: item.error };
     }
 
-    revalidatePath("/v1/notizen");
-    revalidatePath(`/v1/notizen/${noteId}`);
+    revalidatePath("/notizen");
+    revalidatePath(`/notizen/${noteId}`);
     return { success: true as const, item };
   } catch {
     await discardUserNoteObjects(uploadResult.map((f) => f.storageKey));
@@ -186,9 +186,9 @@ export async function updateUserNote(id: string, formData: FormData) {
       return { success: false as const, error: item.error };
     }
 
-    revalidatePath("/v1/notizen");
-    revalidatePath(`/v1/notizen/${id}`);
-    revalidatePath(`/v1/notizen/${id}/bearbeiten`);
+    revalidatePath("/notizen");
+    revalidatePath(`/notizen/${id}`);
+    revalidatePath(`/notizen/${id}/bearbeiten`);
     return { success: true as const, item };
   } catch {
     await discardUserNoteObjects(uploadResult.map((f) => f.storageKey));
@@ -212,8 +212,8 @@ export async function deleteUserNote(id: string) {
   }
 
   await discardUserNoteObjects(result.storageKeys);
-  revalidatePath("/v1/notizen");
-  revalidatePath(`/v1/notizen/${id}`);
+  revalidatePath("/notizen");
+  revalidatePath(`/notizen/${id}`);
 
   return { success: true as const };
 }
@@ -264,9 +264,9 @@ export async function removeUserNoteFile(noteId: string, fileId: string) {
   }
 
   await discardUserNoteObjects([removed.storageKey]);
-  revalidatePath("/v1/notizen");
-  revalidatePath(`/v1/notizen/${noteId}`);
-  revalidatePath(`/v1/notizen/${noteId}/bearbeiten`);
+  revalidatePath("/notizen");
+  revalidatePath(`/notizen/${noteId}`);
+  revalidatePath(`/notizen/${noteId}/bearbeiten`);
 
   return { success: true as const };
 }

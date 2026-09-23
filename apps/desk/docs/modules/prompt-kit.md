@@ -1,6 +1,6 @@
 # Modul: Sachverhalt verarbeiten
 
-> **Code-Name:** `prompt-kit` · **UI-Name:** Sachverhalt verarbeiten · **Route:** `/recht/prompt-baukasten`
+> **Code-Name:** `prompt-kit` · **UI-Name:** Sachverhalt verarbeiten · **Status:** Code vorhanden, keine aktive Route (Nav entfernt)
 
 Eigenständige Funktion für Anwälte: Fallschilderung eingeben und daraus einen KI-Prompt erzeugen. **Kein** Bezug zum Modul „Prompt-Bibliothek“ (gespeicherte Prompt-Texte).
 

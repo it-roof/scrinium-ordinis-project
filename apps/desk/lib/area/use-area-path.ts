@@ -8,7 +8,7 @@ import {
 } from "@/lib/area/paths";
 import type { AppModuleId } from "@/lib/modules";
 
-/** Basis-Pfad des aktuellen Bereichs, z. B. /recht */
+/** Basis-Pfad der aktuellen Practice, z. B. /r */
 export function useAreaBasePath(): string | null {
   const pathname = usePathname();
   return parseAreaBasePath(pathname);

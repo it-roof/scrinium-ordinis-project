@@ -2,6 +2,7 @@ export const CONTENT_MODULES = [
   { value: "general", label: "Allgemein" },
   { value: "legal", label: "Recht" },
   { value: "tax", label: "Steuer" },
+  { value: "notary", label: "Notariat" },
   { value: "restructuring-insolvency", label: "Sanierung & Insolvenz" },
   { value: "consulting", label: "Beratung" },
   { value: "administration", label: "Verwaltung" },

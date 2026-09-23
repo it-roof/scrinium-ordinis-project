@@ -17,16 +17,9 @@ export async function exportMarkdownPreviewPdf(markdown: string) {
   const denied = await assertUserCanAccessAreaFunction(
     user.id,
     user.tenantId,
-    "compose-print"
+    "letters"
   );
-  const kitDenied =
-    denied &&
-    (await assertUserCanAccessAreaFunction(
-      user.id,
-      user.tenantId,
-      "prompt-kit"
-    ));
-  if (denied && kitDenied) {
+  if (denied) {
     return { success: false as const, error: denied };
   }
 

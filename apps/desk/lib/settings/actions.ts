@@ -57,7 +57,7 @@ export async function updateMyProfileAction(input: {
     .set({ firstName, lastName, name, dashboardView })
     .where(eq(users.id, user.id));
   revalidatePath("/einstellungen");
-  revalidatePath("/v1/dashboard");
+  revalidatePath("/dashboard");
   revalidatePath("/", "layout");
 
   return {
@@ -89,7 +89,7 @@ export async function updateMyDashboardViewAction(
     .set({ dashboardView: view })
     .where(eq(users.id, user.id));
   revalidatePath("/einstellungen");
-  revalidatePath("/v1/dashboard");
+  revalidatePath("/dashboard");
 
   return { success: true as const, dashboardView: view };
 }

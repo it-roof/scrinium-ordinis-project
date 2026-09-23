@@ -18,11 +18,11 @@ Mitarbeiter können häufig genutzte Formulierungen speichern, suchen, filtern u
 
 | | |
 |---|---|
-| URL | `/textbausteine` |
-| Sidebar | „Textbausteine“ (`lib/navigation.ts`) |
-| Seite | `app/(main)/textbausteine/page.tsx` |
+| URL | `/{practice}/textbausteine` (z. B. `/r/textbausteine`) |
+| Sidebar | „Textbausteine“ |
+| Seite | `app/(main)/[practice]/textbausteine/page.tsx` |
 
-Die Route bleibt deutsch (`/textbausteine`), der Code heißt `text-blocks`.
+Die URL ist practice-scoped (`/r/textbausteine`); der Code heißt `text-blocks`.
 
 ## Datenmodell
 
@@ -53,11 +53,12 @@ Tags sind tenant-weit (wie Prompt-Tags); Inhalte bleiben über `module` bereichs
 | DB-Wert (Englisch) | UI-Label (Deutsch) |
 |--------------------|--------------------|
 | `general` | Allgemein |
-| `tax` | Steuerberatung |
 | `legal` | Recht |
-| `restructuring-insolvency` | Sanierung & Insolvenz |
-| `consulting` | Beratung (Legacy, kein aktiver Bereich) |
+| `tax` | Steuer |
+| `notary` | Notariat |
 | `administration` | Verwaltung |
+| `restructuring-insolvency` | Sanierung & Insolvenz (Legacy, kein aktiver Practice) |
+| `consulting` | Beratung (Legacy, kein aktiver Practice) |
 
 Labels und Mapping: `lib/text-blocks/types.ts` → `CONTENT_MODULES`, `getModuleLabel()`
 
@@ -74,7 +75,7 @@ components/text-blocks/
 ├── text-blocks-view.tsx  # Haupt-UI (Liste, Filter, Dialoge)
 └── module-badge.tsx  # Bereichs-Badge
 
-app/(main)/textbausteine/
+app/(main)/[practice]/textbausteine/
 └── page.tsx              # Server Component, lädt initiale Daten
 ```
 

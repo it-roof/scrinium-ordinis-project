@@ -5,7 +5,7 @@ export const AREA_CANVAS_CLASS: Record<ActiveArea, string> = {
   all: "content-canvas",
   tax: "content-canvas content-canvas-tax",
   legal: "content-canvas content-canvas-legal",
-  "restructuring-insolvency": "content-canvas content-canvas-restructuring",
+  notary: "content-canvas content-canvas-notary",
   administration: "content-canvas content-canvas-administration",
 };
 
@@ -17,6 +17,6 @@ export const AREA_ACCENT_DOT: Record<ActiveArea, string> = {
   all: "bg-violet-400",
   tax: "bg-lime-500",
   legal: "bg-indigo-500",
-  "restructuring-insolvency": "bg-amber-500",
+  notary: "bg-stone-500",
   administration: "bg-rose-500",
 };

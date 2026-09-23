@@ -84,7 +84,7 @@ components/docs/
 ├── doc-form.tsx
 └── doc-markdown.tsx
 
-app/(main)/dokumentation/
+app/(main)/[practice]/dokumentation/
 app/api/docs/files/[id]/
 ```
 

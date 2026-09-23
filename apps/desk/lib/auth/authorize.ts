@@ -1,4 +1,5 @@
 import { verifyPassword } from "@/lib/auth/password";
+import { isDevPasswordlessLoginEnabled } from "@/lib/auth/dev-passwordless";
 import {
   clearLoginAttempts,
   isLoginBlocked,
@@ -24,7 +25,12 @@ export async function authorizeCredentials(credentials: Record<string, unknown>)
   const password =
     typeof credentials.password === "string" ? credentials.password : "";
 
-  if (!email || !password) {
+  if (!email) {
+    return null;
+  }
+
+  const passwordless = isDevPasswordlessLoginEnabled();
+  if (!passwordless && !password) {
     return null;
   }
 
@@ -33,6 +39,23 @@ export async function authorizeCredentials(credentials: Record<string, unknown>)
   }
 
   const user = await getUserByEmail(email);
+
+  if (passwordless) {
+    if (!user || user.disabledAt) {
+      return rejectLogin(email);
+    }
+    await clearLoginAttempts(email);
+    return {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      deskRole: user.deskRole ?? null,
+      tenantId: user.tenantId,
+      platformRole: user.platformRole ?? null,
+    };
+  }
+
   const valid = await verifyPassword(
     password,
     user?.passwordHash ?? DUMMY_PASSWORD_HASH

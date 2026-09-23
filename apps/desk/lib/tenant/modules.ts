@@ -1,7 +1,12 @@
 import { cache } from "react";
 import { and, eq } from "drizzle-orm";
 
-import { resolveEffectiveAllowedFunctions } from "@/lib/area/desk-roles";
+import {
+  isDeskRoleId,
+  resolveEffectiveAllowedFunctions,
+  resolveEffectivePractices,
+  type DeskRoleId,
+} from "@/lib/area/desk-roles";
 import {
   normalizeOptionalAllowedFunctions,
   type AreaFunctionId,
@@ -10,7 +15,6 @@ import { db } from "@/lib/db";
 import { tenants, users, type DeskRole } from "@/lib/db/schema";
 import {
   ALL_APP_MODULE_IDS,
-  intersectModules,
   normalizeEnabledModules,
   normalizeOptionalAllowedModules,
   type AppModuleId,
@@ -32,13 +36,16 @@ export const getTenantEnabledModules = cache(
   }
 );
 
-/** Effektive Module für einen User: Tenant ∩ optionaler User-Allowlist. */
+/** Effektive Practices: Tenant ∩ Rollen-Bundle (ohne Rolle: alle Tenant-Module). */
 export const getUserEffectiveModules = cache(
   async (userId: string, tenantId: string): Promise<AppModuleId[]> => {
     const tenantModules = await getTenantEnabledModules(tenantId);
 
     const [row] = await db
-      .select({ allowedModules: users.allowedModules })
+      .select({
+        allowedModules: users.allowedModules,
+        deskRole: users.deskRole,
+      })
       .from(users)
       .where(and(eq(users.id, userId), eq(users.tenantId, tenantId)))
       .limit(1);
@@ -47,14 +54,27 @@ export const getUserEffectiveModules = cache(
       return tenantModules;
     }
 
-    return intersectModules(
-      tenantModules,
-      normalizeOptionalAllowedModules(row.allowedModules)
+    const afterUserAllowlist = normalizeOptionalAllowedModules(
+      row.allowedModules
     );
+    const tenantScoped =
+      afterUserAllowlist === null
+        ? tenantModules
+        : tenantModules.filter((id) => afterUserAllowlist.includes(id));
+
+    const deskRole =
+      row.deskRole && isDeskRoleId(row.deskRole)
+        ? (row.deskRole as DeskRoleId)
+        : null;
+
+    return resolveEffectivePractices({
+      tenantPractices: tenantScoped,
+      deskRole,
+    });
   }
 );
 
-/** Position (Rechtsanwalt / Sekretär(in)) aus der DB. */
+/** Position aus der DB. */
 export const getUserDeskRole = cache(
   async (userId: string, tenantId: string): Promise<DeskRole | null> => {
     const [row] = await db
@@ -68,9 +88,8 @@ export const getUserDeskRole = cache(
 );
 
 /**
- * Effektive Funktions-Allowlist des Users.
- * Position (Rechtsanwalt/Sekretär(in)) ∩ optionale Einzel-Allowlist.
- * null = alle Funktionen der freigeschalteten Bereiche.
+ * Effektive Funktions-Allowlist.
+ * Rollen-Bundle ∩ optionale Einzel-Allowlist.
  */
 export const getUserAllowedFunctions = cache(
   async (
@@ -90,8 +109,13 @@ export const getUserAllowedFunctions = cache(
       return null;
     }
 
+    const deskRole =
+      row.deskRole && isDeskRoleId(row.deskRole)
+        ? (row.deskRole as DeskRoleId)
+        : null;
+
     return resolveEffectiveAllowedFunctions({
-      deskRole: row.deskRole,
+      deskRole,
       allowedFunctions: normalizeOptionalAllowedFunctions(row.allowedFunctions),
     });
   }

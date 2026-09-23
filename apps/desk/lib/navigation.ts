@@ -6,13 +6,9 @@ import {
   FileTextIcon,
   FolderOpenIcon,
   HomeIcon,
-  ListIcon,
-  MailIcon,
   MessagesSquareIcon,
   PlusIcon,
   SendIcon,
-  PrinterIcon,
-  ScaleIcon,
   SettingsIcon,
   ShieldIcon,
   SparklesIcon,
@@ -46,7 +42,7 @@ export const navigation: NavItem[] = [
       "data-[active=true]:bg-violet-400/10 data-[active=true]:shadow-[inset_0_0_0_1px_oklch(0.7_0.12_290/0.22)]",
   },
   {
-    href: "/v1/eingang",
+    href: "/eingang",
     label: "Meine Aufgaben",
     description: "Aufgaben, die bei mir liegen",
     icon: MessagesSquareIcon,
@@ -59,15 +55,6 @@ export const navigation: NavItem[] = [
     label: "Gesendet",
     description: "Aufgaben, die ich angestoßen oder weitergegeben habe",
     icon: SendIcon,
-    accent: "bg-amber-400/20 text-amber-100",
-    activeClass:
-      "data-[active=true]:bg-amber-400/10 data-[active=true]:shadow-[inset_0_0_0_1px_oklch(0.78_0.12_85/0.2)]",
-  },
-  {
-    href: "/nachrichten-uebersicht",
-    label: "Verlauf",
-    description: "Verlauf aller Aufgaben",
-    icon: ListIcon,
     accent: "bg-amber-400/20 text-amber-100",
     activeClass:
       "data-[active=true]:bg-amber-400/10 data-[active=true]:shadow-[inset_0_0_0_1px_oklch(0.78_0.12_85/0.2)]",
@@ -100,49 +87,13 @@ export const navigation: NavItem[] = [
       "data-[active=true]:bg-sky-400/10 data-[active=true]:shadow-[inset_0_0_0_1px_oklch(0.7_0.12_235/0.25)]",
   },
   {
-    href: "/v1/prompt",
+    href: "/prompt",
     label: "Prompt-Bibliothek",
     description: "Gespeicherte KI-Prompts",
     icon: SparklesIcon,
     accent: "bg-violet-400/25 text-violet-100",
     activeClass:
       "data-[active=true]:bg-violet-400/10 data-[active=true]:shadow-[inset_0_0_0_1px_oklch(0.7_0.12_290/0.25)]",
-  },
-  {
-    href: "/prompt-baukasten",
-    label: "Sachverhalt verarbeiten",
-    description: "Fallschilderung eingeben und daraus einen KI-Prompt erzeugen",
-    icon: ScaleIcon,
-    accent: "bg-indigo-400/25 text-indigo-100",
-    activeClass:
-      "data-[active=true]:bg-indigo-400/10 data-[active=true]:shadow-[inset_0_0_0_1px_oklch(0.7_0.12_275/0.25)]",
-  },
-  {
-    href: "/schreiben-erstellen",
-    label: "Schreiben erstellen",
-    description: "Anwaltsschreiben oder Brief entwerfen",
-    icon: FileTextIcon,
-    accent: "bg-rose-400/25 text-rose-100",
-    activeClass:
-      "data-[active=true]:bg-rose-400/10 data-[active=true]:shadow-[inset_0_0_0_1px_oklch(0.7_0.12_20/0.25)]",
-  },
-  {
-    href: "/email-senden",
-    label: "E-Mail senden",
-    description: "Kurze E-Mail per KI — mit Platzhaltern zum Ersetzen",
-    icon: MailIcon,
-    accent: "bg-sky-400/25 text-sky-100",
-    activeClass:
-      "data-[active=true]:bg-sky-400/10 data-[active=true]:shadow-[inset_0_0_0_1px_oklch(0.7_0.1_220/0.25)]",
-  },
-  {
-    href: "/dokument-drucken",
-    label: "Dokument drucken",
-    description: "Markdown einfügen und als PDF im Browser öffnen",
-    icon: PrinterIcon,
-    accent: "bg-amber-400/25 text-amber-100",
-    activeClass:
-      "data-[active=true]:bg-amber-400/10 data-[active=true]:shadow-[inset_0_0_0_1px_oklch(0.78_0.12_85/0.25)]",
   },
   {
     href: "/schreiben",
@@ -172,7 +123,7 @@ export const navigation: NavItem[] = [
       "data-[active=true]:bg-lime-400/10 data-[active=true]:shadow-[inset_0_0_0_1px_oklch(0.75_0.14_125/0.25)]",
   },
   {
-    href: "/nachrichten-an-mitarbeiter",
+    href: "/zuweisen",
     label: "Aufgabe zuweisen",
     description: "Aufgabe zuweisen und den Ball übergeben.",
     icon: PlusIcon,
@@ -233,7 +184,7 @@ export function getPageMeta(pathname: string): NavItem {
 
   const segments = pathname.split("/").filter(Boolean);
 
-  // /steuer/dokumentation → „Steuer / Dokumentation“
+  // /{practice}/dokumentation → „Recht / Dokumentation“
   if (segments.length >= 2 && areaFromSlug(segments[0])) {
     const area = areaFromSlug(segments[0])!;
     const areaLabel =
@@ -258,7 +209,7 @@ export function getPageMeta(pathname: string): NavItem {
     }
   }
 
-  // /recht → Übersicht (Bereich)
+  // /{practice} → Übersicht
   if (segments.length === 1 && areaFromSlug(segments[0])) {
     return {
       ...navigation[0],

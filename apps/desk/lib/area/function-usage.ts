@@ -83,6 +83,7 @@ function compareByUsage(
  * inbox wird als „Meine Aufgaben“ gelabelt und führt zur Aufgabenliste.
  */
 export const LAWYER_QUICK_VIEW_FUNCTION_IDS: AreaFunctionId[] = [
+  "case-facts-analysis",
   "prompts",
   "notes",
   "staff-messages",
@@ -118,8 +119,7 @@ export function buildQuickViewFunctionIds(
       available.has(id) &&
       !communication.includes(id) &&
       id !== "inbox" &&
-      id !== "inbox-sent" &&
-      id !== "inbox-overview"
+      id !== "inbox-sent"
   );
   const topFunctions = [...catalog]
     .sort((a, b) => compareByUsage(a, b, usage, catalog))
@@ -147,10 +147,7 @@ export function buildSecretaryQuickViewFunctionIds(
     available.has(id)
   );
   const rest = [...available].filter(
-    (id) =>
-      !preferred.includes(id) &&
-      id !== "inbox-overview" &&
-      id !== "inbox-sent"
+    (id) => !preferred.includes(id) && id !== "inbox-sent"
   );
   const catalog = [...preferred, ...rest];
   return [...catalog]

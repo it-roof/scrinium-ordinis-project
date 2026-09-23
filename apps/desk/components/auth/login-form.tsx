@@ -9,7 +9,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export function LoginForm({ brandLabel }: { brandLabel?: string | null }) {
+export function LoginForm({
+  brandLabel,
+  passwordless,
+}: {
+  brandLabel?: string | null;
+  passwordless?: boolean;
+}) {
   const [state, formAction, isPending] = useActionState(loginAction, null);
 
   return (
@@ -20,6 +26,12 @@ export function LoginForm({ brandLabel }: { brandLabel?: string | null }) {
           Kanzlei-Werkzeug
         </p>
       </div>
+
+      {passwordless ? (
+        <p className="mt-6 border border-amber-600/40 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+          Dev-Modus: Anmeldung nur mit E-Mail (kein Passwort). Nie in Produktion.
+        </p>
+      ) : null}
 
       <form action={formAction} className="mt-8 space-y-5">
         <div className="space-y-2">
@@ -34,25 +46,27 @@ export function LoginForm({ brandLabel }: { brandLabel?: string | null }) {
           />
         </div>
 
-        <div className="space-y-2">
-          <div className="flex items-center justify-between gap-3">
-            <Label htmlFor="password">Passwort</Label>
-            <Link
-              href="/passwort-vergessen"
-              className="text-xs text-muted-foreground hover:text-foreground hover:underline"
-            >
-              Passwort vergessen?
-            </Link>
+        {passwordless ? null : (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-3">
+              <Label htmlFor="password">Passwort</Label>
+              <Link
+                href="/passwort-vergessen"
+                className="text-xs text-muted-foreground hover:text-foreground hover:underline"
+              >
+                Passwort vergessen?
+              </Link>
+            </div>
+            <Input
+              id="password"
+              name="password"
+              type="password"
+              autoComplete="current-password"
+              required
+              className="h-11"
+            />
           </div>
-          <Input
-            id="password"
-            name="password"
-            type="password"
-            autoComplete="current-password"
-            required
-            className="h-11"
-          />
-        </div>
+        )}
 
         {state?.error ? (
           <p className="text-sm text-destructive" role="alert">
@@ -60,9 +74,11 @@ export function LoginForm({ brandLabel }: { brandLabel?: string | null }) {
           </p>
         ) : null}
 
-        <p className="text-xs text-muted-foreground">
-          Nach mehreren Fehlversuchen wird der Zugang vorübergehend gesperrt.
-        </p>
+        {passwordless ? null : (
+          <p className="text-xs text-muted-foreground">
+            Nach mehreren Fehlversuchen wird der Zugang vorübergehend gesperrt.
+          </p>
+        )}
 
         <Button
           type="submit"

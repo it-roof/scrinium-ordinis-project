@@ -11,12 +11,12 @@ Mandant (Firma | Privatperson)
 
 | Begriff | Route | Code |
 |---------|-------|------|
-| Eingang | `/recht/eingang` | `inbox` |
-| Mandanten | `/recht/mandanten` | `clients` (`kind`: `company` \| `person`) |
-| Akten | `/recht/akten` | `matters` |
+| Eingang | `/eingang` | `inbox` |
+| Mandanten | `/r/mandanten` | `clients` (`kind`: `company` \| `person`) |
+| Akten | `/r/akten` | `matters` |
 | Personen | nur bei Firma | `client_persons` |
-| Akte (Detail) | `/recht/akten/[id]` | `matters` |
-| Schreiben | `/recht/schreiben` | `letters` (+ `matter_id`) |
+| Akte (Detail) | `/r/akten/[id]` | `matters` |
+| Schreiben | `/r/schreiben` | `letters` (+ `matter_id`) |
 
 ## Regeln
 

@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 
 import { LoginForm } from "@/components/auth/login-form";
 import { auth } from "@/lib/auth";
+import { isDevPasswordlessLoginEnabled } from "@/lib/auth/dev-passwordless";
 import {
   getRequestHostTenant,
   hostTenantDisplayBrand,
@@ -20,7 +21,10 @@ export default async function LoginPage() {
 
   return (
     <div className="content-canvas flex min-h-full flex-1 items-center justify-center px-4 py-12">
-      <LoginForm brandLabel={brandLabel} />
+      <LoginForm
+        brandLabel={brandLabel}
+        passwordless={isDevPasswordlessLoginEnabled()}
+      />
     </div>
   );
 }

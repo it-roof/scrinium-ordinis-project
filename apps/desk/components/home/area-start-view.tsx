@@ -12,13 +12,11 @@ import {
   FileStackIcon,
   FileTextIcon,
   FolderOpenIcon,
-  ListIcon,
   MailIcon,
   MailQuestionMarkIcon,
   MailWarningIcon,
   MessagesSquareIcon,
   PlusIcon,
-  PrinterIcon,
   ScaleIcon,
   SendIcon,
   SparklesIcon,
@@ -93,14 +91,6 @@ const featureMeta: Record<
     cardClass:
       "hover:border-amber-200/70 hover:bg-gradient-to-br hover:from-amber-50/40 hover:to-white",
   },
-  "inbox-overview": {
-    description: "Verlauf aller Nachrichten und Aufgaben.",
-    icon: ListIcon,
-    iconWrap: "bg-amber-50 text-amber-800 ring-amber-200/60",
-    linkClass: "text-amber-700",
-    cardClass:
-      "hover:border-amber-200/70 hover:bg-gradient-to-br hover:from-amber-50/40 hover:to-white",
-  },
   clients: {
     description: "Firmen und Privatpersonen mit Akten führen.",
     icon: UserIcon,
@@ -116,32 +106,6 @@ const featureMeta: Record<
     linkClass: "text-sky-700",
     cardClass:
       "hover:border-sky-200/80 hover:bg-gradient-to-br hover:from-sky-50/50 hover:to-white",
-  },
-  "compose-letter": {
-    description: "Anwaltsschreiben oder Brief entwerfen.",
-    icon: FileTextIcon,
-    iconWrap: "bg-rose-100 text-rose-800 ring-rose-200/70",
-    linkClass: "text-rose-700",
-    cardClass:
-      "hover:border-rose-200/80 hover:bg-gradient-to-br hover:from-rose-50/50 hover:to-white",
-  },
-  "compose-email": {
-    description:
-      "Kurze E-Mail per KI — mit {{TEXT}} zum Ersetzen in Scrinium.",
-    icon: MailIcon,
-    iconWrap: "bg-sky-100 text-sky-800 ring-sky-200/70",
-    linkClass: "text-sky-700",
-    cardClass:
-      "hover:border-sky-200/80 hover:bg-gradient-to-br hover:from-sky-50/50 hover:to-white",
-  },
-  "compose-print": {
-    description:
-      "Markdown-Inhalt einfügen — daraus wird ein PDF erzeugt und im Browser geöffnet.",
-    icon: PrinterIcon,
-    iconWrap: "bg-amber-100 text-amber-800 ring-amber-200/70",
-    linkClass: "text-amber-700",
-    cardClass:
-      "hover:border-amber-200/80 hover:bg-gradient-to-br hover:from-amber-50/50 hover:to-white",
   },
   "text-blocks": {
     description:
@@ -186,9 +150,9 @@ const featureMeta: Record<
     cardClass:
       "hover:border-emerald-200/80 hover:bg-gradient-to-br hover:from-emerald-50/50 hover:to-white",
   },
-  "prompt-kit": {
+  "case-facts-analysis": {
     description:
-      "Fallschilderung eingeben und daraus einen KI-Prompt erzeugen.",
+      "Sachverhalt aus einer Akte mit KI analysieren — Entwurf zur Prüfung.",
     icon: ScaleIcon,
     iconWrap: "bg-indigo-100 text-indigo-800 ring-indigo-200/70",
     linkClass: "text-indigo-700",
@@ -559,26 +523,19 @@ export function AreaStartView({
       available.has(id) &&
       id !== "inbox" &&
       id !== "inbox-sent" &&
-      id !== "inbox-overview" &&
       id !== "staff-messages"
   );
   const toolIds = TOOL_FUNCTION_IDS.filter((id) => available.has(id));
   const communicationIds = COMMUNICATION_FUNCTION_IDS.filter((id) =>
     available.has(id)
   );
-  /** In „Alle Funktionen“: Verlauf sichtbar (Gesendet liegt unter Meine Aufgaben). */
-  const lawyerKommunikationIds = [
-    ...communicationIds,
-    ...(available.has("inbox-overview")
-      ? (["inbox-overview"] as const)
-      : []),
-  ];
+  const lawyerKommunikationIds = [...communicationIds];
   const managementIds = MANAGEMENT_FUNCTION_IDS.filter((id) =>
     available.has(id)
   );
-  const secretaryNachrichtenIds = (
-    ["inbox", "staff-messages", "inbox-overview"] as const
-  ).filter((id) => available.has(id));
+  const secretaryNachrichtenIds = (["inbox", "staff-messages"] as const).filter(
+    (id) => available.has(id)
+  );
   const isSecretary = deskRole === "sekretariat";
   const quickIds =
     deskRole === "rechtsanwalt"

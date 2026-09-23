@@ -407,6 +407,48 @@
       "when": 1788507000000,
       "tag": "0057_shared_prompt_catalog",
       "breakpoints": true
+    },
+    {
+      "idx": 58,
+      "version": "7",
+      "when": 1788508000000,
+      "tag": "0058_ai_gateway",
+      "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "7",
+      "when": 1788509000000,
+      "tag": "0059_ai_jobs",
+      "breakpoints": true
+    },
+    {
+      "idx": 60,
+      "version": "7",
+      "when": 1788510000000,
+      "tag": "0060_ai_jobs_debug_trace",
+      "breakpoints": true
+    },
+    {
+      "idx": 61,
+      "version": "7",
+      "when": 1788511000000,
+      "tag": "0061_ai_jobs_dismissed_residuals",
+      "breakpoints": true
+    },
+    {
+      "idx": 62,
+      "version": "7",
+      "when": 1788512000000,
+      "tag": "0062_desk_role_tax",
+      "breakpoints": true
+    },
+    {
+      "idx": 63,
+      "version": "7",
+      "when": 1788513000000,
+      "tag": "0063_module_notary",
+      "breakpoints": true
     }
   ]
 }

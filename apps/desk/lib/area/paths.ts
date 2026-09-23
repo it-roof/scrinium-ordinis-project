@@ -1,111 +1,171 @@
-import type { AppModuleId } from "@/lib/modules";
+import type { AppModuleId, PracticeId } from "@/lib/modules";
 import { APP_MODULES, isAppModuleId } from "@/lib/modules";
 import type { AreaFunctionId } from "@/lib/area/functions";
 
-/** URL-Slug pro Bereich (deutsch, stabil). */
-export const AREA_SLUGS: Record<AppModuleId, string> = {
-  legal: "recht",
-  tax: "steuer",
-  "restructuring-insolvency": "sanierung-insolvenz",
+/** @deprecated Nutze PracticeId aus @/lib/modules */
+export type { PracticeId };
+
+/** URL-Slug pro Practice (kurz, stabil). */
+export const PRACTICE_SLUGS: Record<PracticeId, string> = {
+  legal: "r",
+  tax: "s",
+  notary: "n",
   administration: "verwaltung",
 };
 
-/** Alte / alternative Slugs → Bereich. */
-export const AREA_SLUG_ALIASES: Record<string, AppModuleId> = {
-  steuerberatung: "tax",
-  beratung: "administration",
-  unternehmensberatung: "administration",
-};
+/** @deprecated Nutze PRACTICE_SLUGS */
+export const AREA_SLUGS = PRACTICE_SLUGS;
 
-const SLUG_TO_AREA = {
-  ...Object.fromEntries(
-    Object.entries(AREA_SLUGS).map(([id, slug]) => [slug, id])
-  ),
-  ...AREA_SLUG_ALIASES,
-} as Record<string, AppModuleId>;
+const SLUG_TO_PRACTICE = Object.fromEntries(
+  Object.entries(PRACTICE_SLUGS).map(([id, slug]) => [slug, id])
+) as Record<string, PracticeId>;
 
-export type AreaSlug = (typeof AREA_SLUGS)[AppModuleId];
+export type PracticeSlug = (typeof PRACTICE_SLUGS)[PracticeId];
 
+/** @deprecated Nutze PracticeSlug */
+export type AreaSlug = PracticeSlug;
+
+export function slugForPractice(practice: PracticeId): string {
+  return PRACTICE_SLUGS[practice];
+}
+
+/** @deprecated Nutze slugForPractice */
 export function slugForArea(area: AppModuleId): string {
-  return AREA_SLUGS[area];
+  return slugForPractice(area);
 }
 
+export function practiceFromSlug(slug: string): PracticeId | null {
+  return SLUG_TO_PRACTICE[slug] ?? null;
+}
+
+/** @deprecated Nutze practiceFromSlug */
 export function areaFromSlug(slug: string): AppModuleId | null {
-  return SLUG_TO_AREA[slug] ?? null;
+  return practiceFromSlug(slug);
 }
 
+export function isPracticeSlug(value: string): value is PracticeSlug {
+  return (Object.values(PRACTICE_SLUGS) as string[]).includes(value);
+}
+
+/** @deprecated Nutze isPracticeSlug */
 export function isAreaSlug(value: string): value is AreaSlug {
-  return value in SLUG_TO_AREA && AREA_SLUGS[SLUG_TO_AREA[value]] === value;
+  return isPracticeSlug(value);
 }
 
-/** Basis-Pfad eines Bereichs: /recht */
+/** Basis-Pfad einer Practice: /r */
+export function practiceBasePath(practice: PracticeId): string {
+  return `/${slugForPractice(practice)}`;
+}
+
+/** @deprecated Nutze practiceBasePath */
 export function areaBasePath(area: AppModuleId): string {
-  return `/${slugForArea(area)}`;
+  return practiceBasePath(area);
 }
 
 export const FUNCTION_PATH_SEGMENTS: Record<AreaFunctionId, string> = {
   inbox: "eingang",
   "inbox-sent": "gesendet",
-  "inbox-overview": "nachrichten-uebersicht",
   clients: "mandanten",
   matters: "akten",
-  "compose-letter": "schreiben-erstellen",
-  "compose-email": "email-senden",
-  "compose-print": "dokument-drucken",
   "text-blocks": "textbausteine",
   prompts: "prompt",
   notes: "notizen",
-  "prompt-kit": "prompt-baukasten",
+  "case-facts-analysis": "analyse",
   letters: "schreiben",
   docs: "dokumentation",
   templates: "vorlagen",
-  "staff-messages": "nachrichten-an-mitarbeiter",
+  "staff-messages": "zuweisen",
 };
 
+/**
+ * Desk-Funktionen ohne Practice in der URL (kanzleiweit / persönlich).
+ */
+export const DESK_FLAT_HREFS: Partial<Record<AreaFunctionId, string>> = {
+  prompts: "/prompt",
+  notes: "/notizen",
+  inbox: "/eingang",
+  "inbox-sent": "/gesendet",
+  "staff-messages": "/zuweisen",
+};
+
+/** Bereichsgebundene Segmente ohne Practice → Middleware hängt Cookie-Practice vor. */
+export const DESK_SCOPED_FLAT_SEGMENTS = [
+  "mandanten",
+  "akten",
+  "textbausteine",
+  "analyse",
+  "dokumentation",
+  "vorlagen",
+  "schreiben",
+] as const;
+
+export const DESK_DASHBOARD_HREF = "/dashboard";
+
+/** Kanonischer Link für eine Funktion (flach oder practice-scoped). */
+export function hrefFor(
+  functionId: AreaFunctionId,
+  practice?: PracticeId
+): string {
+  const flat = DESK_FLAT_HREFS[functionId];
+  if (flat) {
+    return flat;
+  }
+  if (!practice) {
+    throw new Error(
+      `hrefFor("${functionId}") benötigt eine Practice (nicht flach).`
+    );
+  }
+  return `${practiceBasePath(practice)}/${FUNCTION_PATH_SEGMENTS[functionId]}`;
+}
+
+/** @deprecated Nutze hrefFor */
 export function functionHref(
   area: AppModuleId,
   functionId: AreaFunctionId
 ): string {
-  // v1-Shell: diese Funktionen sind nicht mehr bereichsgebunden in der URL.
-  const v1Routes: Partial<Record<AreaFunctionId, string>> = {
-    prompts: "/v1/prompt",
-    notes: "/v1/notizen",
-    inbox: "/v1/eingang",
-    "inbox-sent": "/v1/gesendet",
-    "staff-messages": "/v1/zuweisen",
-    clients: "/v1/mandanten",
-    matters: "/v1/akten",
-    "text-blocks": "/v1/textbausteine",
-  };
-  const v1Href = v1Routes[functionId];
-  if (v1Href) {
-    return v1Href;
+  const flat = DESK_FLAT_HREFS[functionId];
+  if (flat) {
+    return flat;
   }
-  return `${areaBasePath(area)}/${FUNCTION_PATH_SEGMENTS[functionId]}`;
+  return hrefFor(functionId, area);
 }
 
-/** Bereich aus Pathname lesen: /recht/... → legal */
-export function parseAreaFromPathname(pathname: string): AppModuleId | null {
+/** Practice aus Pathname: /r/... → legal */
+export function parsePracticeFromPathname(
+  pathname: string
+): PracticeId | null {
   const match = pathname.match(/^\/([^/]+)/);
   if (!match) return null;
-  return areaFromSlug(match[1]);
+  return practiceFromSlug(match[1]);
 }
 
+/** @deprecated Nutze parsePracticeFromPathname */
+export function parseAreaFromPathname(pathname: string): AppModuleId | null {
+  return parsePracticeFromPathname(pathname);
+}
+
+export function parsePracticeBasePath(pathname: string): string | null {
+  const practice = parsePracticeFromPathname(pathname);
+  return practice ? practiceBasePath(practice) : null;
+}
+
+/** @deprecated Nutze parsePracticeBasePath */
 export function parseAreaBasePath(pathname: string): string | null {
-  if (pathname === "/v1" || pathname.startsWith("/v1/")) {
-    return "/v1";
-  }
-  const area = parseAreaFromPathname(pathname);
-  return area ? areaBasePath(area) : null;
+  return parsePracticeBasePath(pathname);
 }
 
-export function moduleById(area: AppModuleId) {
-  return APP_MODULES.find((entry) => entry.id === area) ?? null;
+export function moduleById(practice: PracticeId) {
+  return APP_MODULES.find((entry) => entry.id === practice) ?? null;
 }
 
-export function assertAreaId(value: string): AppModuleId {
+export function assertPracticeId(value: string): PracticeId {
   if (!isAppModuleId(value)) {
-    throw new Error(`Unknown area: ${value}`);
+    throw new Error(`Unknown practice: ${value}`);
   }
   return value;
+}
+
+/** @deprecated Nutze assertPracticeId */
+export function assertAreaId(value: string): AppModuleId {
+  return assertPracticeId(value);
 }

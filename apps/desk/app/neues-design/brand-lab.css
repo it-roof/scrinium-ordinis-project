@@ -1,0 +1,186 @@
+/**
+ * Design-Lab Brands — Light first
+ * Lesbarkeit: normale Größen (≈16px Body), ausreichender Kontrast,
+ * klare Hierarchie — ohne Senior-Zoom-Übertreibung.
+ */
+
+.brand-lab-root {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  -webkit-font-smoothing: antialiased;
+  background: var(--b-bg);
+  color: var(--b-ink);
+  font-family: var(--b-sans);
+  font-size: 16px;
+  line-height: 1.55;
+  font-weight: 400;
+  transition:
+    background-color 0.28s ease,
+    color 0.28s ease;
+}
+
+.brand-lab-root .b-display {
+  font-family: var(--b-display);
+  line-height: 1.2;
+}
+
+/* Lesbare Typo-Rollen (normal, nicht übertrieben) */
+.brand-lab-root .b-eyebrow {
+  font-size: 0.8125rem; /* 13px */
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--b-muted);
+}
+
+.brand-lab-root .b-title {
+  font-size: clamp(1.75rem, 2.5vw, 2.5rem); /* 28–40px */
+  line-height: 1.2;
+}
+
+.brand-lab-root .b-lead {
+  font-size: 1.0625rem; /* 17px */
+  line-height: 1.65;
+  font-weight: 400;
+  color: var(--b-muted);
+  max-width: 36rem;
+}
+
+.brand-lab-root .b-body {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--b-ink);
+}
+
+.brand-lab-root .b-meta {
+  font-size: 0.875rem; /* 14px */
+  line-height: 1.5;
+  color: var(--b-muted);
+}
+
+.brand-lab-root .b-nav-item {
+  font-size: 0.9375rem; /* 15px */
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.brand-lab-root .b-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem; /* 44px — angenehm, nicht riesig */
+  padding: 0.625rem 1.25rem;
+  font-size: 0.9375rem; /* 15px */
+  font-weight: 600;
+  line-height: 1.2;
+  border-radius: 999px;
+  border: none;
+  cursor: pointer;
+}
+
+.brand-lab-root .b-btn-primary {
+  background: var(--b-accent);
+  color: var(--b-accent-fg);
+}
+
+.brand-lab-root .b-btn-secondary {
+  background: transparent;
+  color: var(--b-ink);
+  border: 1px solid var(--b-line);
+}
+
+.brand-lab-root .b-btn-ghost {
+  background: transparent;
+  color: var(--b-ink);
+  text-decoration: underline;
+  text-underline-offset: 0.25rem;
+  min-height: auto;
+  padding: 0.5rem 0;
+  border-radius: 0;
+  font-weight: 600;
+}
+
+.brand-lab-root .b-stat-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--b-muted);
+}
+
+.brand-lab-root .b-stat-value {
+  font-size: 1.5rem;
+  font-weight: 500;
+  color: var(--b-ink);
+  opacity: 0.45;
+}
+
+/* Shell: Sidebar + Inhalt */
+.brand-lab-shell {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.brand-lab-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding-bottom: 12rem;
+}
+
+
+/* ── ALBA · Manrope ── */
+.brand-alba,
+.brand-alba-manrope {
+  --b-display: var(--font-alba-manrope), system-ui, sans-serif;
+  --b-sans: var(--font-alba-manrope), system-ui, sans-serif;
+}
+
+[data-lab-appearance="light"] .brand-alba {
+  --b-bg: #f4f3f0;
+  --b-bg-elev: #fbfaf8;
+  --b-ink: #1b1b1a;
+  --b-muted: #5c5954;
+  --b-faint: #8a8580;
+  --b-line: #d9d4cc;
+  --b-accent: #6f5f4a;
+  --b-accent-fg: #fbfaf8;
+  --b-soft: color-mix(in srgb, var(--b-accent) 12%, transparent);
+  --b-sidebar-bg: #fbfaf8;
+  --b-sidebar-fg: #1b1b1a;
+  --b-sidebar-muted: #5c5954;
+  --b-sidebar-border: #d9d4cc;
+  --b-sidebar-active-bg: #1b1b1a;
+  --b-sidebar-active-fg: #fbfaf8;
+}
+
+[data-lab-appearance="dark"] .brand-alba {
+  --b-bg: #121211;
+  --b-bg-elev: #1a1a18;
+  --b-ink: #f2efe9;
+  --b-muted: #b0aaa0;
+  --b-faint: #7a746a;
+  --b-line: #2a2926;
+  --b-accent: #c4b09a;
+  --b-accent-fg: #121211;
+  --b-soft: color-mix(in srgb, var(--b-accent) 14%, transparent);
+  --b-sidebar-bg: #1a1a18;
+  --b-sidebar-fg: #f2efe9;
+  --b-sidebar-muted: #b0aaa0;
+  --b-sidebar-border: #2a2926;
+  --b-sidebar-active-bg: #c4b09a;
+  --b-sidebar-active-fg: #121211;
+}
+
+.brand-alba .b-display,
+.brand-alba-manrope .b-display {
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  font-style: normal;
+}

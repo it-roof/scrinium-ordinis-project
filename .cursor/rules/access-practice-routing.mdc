@@ -1,0 +1,32 @@
+---
+description: Zielbild Zugriff/Practice/Routing — Tenant, Practice, Funktion, Rolle-as-Bundle; flache URLs
+alwaysApply: true
+---
+
+# Zugriff, Practice & Routing (Zielbild)
+
+Verbindliche Architektur: [`apps/desk/docs/architecture-access-routing.md`](apps/desk/docs/architecture-access-routing.md).
+
+## Drei Achsen
+
+1. **Tenant** — Kanzlei; Session-`tenantId` + `withTenantDb` + RLS
+2. **Practice** — Fachwelt / Datentrennung (Recht ≠ Steuer); DB oft noch `module`
+3. **Funktion** — ACL-Einheit für Actions/Nav (`prompts`, `clients`, …)
+
+**Rolle** = nur Bundle (Practices + Funktionen). Keine Rollen-URLs, keine eigene Mandantenwelt für Sekretariat.
+
+## Regeln
+
+- RA und RA-Sekretär teilen Practice (gleiche Mandanten); Unterschied = Funktionen (z. B. kein Prompt für Sekretär)
+- Multi-Rolle = Union Practices + Union Funktionen; Practice-Switcher
+- URLs: Practice nur bei bereichsgebundenen Daten (`/r/mandanten`); flach für Shared/persönlich (`/prompt`, `/notizen`, `/eingang`)
+- App-Routen unter `app/(main)/`; kanonische Practice-Slugs `r`/`s`/`n`; eine Route-Map / `hrefFor`
+- Kein schweres RBAC; Rollen-Matrix global im Code; Overrides nur bei Bedarf
+- Neue Features: Tenant? Practice am Datensatz? Function-Check in Action?
+
+## Nicht
+
+- App nach Berufsbezeichnung schneiden
+- „Bereich = Rolle“
+- Parallele Legacy- und v1-URL-Bäume weiter ausbauen
+- Rechte nur clientseitig
