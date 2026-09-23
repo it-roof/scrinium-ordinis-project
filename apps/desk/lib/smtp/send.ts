@@ -1,24 +1,59 @@
+import dns from "node:dns/promises";
+import net from "node:net";
+
 import nodemailer from "nodemailer";
 import type SMTPTransport from "nodemailer/lib/smtp-transport";
 
 import type { SmtpConnectionConfig } from "./types";
 
-type SmtpTransportOptions = SMTPTransport.Options & {
-  /** Node net.connect family — Types fehlen in @types/nodemailer */
-  family?: 4 | 6;
-};
+type SmtpTransportOptions = SMTPTransport.Options;
 
-function createTransport(config: SmtpConnectionConfig) {
+/**
+ * Nodemailer-`family` wird beim Connect oft nicht durchgereicht.
+ * Deshalb: IPv4 per dns.lookup, dann Connect auf die IP + TLS-SNI = Hostname.
+ */
+export async function resolveSmtpConnectHost(hostname: string): Promise<{
+  connectHost: string;
+  servername: string;
+}> {
+  const servername = hostname.trim();
+  if (!servername) {
+    throw new Error("SMTP-Host fehlt.");
+  }
+
+  if (net.isIPv4(servername)) {
+    return { connectHost: servername, servername };
+  }
+
+  if (net.isIPv6(servername)) {
+    throw new Error(
+      "IPv6-SMTP-Hosts werden nicht unterstützt. Bitte Hostnamen oder IPv4-Adresse nutzen."
+    );
+  }
+
+  const { address } = await dns.lookup(servername, { family: 4 });
+  return { connectHost: address, servername };
+}
+
+export async function createSmtpTransport(config: {
+  host: string;
+  port: number;
+  username: string;
+  password: string;
+}) {
+  const { connectHost, servername } = await resolveSmtpConnectHost(config.host);
   const secure = config.port === 465;
 
   const options: SmtpTransportOptions = {
-    host: config.host,
+    host: connectHost,
     port: config.port,
     secure,
     // Port 587: STARTTLS (u. a. Microsoft 365)
     requireTLS: !secure && config.port === 587,
-    // Hetzner/Coolify: IPv6 oft Timeout, lokal (IPv4) funktioniert
-    family: 4,
+    tls: {
+      // Zertifikat/SNI müssen zum Hostnamen passen, nicht zur IP
+      servername,
+    },
     auth: {
       user: config.username,
       pass: config.password,
@@ -28,7 +63,11 @@ function createTransport(config: SmtpConnectionConfig) {
     socketTimeout: 20_000,
   };
 
-  return nodemailer.createTransport(options);
+  return {
+    transport: nodemailer.createTransport(options),
+    connectHost,
+    servername,
+  };
 }
 
 function formatFrom(config: SmtpConnectionConfig) {
@@ -66,8 +105,8 @@ export function formatSmtpError(error: unknown): string {
   ) {
     return (
       "Verbindung zum SMTP-Server abgebrochen (Timeout). " +
-      "Vom Server aus ist Port 465/587 oft gesperrt — Hosting/Firewall prüfen " +
-      "oder Port 587 (STARTTLS) bzw. 465 (SSL) und Host nochmals kontrollieren."
+      "Lokal funktioniert oft IPv4 — auf dem Server prüfen, ob ausgehende Ports 465/587 " +
+      "offen sind (Coolify/Hetzner-Firewall). Sonst Port 587 (STARTTLS) versuchen."
     );
   }
 
@@ -117,7 +156,14 @@ export async function sendTestEmail(
   config: SmtpConnectionConfig,
   toEmail: string
 ): Promise<void> {
-  const transport = createTransport(config);
+  const { transport, connectHost, servername } =
+    await createSmtpTransport(config);
+
+  console.info("[smtp:connect]", {
+    host: servername,
+    connectHost,
+    port: config.port,
+  });
 
   await transport.sendMail({
     from: formatFrom(config),
@@ -179,7 +225,7 @@ export async function sendMailWithUserSmtp(
     cc?: string;
   }
 ): Promise<void> {
-  const transport = createTransport(config);
+  const { transport } = await createSmtpTransport(config);
   const cc = input.cc?.trim();
 
   await transport.sendMail({

@@ -8,13 +8,12 @@ import {
   PencilIcon,
   PlusIcon,
   PrinterIcon,
+  SearchIcon,
   Trash2Icon,
 } from "lucide-react";
 import { toast } from "sonner";
 
 import { V1NoteForm } from "@/components/desk/notes/note-form";
-import { Button } from "@/components/desk/ui/button";
-import { Input } from "@/components/desk/ui/input";
 import { deleteUserNote, exportUserNotePdf } from "@/lib/notes/actions";
 import type { UserNote } from "@/lib/notes/types";
 import { cn } from "@/lib/utils";
@@ -153,7 +152,7 @@ export function V1NotesWorkspace({
 
   function handleDeleteNote(item: UserNote) {
     const label = item.title.trim() || "diese Notiz";
-    if (!window.confirm(`„${label}" dauerhaft löschen?`)) {
+    if (!window.confirm(`„${label}“ dauerhaft löschen?`)) {
       return;
     }
 
@@ -201,63 +200,71 @@ export function V1NotesWorkspace({
   }
 
   return (
-    <div className="relative flex min-h-0 flex-1 overflow-hidden bg-muted/15">
+    <div className="lab-notes relative flex min-h-0 flex-1 overflow-hidden">
+      {/* Liste */}
       <div
         className={cn(
-          "flex min-h-0 w-full flex-col border-border/50 bg-background md:w-[20rem] md:shrink-0 md:border-r lg:w-[22rem]",
+          "lab-notes-pane flex min-h-0 w-full flex-col border-r md:w-[20rem] md:shrink-0 lg:w-[22rem]",
           showDetail ? "hidden md:flex" : "flex"
         )}
       >
-        <div className="flex flex-col gap-2 border-b border-border/40 px-3 pt-3 pb-2.5">
-          <div className="flex h-8 items-center justify-between gap-2">
-            <h1 className="font-heading text-base font-medium tracking-tight">
-              Notizen
-            </h1>
-            <Button
+        <div className="flex flex-col gap-3 border-b px-4 pt-5 pb-4 md:px-5">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <h1 className="b-display text-[1.25rem] font-medium tracking-[-0.02em]">
+                Notizen
+              </h1>
+              <p className="b-meta mt-0.5">Nur für Sie sichtbar</p>
+            </div>
+            <button
               type="button"
-              size="icon"
-              variant="ghost"
-              className="size-8 rounded-md"
+              className="b-btn b-btn-primary shrink-0 gap-1.5 !min-h-10 !px-3.5 text-[0.8125rem]"
               onClick={selectNew}
-              aria-label="Neue Notiz"
-              title="Neue Notiz"
             >
-              <PlusIcon className="size-4" />
-            </Button>
+              <PlusIcon className="size-4" strokeWidth={1.75} />
+              Neu
+            </button>
           </div>
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Suchen…"
-            aria-label="Notizen durchsuchen"
-            className="h-8 rounded-md border-border/60 bg-muted/35 px-2.5 text-sm shadow-none"
-          />
+          <div className="relative">
+            <SearchIcon
+              className="pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2"
+              style={{ color: "var(--b-muted)" }}
+              strokeWidth={1.75}
+            />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Suchen…"
+              aria-label="Notizen durchsuchen"
+              className="lab-notes-search"
+            />
+          </div>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="min-h-0 flex-1 overflow-y-auto px-2 py-2 md:px-2.5">
           {filtered.length === 0 ? (
-            <div className="px-4 py-8">
-              <p className="text-sm font-medium text-foreground">
+            <div className="px-3 py-10 text-center">
+              <p className="b-display text-[1.0625rem] font-medium tracking-[-0.01em]">
                 {items.length === 0 ? "Noch keine Notizen" : "Keine Treffer"}
               </p>
-              <p className="mt-1 text-sm text-muted-foreground">
+              <p className="b-meta mx-auto mt-1.5 max-w-[16rem]">
                 {items.length === 0
-                  ? "Tippen Sie +, um die erste Notiz anzulegen."
+                  ? "Legen Sie Ihre erste Notiz an."
                   : "Suche anpassen."}
               </p>
               {items.length === 0 ? (
-                <Button
+                <button
                   type="button"
-                  className="mt-4 h-10 rounded-lg shadow-none"
+                  className="b-btn b-btn-primary mx-auto mt-5 gap-1.5"
                   onClick={selectNew}
                 >
-                  <PlusIcon className="size-4" />
+                  <PlusIcon className="size-4" strokeWidth={1.75} />
                   Neue Notiz
-                </Button>
+                </button>
               ) : null}
             </div>
           ) : (
-            <ul className="py-1">
+            <ul className="flex flex-col gap-0.5">
               {filtered.map((item) => {
                 const heading = item.title.trim() || "Ohne Titel";
                 const preview = item.body.trim();
@@ -265,56 +272,41 @@ export function V1NotesWorkspace({
                   selection.kind === "note" && selection.id === item.id;
 
                 return (
-                  <li key={item.id} className="px-2">
-                    <div
-                      className={cn(
-                        "group flex items-stretch rounded-lg",
-                        isActive ? "bg-muted" : "hover:bg-muted/60"
-                      )}
+                  <li key={item.id}>
+                    <button
+                      type="button"
+                      onClick={() => selectNote(item.id)}
+                      className="lab-notes-item"
+                      data-active={isActive ? "true" : "false"}
                     >
-                      <button
-                        type="button"
-                        onClick={() => selectNote(item.id)}
-                        className="min-w-0 flex-1 px-3 py-2.5 text-left"
-                      >
-                        <div className="flex items-baseline justify-between gap-2">
-                          <span className="truncate text-sm font-medium text-foreground">
-                            {heading}
-                          </span>
-                          <span className="shrink-0 text-[11px] text-muted-foreground">
-                            {formatListDate(item.updatedAt)}
-                          </span>
-                        </div>
-                        {preview ? (
-                          <p className="mt-0.5 line-clamp-2 text-[13px] leading-snug text-muted-foreground">
-                            {preview}
-                          </p>
-                        ) : null}
-                        {item.files.length > 0 ? (
-                          <span className="mt-1 inline-flex items-center gap-1 text-[11px] text-muted-foreground">
-                            <PaperclipIcon className="size-3" aria-hidden />
-                            {item.files.length}
-                          </span>
-                        ) : null}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteNote(item)}
-                        disabled={pending}
-                        aria-label={`„${heading}" löschen`}
-                        title="Löschen"
-                        className={cn(
-                          "my-1 mr-1 flex size-8 shrink-0 items-center justify-center rounded-md",
-                          "text-muted-foreground opacity-0 transition-opacity",
-                          "hover:bg-destructive/10 hover:text-destructive",
-                          "group-hover:opacity-100 focus-visible:opacity-100",
-                          "disabled:pointer-events-none disabled:opacity-40",
-                          isActive && "opacity-100"
-                        )}
-                      >
-                        <Trash2Icon className="size-3.5" />
-                      </button>
-                    </div>
+                      <div className="flex items-baseline justify-between gap-2">
+                        <span className="b-display min-w-0 truncate text-[0.9375rem] font-medium tracking-[-0.01em]">
+                          {heading}
+                        </span>
+                        <span className="b-meta shrink-0 tabular-nums">
+                          {formatListDate(item.updatedAt)}
+                        </span>
+                      </div>
+                      {preview ? (
+                        <p
+                          className="line-clamp-2 text-[0.8125rem] leading-snug"
+                          style={{ color: "var(--b-muted)" }}
+                        >
+                          {preview}
+                        </p>
+                      ) : null}
+                      {item.files.length > 0 ? (
+                        <span
+                          className="mt-0.5 inline-flex items-center gap-1 text-[0.6875rem]"
+                          style={{ color: "var(--b-faint)" }}
+                        >
+                          <PaperclipIcon className="size-3" aria-hidden />
+                          {item.files.length === 1
+                            ? "1 Anhang"
+                            : `${item.files.length} Anhänge`}
+                        </span>
+                      ) : null}
+                    </button>
                   </li>
                 );
               })}
@@ -323,33 +315,34 @@ export function V1NotesWorkspace({
         </div>
       </div>
 
+      {/* Detail */}
       <div
         className={cn(
-          "min-h-0 min-w-0 flex-1 flex-col bg-muted/15",
+          "lab-notes-detail min-h-0 min-w-0 flex-1 flex-col",
           showDetail ? "flex" : "hidden md:flex"
         )}
       >
         {showDetail ? (
           <>
-            <div className="flex items-center gap-2 border-b border-border/40 px-3 py-2 md:hidden">
+            <div className="flex items-center gap-2 border-b px-4 py-3 md:hidden">
               <button
                 type="button"
                 onClick={selectNone}
-                className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+                className="b-meta inline-flex items-center gap-1.5 transition-colors hover:text-[var(--b-ink)]"
               >
-                <ArrowLeftIcon className="size-4" />
-                Notizen
+                <ArrowLeftIcon className="size-4" strokeWidth={1.75} />
+                Übersicht
               </button>
             </div>
 
             {selection.kind === "new" ? (
               <>
-                <div className="flex items-center justify-between gap-3 border-b border-border/40 px-4 py-3 md:px-6">
+                <div className="flex items-center justify-between gap-3 border-b px-4 py-4 md:px-6">
                   <div className="min-w-0">
-                    <p className="font-heading text-base font-medium tracking-tight">
+                    <p className="b-display text-[1.125rem] font-medium tracking-[-0.01em]">
                       Neue Notiz
                     </p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="b-meta mt-0.5">
                       Tippen, diktieren oder Dokument anhängen
                     </p>
                   </div>
@@ -364,24 +357,22 @@ export function V1NotesWorkspace({
             ) : activeNote ? (
               paneMode === "edit" ? (
                 <>
-                  <div className="flex items-center justify-between gap-3 border-b border-border/40 px-4 py-3 md:px-6">
+                  <div className="flex items-center justify-between gap-3 border-b px-4 py-4 md:px-6">
                     <div className="min-w-0">
-                      <p className="font-heading text-base font-medium tracking-tight">
+                      <p className="b-display text-[1.125rem] font-medium tracking-[-0.01em]">
                         Bearbeiten
                       </p>
-                      <p className="truncate text-xs text-muted-foreground">
+                      <p className="b-meta mt-0.5 truncate">
                         {activeNote.title.trim() || "Ohne Titel"}
                       </p>
                     </div>
-                    <Button
+                    <button
                       type="button"
-                      variant="outline"
-                      size="sm"
-                      className="h-9 shrink-0 rounded-lg border-border/70 bg-background shadow-none"
+                      className="b-btn b-btn-secondary shrink-0 !min-h-10 !px-3.5 text-[0.8125rem]"
                       onClick={() => openView(activeNote.id)}
                     >
-                      Ansehen
-                    </Button>
+                      Abbrechen
+                    </button>
                   </div>
                   <V1NoteForm
                     key={`edit-${activeNote.id}`}
@@ -394,74 +385,72 @@ export function V1NotesWorkspace({
                 </>
               ) : (
                 <>
-                  <div className="flex items-start justify-between gap-3 border-b border-border/40 px-4 py-3 md:px-6">
-                    <div className="min-w-0 space-y-0.5">
-                      <h2 className="font-heading truncate text-base font-medium tracking-tight md:text-lg">
+                  <div className="flex flex-col gap-3 border-b px-4 py-4 md:flex-row md:items-start md:justify-between md:px-6">
+                    <div className="min-w-0">
+                      <h2 className="b-display text-[1.25rem] font-medium tracking-[-0.015em] md:text-[1.375rem]">
                         {activeNote.title.trim() || "Ohne Titel"}
                       </h2>
-                      <p className="text-xs text-muted-foreground">
-                        Zuletzt geändert {formatDetailDate(activeNote.updatedAt)}
+                      <p className="b-meta mt-1">
+                        Geändert {formatDetailDate(activeNote.updatedAt)}
                       </p>
                     </div>
-                    <div className="flex shrink-0 items-center gap-2">
-                      <Button
+                    <div className="lab-notes-toolbar shrink-0">
+                      <button
                         type="button"
-                        variant="outline"
-                        size="sm"
-                        className="h-9 rounded-lg border-border/70 bg-background shadow-none"
+                        className="b-btn b-btn-secondary"
                         onClick={() => handlePrintNote(activeNote.id)}
                         disabled={pending}
                       >
-                        <PrinterIcon className="size-3.5" />
+                        <PrinterIcon className="size-3.5" strokeWidth={1.75} />
                         Drucken
-                      </Button>
-                      <Button
+                      </button>
+                      <button
                         type="button"
-                        size="sm"
-                        className="h-9 rounded-lg shadow-none"
+                        className="b-btn b-btn-primary"
                         onClick={() => openEdit(activeNote.id)}
                       >
-                        <PencilIcon className="size-3.5" />
+                        <PencilIcon className="size-3.5" strokeWidth={1.75} />
                         Bearbeiten
-                      </Button>
-                      <Button
+                      </button>
+                      <button
                         type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="h-9 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                        className="b-btn b-btn-secondary"
+                        style={{ color: "var(--b-muted)" }}
                         onClick={() => handleDeleteNote(activeNote)}
                         disabled={pending}
                       >
-                        <Trash2Icon className="size-3.5" />
+                        <Trash2Icon className="size-3.5" strokeWidth={1.75} />
                         Löschen
-                      </Button>
+                      </button>
                     </div>
                   </div>
 
-                  <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5 md:px-6">
+                  <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5 md:px-6 md:py-6">
                     {activeNote.body.trim() ? (
-                      <p className="whitespace-pre-wrap text-[0.95rem] leading-[1.6] text-foreground">
+                      <p
+                        className="max-w-2xl whitespace-pre-wrap text-[0.95rem] leading-[1.65]"
+                        style={{ color: "var(--b-ink)" }}
+                      >
                         {activeNote.body}
                       </p>
                     ) : (
-                      <p className="text-sm text-muted-foreground">Kein Inhalt.</p>
+                      <p className="b-meta">Kein Inhalt.</p>
                     )}
 
                     {activeNote.files.length > 0 ? (
-                      <div className="mt-6 space-y-2">
-                        <p className="text-sm font-medium text-muted-foreground">
-                          Dokumente
-                        </p>
+                      <div className="mt-8 space-y-2.5">
+                        <p className="b-meta font-medium">Dokumente</p>
                         <ul className="flex flex-wrap gap-2">
                           {activeNote.files.map((file) => (
                             <li key={file.id}>
                               <a
                                 href={`/api/notes/files/${file.id}?download=1`}
                                 title={file.filename}
-                                className="inline-flex max-w-full items-center gap-1.5 rounded-lg border border-border/70 bg-background px-2.5 py-1.5 text-sm transition-colors hover:bg-muted/50"
+                                className="lab-notes-file"
                               >
                                 <PaperclipIcon
-                                  className="size-3.5 shrink-0 text-muted-foreground"
+                                  className="size-3.5 shrink-0"
+                                  style={{ color: "var(--b-muted)" }}
                                   aria-hidden
                                 />
                                 <span className="min-w-0 truncate">
@@ -478,33 +467,28 @@ export function V1NotesWorkspace({
               )
             ) : (
               <div className="flex flex-1 items-center justify-center px-6">
-                <p className="text-sm text-muted-foreground">
-                  Notiz nicht gefunden.
-                </p>
+                <p className="b-meta">Notiz nicht gefunden.</p>
               </div>
             )}
           </>
         ) : (
-          <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
-            <p className="font-heading text-lg font-medium tracking-tight">
+          <div className="flex flex-1 flex-col items-center justify-center gap-2 px-6 text-center">
+            <p className="b-display text-[1.25rem] font-medium tracking-[-0.015em]">
               {items.length === 0 ? "Noch keine Notizen" : "Notiz wählen"}
             </p>
-            <p className="max-w-xs text-sm text-muted-foreground">
+            <p className="b-meta max-w-xs">
               {items.length === 0
-                ? "Legen Sie links mit + die erste Notiz an."
-                : "Wählen Sie links eine Notiz — oder legen Sie mit + eine neue an."}
+                ? "Legen Sie links eine neue Notiz an."
+                : "Wählen Sie links eine Notiz — oder legen Sie eine neue an."}
             </p>
-            {items.length > 0 ? (
-              <Button
-                type="button"
-                variant="outline"
-                className="mt-1 h-10 rounded-lg shadow-none"
-                onClick={selectNew}
-              >
-                <PlusIcon className="size-4" />
-                Neue Notiz
-              </Button>
-            ) : null}
+            <button
+              type="button"
+              className="b-btn b-btn-primary mt-3 gap-1.5"
+              onClick={selectNew}
+            >
+              <PlusIcon className="size-4" strokeWidth={1.75} />
+              Neue Notiz
+            </button>
           </div>
         )}
       </div>

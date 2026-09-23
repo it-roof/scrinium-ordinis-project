@@ -12,10 +12,6 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-import { Button } from "@/components/desk/ui/button";
-import { Input } from "@/components/desk/ui/input";
-import { Label } from "@/components/desk/ui/label";
-import { Textarea } from "@/components/desk/ui/textarea";
 import { useAudioWaveform } from "@/lib/dictation/use-audio-waveform";
 import {
   mergeDictationIntoValue,
@@ -34,9 +30,6 @@ import { cn } from "@/lib/utils";
 const NOTES_BASE = "/notizen";
 
 type FieldTarget = "title" | "body";
-
-const toolbarBtnClass =
-  "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg px-2 text-sm text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground disabled:pointer-events-none disabled:opacity-40";
 
 function DictationWaveform({
   active,
@@ -59,8 +52,9 @@ function DictationWaveform({
       {levels.map((level, index) => (
         <span
           key={index}
-          className="w-[2px] rounded-full bg-foreground/45 transition-[height,opacity] duration-75 ease-out"
+          className="w-[2px] rounded-full transition-[height,opacity] duration-75 ease-out"
           style={{
+            background: "color-mix(in srgb, var(--b-ink) 45%, transparent)",
             height: `${Math.max(10, Math.round(level * 100))}%`,
             opacity: 0.3 + level * 0.55,
           }}
@@ -90,12 +84,7 @@ function ToolbarIconButton({
       disabled={disabled}
       aria-label={label}
       title={label}
-      className={cn(
-        "flex size-9 shrink-0 items-center justify-center rounded-lg border border-border/70",
-        "text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground",
-        "disabled:pointer-events-none disabled:opacity-35",
-        className
-      )}
+      className={cn("lab-notes-icon-btn", className)}
     >
       {children}
     </button>
@@ -184,7 +173,7 @@ export function V1NoteForm({
   function handleDelete() {
     if (!initial?.id) return;
     const label = title.trim() || initial.title.trim() || "diese Notiz";
-    if (!window.confirm(`„${label}" dauerhaft löschen?`)) {
+    if (!window.confirm(`„${label}“ dauerhaft löschen?`)) {
       return;
     }
 
@@ -272,7 +261,7 @@ export function V1NoteForm({
 
   function handleRemoveExisting(file: UserNoteFile) {
     if (!initial) return;
-    if (!window.confirm(`„${file.filename}" von der Notiz entfernen?`)) {
+    if (!window.confirm(`„${file.filename}“ von der Notiz entfernen?`)) {
       return;
     }
     startTransition(async () => {
@@ -340,8 +329,8 @@ export function V1NoteForm({
   return (
     <div
       className={cn(
-        "relative flex min-h-0 flex-1 flex-col",
-        embedded ? "overflow-y-auto" : "overflow-y-auto bg-muted/15"
+        "lab-notes-form relative flex min-h-0 flex-1 flex-col",
+        embedded ? "overflow-y-auto" : "overflow-y-auto"
       )}
     >
       <div
@@ -349,24 +338,30 @@ export function V1NoteForm({
           "flex w-full flex-1 flex-col",
           embedded
             ? "min-h-0"
-            : "@container/main mx-auto max-w-[42rem] px-4 md:px-6"
+            : "mx-auto max-w-[42rem] px-6 pt-12 pb-14 md:px-10 md:pt-14"
         )}
       >
         {!embedded ? (
-          <div className="pt-6 md:pt-8">
+          <div>
             <Link
               href={
                 mode === "edit" && initial?.id
                   ? `${NOTES_BASE}/${initial.id}`
                   : NOTES_BASE
               }
-              className="inline-flex w-fit items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+              className="b-meta inline-flex w-fit items-center gap-1.5 transition-colors hover:text-[var(--b-ink)]"
             >
-              <ArrowLeftIcon className="size-4" />
-              {mode === "edit"
-                ? "Zurück zur Notiz"
-                : "Zurück zur Notizen-Übersicht"}
+              <ArrowLeftIcon className="size-4" strokeWidth={1.75} />
+              {mode === "edit" ? "Zurück zur Notiz" : "Zurück zur Übersicht"}
             </Link>
+            <header className="mt-6 max-w-2xl">
+              <h1 className="b-display b-title font-medium tracking-[-0.02em]">
+                {mode === "edit" ? "Notiz bearbeiten" : "Neue Notiz"}
+              </h1>
+              <p className="b-lead mt-2 text-[1.0625rem] leading-[1.55]">
+                Persönliche Notiz — nur für Sie sichtbar.
+              </p>
+            </header>
           </div>
         ) : null}
 
@@ -374,39 +369,37 @@ export function V1NoteForm({
           onSubmit={handleSubmit}
           className={cn(
             "flex min-h-0 flex-1 flex-col",
-            embedded ? "px-4 py-4 md:px-6 md:py-5" : "py-6 md:py-8"
+            embedded ? "px-4 py-4 md:px-6 md:py-5" : "mt-8"
           )}
         >
-          {!embedded ? (
-            <header className="mb-6 space-y-1.5">
-              <h1 className="font-heading text-2xl font-medium tracking-tight text-foreground md:text-[1.75rem]">
-                {mode === "edit" ? "Notiz bearbeiten" : "Neue Notiz"}
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                Persönliche Notiz — nur für Sie sichtbar. Tippen, diktieren oder
-                Dokument anhängen.
-              </p>
-            </header>
-          ) : null}
-
           <div className="flex flex-col gap-5">
             <div className="grid gap-1.5">
-              <Label
+              <label
                 htmlFor="note-title"
-                className="text-sm font-medium text-muted-foreground"
+                className="b-meta font-medium"
+                style={{ color: "var(--b-muted)" }}
               >
                 Titel
-              </Label>
+              </label>
               {titleDictating ? (
-                <div className="flex h-12 items-center gap-1.5 overflow-hidden rounded-xl border border-border/70 bg-background pr-1.5 pl-3.5">
+                <div
+                  className="flex h-11 items-center gap-1.5 overflow-hidden rounded-[0.75rem] border pr-1.5 pl-3.5"
+                  style={{
+                    borderColor: "var(--b-line)",
+                    background: "var(--b-bg-elev)",
+                  }}
+                >
                   <p className="min-w-0 flex-1 truncate text-sm leading-normal">
                     {title.trim() ? (
-                      <span className="not-italic text-foreground">
+                      <span style={{ color: "var(--b-ink)" }}>
                         {title}
                         {/\s$/.test(title) ? "" : " "}
                       </span>
                     ) : null}
-                    <span className="italic text-muted-foreground">
+                    <span
+                      className="italic"
+                      style={{ color: "var(--b-muted)" }}
+                    >
                       {liveText || (listening ? "" : "…")}
                     </span>
                   </p>
@@ -428,14 +421,13 @@ export function V1NoteForm({
                 </div>
               ) : (
                 <div className="relative">
-                  <Input
+                  <input
                     id="note-title"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     placeholder="Kurzer Betreff…"
                     required={!titleDictating}
                     disabled={bodyDictating}
-                    className="h-12 rounded-xl border-border/70 bg-background py-0 pr-12 pl-3.5 shadow-none"
                   />
                   <button
                     type="button"
@@ -443,67 +435,60 @@ export function V1NoteForm({
                     disabled={bodyDictating || pending}
                     aria-label="Titel diktieren"
                     title="Titel diktieren"
-                    className="absolute top-1/2 right-1.5 flex size-9 -translate-y-1/2 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
+                    className="absolute top-1/2 right-1.5 flex size-9 -translate-y-1/2 items-center justify-center rounded-[0.55rem] transition-colors disabled:pointer-events-none disabled:opacity-40"
+                    style={{ color: "var(--b-muted)" }}
                   >
-                    <MicIcon className="size-4" />
+                    <MicIcon className="size-4" strokeWidth={1.75} />
                   </button>
                 </div>
               )}
             </div>
 
             <div className="grid gap-1.5">
-              <Label
+              <label
                 htmlFor="note-body"
-                className="text-sm font-medium text-muted-foreground"
+                className="b-meta font-medium"
+                style={{ color: "var(--b-muted)" }}
               >
                 Notiz
-              </Label>
-              <div
-                className={cn(
-                  "flex flex-col rounded-[1.25rem] border border-border/60 bg-background",
-                  "shadow-[0_1px_3px_oklch(0.25_0.02_60/0.05)]",
-                  "transition-[border-color,box-shadow] duration-150",
-                  "focus-within:border-border focus-within:shadow-[0_2px_10px_oklch(0.25_0.02_60/0.07)]"
-                )}
-              >
+              </label>
+              <div className="lab-notes-composer">
                 {bodyDictating ? (
                   <div
                     ref={bodyBoxRef}
-                    className="max-h-[min(42dvh,14rem)] overflow-y-auto px-4 pt-3.5 pb-1 text-[0.95rem] leading-[1.6]"
+                    className="max-h-[min(42dvh,14rem)] overflow-y-auto px-3.5 pt-3.5 pb-1 text-[0.95rem] leading-[1.6]"
                     style={{ minHeight: bodyBoxMinHeight ?? 80 }}
                   >
                     <p className="whitespace-pre-wrap">
                       {body.trim() ? (
-                        <span className="not-italic text-foreground">
+                        <span style={{ color: "var(--b-ink)" }}>
                           {body}
                           {/\s$/.test(body) ? "" : " "}
                         </span>
                       ) : null}
-                      <span className="italic text-muted-foreground">
+                      <span
+                        className="italic"
+                        style={{ color: "var(--b-muted)" }}
+                      >
                         {liveText || (listening ? "" : "…")}
                       </span>
                     </p>
                   </div>
                 ) : (
-                  <Textarea
+                  <textarea
                     ref={bodyTextareaRef}
                     id="note-body"
                     value={body}
                     onChange={(e) => setBody(e.target.value)}
-                    placeholder="Schreibe eine Notiz…"
+                    placeholder="Ihre Notiz…"
                     required={!bodyDictating}
                     disabled={titleDictating}
                     rows={3}
-                    className={cn(
-                      "field-sizing-fixed max-h-[min(42dvh,14rem)] min-h-20 w-full resize-none overflow-y-auto",
-                      "border-0 bg-transparent px-4 pt-3.5 pb-1 text-[0.95rem] leading-[1.6] shadow-none",
-                      "placeholder:text-muted-foreground/50",
-                      "focus-visible:border-0 focus-visible:ring-0"
-                    )}
+                    className="field-sizing-fixed max-h-[min(42dvh,14rem)] min-h-20 w-full overflow-y-auto"
                   />
                 )}
 
-                <div className="mt-1 flex flex-wrap items-center gap-1 pr-1.5 pb-1.5 pl-2">
+                <div className="mt-1 flex flex-wrap items-center gap-1 pr-1.5 pb-1.5 pl-1.5">
                   <input
                     ref={fileInputRef}
                     type="file"
@@ -515,10 +500,10 @@ export function V1NoteForm({
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
                     disabled={!canAddMoreFiles || pending || dictationOpen}
-                    className={toolbarBtnClass}
+                    className="lab-notes-ghost-btn"
                   >
-                    <PlusIcon className="size-4" />
-                    Dokumente anhängen
+                    <PlusIcon className="size-3.5" strokeWidth={1.75} />
+                    Dokument anhängen
                   </button>
 
                   <div className="ml-auto flex h-9 items-center justify-end gap-1">
@@ -547,9 +532,10 @@ export function V1NoteForm({
                         disabled={titleDictating || pending}
                         aria-label="Notiz diktieren"
                         title="Notiz diktieren"
-                        className="flex size-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
+                        className="flex size-9 shrink-0 items-center justify-center rounded-[0.55rem] transition-colors disabled:pointer-events-none disabled:opacity-40"
+                        style={{ color: "var(--b-muted)" }}
                       >
-                        <MicIcon className="size-4" />
+                        <MicIcon className="size-4" strokeWidth={1.75} />
                       </button>
                     )}
                   </div>
@@ -557,9 +543,9 @@ export function V1NoteForm({
               </div>
 
               {bodyDictating ? (
-                <p className="mt-1 text-left text-xs text-muted-foreground">
-                  Notiz diktieren — mit ✓ übernehmen, danach speichern.
-                  Steuerworte: Punkt, Komma, Absatz…
+                <p className="b-meta mt-1 text-left">
+                  Diktat mit ✓ übernehmen, danach speichern. Steuerworte:
+                  Punkt, Komma, Absatz…
                 </p>
               ) : null}
             </div>
@@ -568,10 +554,10 @@ export function V1NoteForm({
               <ul className="flex flex-wrap gap-2">
                 {existingFiles.map((file) => (
                   <li key={file.id}>
-                    <div className="inline-flex max-w-full items-center gap-1.5 rounded-lg border border-border/70 bg-background px-2.5 py-1.5 text-sm">
+                    <div className="lab-notes-file">
                       <a
                         href={`/api/notes/files/${file.id}?download=1`}
-                        className="min-w-0 truncate text-foreground hover:underline"
+                        className="min-w-0 truncate hover:underline"
                         title={file.filename}
                       >
                         {file.filename}
@@ -581,7 +567,8 @@ export function V1NoteForm({
                         onClick={() => handleRemoveExisting(file)}
                         disabled={pending}
                         aria-label={`${file.filename} entfernen`}
-                        className="flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-40"
+                        className="flex size-6 shrink-0 items-center justify-center rounded-md disabled:opacity-40"
+                        style={{ color: "var(--b-muted)" }}
                       >
                         <XIcon className="size-3.5" />
                       </button>
@@ -590,9 +577,13 @@ export function V1NoteForm({
                 ))}
                 {pendingFiles.map((file) => (
                   <li key={fileKey(file)}>
-                    <div className="inline-flex max-w-full items-center gap-1.5 rounded-lg border border-dashed border-border/70 bg-background px-2.5 py-1.5 text-sm">
+                    <div
+                      className="lab-notes-file"
+                      style={{ borderStyle: "dashed" }}
+                    >
                       <span
-                        className="min-w-0 truncate text-muted-foreground"
+                        className="min-w-0 truncate"
+                        style={{ color: "var(--b-muted)" }}
                         title={file.name}
                       >
                         {file.name}
@@ -606,7 +597,8 @@ export function V1NoteForm({
                         }
                         disabled={pending}
                         aria-label={`${file.name} entfernen`}
-                        className="flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-40"
+                        className="flex size-6 shrink-0 items-center justify-center rounded-md disabled:opacity-40"
+                        style={{ color: "var(--b-muted)" }}
                       >
                         <XIcon className="size-3.5" />
                       </button>
@@ -618,18 +610,19 @@ export function V1NoteForm({
 
             <div className="flex items-center justify-end gap-2 pt-1">
               {embedded && mode === "edit" && initial?.id ? (
-                <Button
+                <button
                   type="button"
-                  variant="ghost"
-                  className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                  className="b-btn b-btn-secondary"
+                  style={{ color: "var(--b-muted)" }}
                   onClick={handleDelete}
                   disabled={pending}
                 >
                   Löschen
-                </Button>
+                </button>
               ) : null}
-              <Button
+              <button
                 type="submit"
+                className="b-btn b-btn-primary"
                 disabled={pending || !canSave || dictationOpen}
                 title={
                   dictationOpen
@@ -638,7 +631,7 @@ export function V1NoteForm({
                 }
               >
                 {pending ? "Speichern…" : "Speichern"}
-              </Button>
+              </button>
             </div>
           </div>
         </form>

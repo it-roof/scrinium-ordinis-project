@@ -301,6 +301,221 @@
   font-size: 0.875rem;
 }
 
+/* Persönliche Notizen — Liste + Detail an Alba */
+.brand-lab-root .lab-notes {
+  color: var(--b-ink);
+  background: var(--b-bg);
+}
+
+.brand-lab-root .lab-notes .border-b,
+.brand-lab-root .lab-notes .border-r {
+  border-color: var(--b-line);
+}
+
+.brand-lab-root .lab-notes-pane {
+  background: var(--b-bg);
+  border-color: var(--b-line);
+}
+
+.brand-lab-root .lab-notes-search {
+  width: 100%;
+  height: 2.5rem;
+  border-radius: 0.65rem;
+  border: 1px solid var(--b-line);
+  background: var(--b-bg-elev);
+  color: var(--b-ink);
+  padding-left: 2.35rem;
+  padding-right: 0.875rem;
+  font-size: 0.875rem;
+  outline: none;
+  box-shadow: none;
+}
+
+.brand-lab-root .lab-notes-search::placeholder {
+  color: var(--b-faint);
+}
+
+.brand-lab-root .lab-notes-search:focus {
+  border-color: color-mix(in srgb, var(--b-ink) 28%, var(--b-line));
+}
+
+.brand-lab-root .lab-notes-item {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.25rem;
+  border-radius: 0.85rem;
+  border: 1px solid transparent;
+  background: transparent;
+  padding: 0.75rem 0.875rem;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease;
+}
+
+.brand-lab-root .lab-notes-item:hover {
+  background: var(--b-soft);
+}
+
+.brand-lab-root .lab-notes-item[data-active="true"] {
+  border-color: var(--b-line);
+  background: var(--b-bg-elev);
+}
+
+.brand-lab-root .lab-notes-detail {
+  background: var(--b-bg);
+}
+
+.brand-lab-root .lab-notes-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.brand-lab-root .lab-notes-toolbar .b-btn {
+  min-height: 2.5rem;
+  height: 2.5rem;
+  padding: 0 1rem;
+  font-size: 0.875rem;
+  gap: 0.4rem;
+}
+
+.brand-lab-root .lab-notes-file {
+  display: inline-flex;
+  max-width: 100%;
+  align-items: center;
+  gap: 0.4rem;
+  border-radius: 0.65rem;
+  border: 1px solid var(--b-line);
+  background: var(--b-bg-elev);
+  padding: 0.4rem 0.7rem;
+  font-size: 0.8125rem;
+  color: var(--b-ink);
+  transition: background-color 150ms ease;
+}
+
+.brand-lab-root .lab-notes-file:hover {
+  background: var(--b-soft);
+}
+
+.brand-lab-root .lab-notes-form input,
+.brand-lab-root .lab-notes-form textarea {
+  width: 100%;
+  border-radius: 0.75rem;
+  border: 1px solid var(--b-line);
+  background: var(--b-bg-elev);
+  color: var(--b-ink);
+  outline: none;
+  box-shadow: none;
+}
+
+.brand-lab-root .lab-notes-form input {
+  height: 2.75rem;
+  padding: 0 2.75rem 0 0.9rem;
+  font-size: 0.9375rem;
+}
+
+.brand-lab-root .lab-notes-form textarea {
+  min-height: 5rem;
+  resize: none;
+  padding: 0.85rem 0.9rem;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+}
+
+.brand-lab-root .lab-notes-form input:focus,
+.brand-lab-root .lab-notes-form textarea:focus {
+  border-color: color-mix(in srgb, var(--b-ink) 28%, var(--b-line));
+}
+
+.brand-lab-root .lab-notes-form input::placeholder,
+.brand-lab-root .lab-notes-form textarea::placeholder {
+  color: var(--b-faint);
+}
+
+.brand-lab-root .lab-notes-composer {
+  display: flex;
+  flex-direction: column;
+  border-radius: 1rem;
+  border: 1px solid var(--b-line);
+  background: var(--b-bg-elev);
+  overflow: hidden;
+}
+
+.brand-lab-root .lab-notes-composer:focus-within {
+  border-color: color-mix(in srgb, var(--b-ink) 22%, var(--b-line));
+}
+
+.brand-lab-root .lab-notes-composer textarea {
+  border: none;
+  border-radius: 0;
+  background: transparent;
+}
+
+.brand-lab-root .lab-notes-composer textarea:focus {
+  border: none;
+}
+
+.brand-lab-root .lab-notes-icon-btn {
+  display: inline-flex;
+  width: 2.25rem;
+  height: 2.25rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.55rem;
+  border: 1px solid var(--b-line);
+  background: transparent;
+  color: var(--b-muted);
+  cursor: pointer;
+  transition:
+    color 150ms ease,
+    background-color 150ms ease;
+}
+
+.brand-lab-root .lab-notes-icon-btn:hover {
+  color: var(--b-ink);
+  background: var(--b-soft);
+}
+
+.brand-lab-root .lab-notes-icon-btn:disabled {
+  pointer-events: none;
+  opacity: 0.4;
+}
+
+.brand-lab-root .lab-notes-ghost-btn {
+  display: inline-flex;
+  height: 2.25rem;
+  align-items: center;
+  gap: 0.35rem;
+  border: none;
+  background: transparent;
+  color: var(--b-muted);
+  padding-inline: 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 0.55rem;
+  transition:
+    color 150ms ease,
+    background-color 150ms ease;
+}
+
+.brand-lab-root .lab-notes-ghost-btn:hover {
+  color: var(--b-ink);
+  background: var(--b-soft);
+}
+
+.brand-lab-root .lab-notes-ghost-btn:disabled {
+  pointer-events: none;
+  opacity: 0.4;
+}
+
 .brand-lab-root .lab-nav-item {
   color: var(--b-muted);
   font-weight: 400;
