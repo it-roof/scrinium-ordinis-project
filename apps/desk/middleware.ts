@@ -21,6 +21,9 @@ const PRACTICE_PREFIXED_FLAT: Record<string, string> = {
   eingang: "/eingang",
   gesendet: "/gesendet",
   zuweisen: "/zuweisen",
+  ki: "/ki",
+  notizen: "/notizen",
+  vertragsanalyse: "/vertragsanalyse",
 };
 
 function practiceSlugFromCookie(request: NextRequest): string {

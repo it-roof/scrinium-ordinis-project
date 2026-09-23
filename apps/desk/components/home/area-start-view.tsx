@@ -133,6 +133,14 @@ const featureMeta: Record<
     cardClass:
       "hover:border-orange-200/80 hover:bg-gradient-to-br hover:from-orange-50/50 hover:to-white",
   },
+  "ai-chat": {
+    description: "Einfacher KI-Chat — ohne Mandanten- oder Falldaten.",
+    icon: MessagesSquareIcon,
+    iconWrap: "bg-teal-100 text-teal-800 ring-teal-200/70",
+    linkClass: "text-teal-700",
+    cardClass:
+      "hover:border-teal-200/80 hover:bg-gradient-to-br hover:from-teal-50/50 hover:to-white",
+  },
   docs: {
     description: "Interne Anleitungen und Prozesse.",
     icon: BookOpenIcon,
@@ -158,6 +166,15 @@ const featureMeta: Record<
     linkClass: "text-indigo-700",
     cardClass:
       "hover:border-indigo-200/80 hover:bg-gradient-to-br hover:from-indigo-50/50 hover:to-white",
+  },
+  "contract-analysis": {
+    description:
+      "Vertragstext prüfen — Lücken, AGB, Haftung und Formulierungsvorschläge.",
+    icon: FilePenLineIcon,
+    iconWrap: "bg-slate-100 text-slate-800 ring-slate-200/70",
+    linkClass: "text-slate-700",
+    cardClass:
+      "hover:border-slate-200/80 hover:bg-gradient-to-br hover:from-slate-50/50 hover:to-white",
   },
   letters: {
     description: "Entwürfe mit Platzhaltern — als PDF oder Word ausgeben.",

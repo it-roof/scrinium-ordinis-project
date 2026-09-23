@@ -70,28 +70,14 @@ async function requireAiUser() {
       user: null,
     };
   }
-  const deniedAnalysis = await assertUserCanAccessAreaFunction(
+  // Strict: only case-facts-analysis (RA), not matters/clients fallback —
+  // Sekretariat shares matters but must not run Bedrock jobs.
+  const denied = await assertUserCanAccessAreaFunction(
     user.id,
     user.tenantId,
     "case-facts-analysis"
   );
-  if (!deniedAnalysis) {
-    return { error: null, code: null, user };
-  }
-  const deniedMatters = await assertUserCanAccessAreaFunction(
-    user.id,
-    user.tenantId,
-    "matters"
-  );
-  if (!deniedMatters) {
-    return { error: null, code: null, user };
-  }
-  const deniedClients = await assertUserCanAccessAreaFunction(
-    user.id,
-    user.tenantId,
-    "clients"
-  );
-  if (deniedClients) {
+  if (denied) {
     return {
       error: userMessageForAiError(AI_ERROR.FORBIDDEN),
       code: AI_ERROR.FORBIDDEN as AiErrorCode,

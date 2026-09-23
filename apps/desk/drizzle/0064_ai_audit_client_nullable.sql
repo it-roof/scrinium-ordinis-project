@@ -1,0 +1,1 @@
+ALTER TABLE "ai_audit" ALTER COLUMN "client_id" DROP NOT NULL;

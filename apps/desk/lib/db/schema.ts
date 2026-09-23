@@ -754,9 +754,9 @@ export const aiAudit = pgTable(
     userId: uuid("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "restrict" }),
-    clientId: uuid("client_id")
-      .notNull()
-      .references(() => clients.id, { onDelete: "cascade" }),
+    clientId: uuid("client_id").references(() => clients.id, {
+      onDelete: "cascade",
+    }),
     matterId: uuid("matter_id").references(() => matters.id, {
       onDelete: "set null",
     }),

@@ -73,14 +73,32 @@ function getClient(): BedrockRuntimeClient {
   return cachedClient;
 }
 
+export type AskClaudeChatMessage = {
+  role: "user" | "assistant";
+  content: string;
+};
+
+export type AskClaudeChatInput = {
+  system: string;
+  messages: AskClaudeChatMessage[];
+  maxTokens?: number;
+  model?: string;
+};
+
 /**
- * Invoke Claude via Bedrock Converse API (EU inference profile only).
- * Never log system/user content.
+ * Multi-turn Claude via Bedrock Converse (EU only).
+ * Never log system/message content.
  */
-export async function askClaude(input: AskClaudeInput): Promise<AskClaudeResult> {
+export async function askClaudeChat(
+  input: AskClaudeChatInput
+): Promise<AskClaudeResult> {
   const model = requireEuModelId(input.model ?? getBedrockModelId());
-  const maxTokens = input.maxTokens ?? 8000;
+  const maxTokens = input.maxTokens ?? 4000;
   const started = Date.now();
+
+  if (!input.messages.length) {
+    throw new AiGatewayError(AI_ERROR.VALIDATION, "Empty chat messages");
+  }
 
   try {
     const client = getClient();
@@ -88,12 +106,10 @@ export async function askClaude(input: AskClaudeInput): Promise<AskClaudeResult>
       new ConverseCommand({
         modelId: model,
         system: [{ text: input.system }],
-        messages: [
-          {
-            role: "user",
-            content: [{ text: input.user }],
-          },
-        ],
+        messages: input.messages.map((m) => ({
+          role: m.role,
+          content: [{ text: m.content }],
+        })),
         inferenceConfig: {
           maxTokens,
         },
@@ -105,7 +121,6 @@ export async function askClaude(input: AskClaudeInput): Promise<AskClaudeResult>
       if ("text" in block && typeof block.text === "string") {
         parts.push(block.text);
       }
-      // Ignore reasoning/thinking and other block types
     }
 
     return {
@@ -121,11 +136,23 @@ export async function askClaude(input: AskClaudeInput): Promise<AskClaudeResult>
       err && typeof err === "object" && "name" in err
         ? String((err as { name: unknown }).name)
         : "UnknownError";
-    // Log only error code/name — never prompt or response content
     console.error("[ai/bedrock]", name);
     if (name === "AccessDeniedException") {
       throw new AiGatewayError(AI_ERROR.AI_ACCESS_DENIED, name);
     }
     throw new AiGatewayError(AI_ERROR.AI_ERROR, name);
   }
+}
+
+/**
+ * Invoke Claude via Bedrock Converse API (EU inference profile only).
+ * Never log system/user content.
+ */
+export async function askClaude(input: AskClaudeInput): Promise<AskClaudeResult> {
+  return askClaudeChat({
+    system: input.system,
+    messages: [{ role: "user", content: input.user }],
+    maxTokens: input.maxTokens,
+    model: input.model,
+  });
 }

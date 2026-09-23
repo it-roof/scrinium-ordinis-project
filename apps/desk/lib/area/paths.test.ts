@@ -11,6 +11,8 @@ describe("hrefFor", () => {
   it("liefert flache URLs für persönliche/shared Funktionen", () => {
     expect(hrefFor("prompts")).toBe("/prompt");
     expect(hrefFor("notes")).toBe("/notizen");
+    expect(hrefFor("ai-chat")).toBe("/ki");
+    expect(hrefFor("contract-analysis")).toBe("/vertragsanalyse");
     expect(hrefFor("inbox")).toBe("/eingang");
     expect(hrefFor("inbox-sent")).toBe("/gesendet");
     expect(hrefFor("staff-messages")).toBe("/zuweisen");

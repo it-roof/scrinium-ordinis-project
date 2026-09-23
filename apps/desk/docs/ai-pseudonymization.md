@@ -2,7 +2,7 @@
 
 Stand: Produktentscheidung Scrinium Ordinis Desk · Anwaltsgeheimnis / DSGVO.
 
-Klartext darf die eigene Infrastruktur erst **nach** Pseudonymisierung Richtung Bedrock (EU) verlassen. Es gibt **keine 100 %-Garantie**; Ziel ist maximale praktische Absicherung bei einfacher UX für Anwälte.
+Klartext darf die eigene Infrastruktur erst **nach** Pseudonymisierung Richtung Bedrock (EU) verlassen — **für die KI-Analyse (Akten-Sachverhalt) und die Vertragsanalyse**. Der freie **KI-Chat** (`/ki`) sendet bewusst Klartext (Session-only, Disclaimer in der UI: keine Mandanten-/Falldaten). Es gibt **keine 100 %-Garantie**; Ziel ist maximale praktische Absicherung bei einfacher UX für Anwälte.
 
 ## Stufe 1 (aktiv)
 

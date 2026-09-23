@@ -191,13 +191,13 @@ export async function DeskAppShell({
       className="h-full min-h-0"
       style={
         {
-          "--sidebar-width": "calc(var(--spacing) * 72)",
+          "--sidebar-width": "17rem",
           "--header-height": "calc(var(--spacing) * 12)",
         } as CSSProperties
       }
     >
       <AppSidebar
-        variant="inset"
+        variant="sidebar"
         brandLabel={ctx.brandLabel}
         area={ctx.area}
         deskRole={ctx.deskRole}
@@ -209,7 +209,7 @@ export async function DeskAppShell({
           email: ctx.email,
         }}
       />
-      <SidebarInset className="min-h-0 overflow-hidden">
+      <SidebarInset className="min-h-0 overflow-hidden bg-background">
         <SiteHeader
           title={headerTitle}
           roleLabel={DESK_ROLE_LABELS[ctx.deskRole]}

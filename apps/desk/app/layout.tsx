@@ -1,8 +1,15 @@
 import { PRODUCT_NAME, PRODUCT_TAGLINE } from "@/lib/brand";
 import type { Metadata } from "next";
+import { Manrope } from "next/font/google";
 import localFont from "next/font/local";
 import { Toaster } from "sonner";
 import "./globals.css";
+
+const manrope = Manrope({
+  subsets: ["latin"],
+  variable: "--font-manrope",
+  display: "swap",
+});
 
 const rga = localFont({
   src: [
@@ -51,7 +58,7 @@ export default function RootLayout({
   return (
     <html
       lang="de"
-      className={`${rga.variable} ${rgo.variable} h-full antialiased`}
+      className={`${manrope.variable} ${rga.variable} ${rgo.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col">
         {children}

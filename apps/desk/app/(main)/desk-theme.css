@@ -1,63 +1,158 @@
 /**
- * v1 Theme — dunkle Sidebar, rechter Bereich als warmes Papierweiß.
- * Nur unter .v1-shell.
+ * Alba · Manrope Theme — Cream-Sidebar, Taupe-Accent, Soft-Chips.
+ * Nur unter .v1-shell. Referenz: /neues-design/alba-manrope
  */
 .v1-shell {
   --spacing: 0.25rem;
-  --radius: 0.75rem;
+  --radius: 1.25rem;
 
-  /* Papierweiß — warm, angenehm zum Dunkelblau der Sidebar */
-  --background: oklch(0.991 0.005 95);
-  --foreground: oklch(0.22 0.045 258);
-  --card: oklch(1 0.002 95);
-  --card-foreground: oklch(0.22 0.045 258);
-  --popover: oklch(1 0.002 95);
-  --popover-foreground: oklch(0.22 0.045 258);
-  --primary: oklch(0.32 0.075 250);
-  --primary-foreground: oklch(0.991 0.005 95);
-  --secondary: oklch(0.965 0.008 95);
-  --secondary-foreground: oklch(0.3 0.05 250);
-  --muted: oklch(0.965 0.007 95);
-  --muted-foreground: oklch(0.48 0.03 258);
-  --accent: oklch(0.96 0.01 95);
-  --accent-foreground: oklch(0.28 0.05 250);
-  --destructive: oklch(0.55 0.2 25);
-  --destructive-foreground: oklch(0.97 0.01 17);
-  --border: oklch(0.9 0.01 95);
-  --input: oklch(0.935 0.008 95);
-  --ring: oklch(0.55 0.07 250);
+  /* Alba cream */
+  --background: #f4f3f0;
+  --foreground: #1b1b1a;
+  --card: #fbfaf8;
+  --card-foreground: #1b1b1a;
+  --popover: #fbfaf8;
+  --popover-foreground: #1b1b1a;
+  --primary: #6f5f4a;
+  --primary-foreground: #fbfaf8;
+  --secondary: #f0ebe4;
+  --secondary-foreground: #1b1b1a;
+  --muted: #f0ebe4;
+  --muted-foreground: #5c5954;
+  --accent: color-mix(in srgb, #6f5f4a 12%, transparent);
+  --accent-foreground: #1b1b1a;
+  --destructive: #b54a3c;
+  --destructive-foreground: #fbfaf8;
+  --border: #d9d4cc;
+  --input: #e8e3db;
+  --ring: #6f5f4a;
 
-  --chart-1: oklch(0.58 0.1 250);
-  --chart-2: oklch(0.68 0.1 85);
-  --chart-3: oklch(0.58 0.08 185);
-  --chart-4: oklch(0.52 0.09 230);
-  --chart-5: oklch(0.45 0.06 258);
+  --chart-1: #6f5f4a;
+  --chart-2: #8a857c;
+  --chart-3: #5c5954;
+  --chart-4: #9a8f7e;
+  --chart-5: #3d3832;
 
-  --sidebar: oklch(0.2 0.045 258);
-  --sidebar-foreground: oklch(0.93 0.012 95);
-  --sidebar-primary: oklch(0.78 0.1 82);
-  --sidebar-primary-foreground: oklch(0.2 0.045 258);
-  --sidebar-accent: oklch(0.27 0.05 245);
-  --sidebar-accent-foreground: oklch(0.96 0.01 95);
-  --sidebar-border: oklch(0.3 0.04 258);
-  --sidebar-ring: oklch(0.78 0.1 82);
+  /* Helle Sidebar wie Lab */
+  --sidebar: #fbfaf8;
+  --sidebar-foreground: #1b1b1a;
+  --sidebar-primary: #6f5f4a;
+  --sidebar-primary-foreground: #fbfaf8;
+  --sidebar-accent: color-mix(in srgb, #6f5f4a 12%, transparent);
+  --sidebar-accent-foreground: #1b1b1a;
+  --sidebar-border: #d9d4cc;
+  --sidebar-ring: #6f5f4a;
 
-  --font-sans: var(--font-rga), ui-sans-serif, system-ui, sans-serif;
-  --font-heading: var(--font-rgo), var(--font-rga), ui-sans-serif, system-ui,
+  --font-sans: var(--font-manrope), var(--font-rga), ui-sans-serif, system-ui,
+    sans-serif;
+  --font-heading: var(--font-manrope), var(--font-rga), ui-sans-serif, system-ui,
     sans-serif;
 
-  --v1-shadow-soft: 0 1px 2px oklch(0.2 0.045 258 / 0.04),
-    0 8px 24px oklch(0.2 0.045 258 / 0.05);
-  --v1-shadow-lift: 0 2px 4px oklch(0.2 0.045 258 / 0.05),
-    0 16px 40px oklch(0.2 0.045 258 / 0.09);
-  --v1-paper-shadow: 0 1px 2px oklch(0.2 0.045 258 / 0.06),
-    0 12px 32px oklch(0.2 0.045 258 / 0.12);
+  --v1-shadow-soft: 0 1px 2px oklch(0.25 0.02 80 / 0.04),
+    0 8px 24px oklch(0.25 0.02 80 / 0.05);
+  --v1-shadow-lift: 0 2px 4px oklch(0.25 0.02 80 / 0.05),
+    0 16px 40px oklch(0.25 0.02 80 / 0.08);
+  --v1-paper-shadow: 0 1px 2px oklch(0.25 0.02 80 / 0.04);
+
+  /* Lab-Aliase — gleiche Tokens wie /neues-design/alba-manrope */
+  --b-bg: #f4f3f0;
+  --b-bg-elev: #fbfaf8;
+  --b-ink: #1b1b1a;
+  --b-muted: #5c5954;
+  --b-faint: #8a8580;
+  --b-line: #d9d4cc;
+  --b-accent: #6f5f4a;
+  --b-accent-fg: #fbfaf8;
+  --b-soft: color-mix(in srgb, #6f5f4a 12%, transparent);
+  --b-display: var(--font-manrope), system-ui, sans-serif;
+  --b-sans: var(--font-manrope), system-ui, sans-serif;
 
   color-scheme: light;
   min-height: 100svh;
-  background: var(--sidebar);
+  background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+.dark .v1-shell,
+.v1-shell[data-theme="dark"] {
+  --background: #121211;
+  --foreground: #f2efe9;
+  --card: #1a1a18;
+  --card-foreground: #f2efe9;
+  --popover: #1a1a18;
+  --popover-foreground: #f2efe9;
+  --primary: #c4b09a;
+  --primary-foreground: #121211;
+  --secondary: #24221e;
+  --secondary-foreground: #f2efe9;
+  --muted: #24221e;
+  --muted-foreground: #b0aaa0;
+  --accent: color-mix(in srgb, #c4b09a 14%, transparent);
+  --accent-foreground: #f2efe9;
+  --border: #2a2926;
+  --input: #2a2926;
+  --ring: #c4b09a;
+
+  --sidebar: #1a1a18;
+  --sidebar-foreground: #f2efe9;
+  --sidebar-primary: #c4b09a;
+  --sidebar-primary-foreground: #121211;
+  --sidebar-accent: color-mix(in srgb, #c4b09a 14%, transparent);
+  --sidebar-accent-foreground: #f2efe9;
+  --sidebar-border: #2a2926;
+  --sidebar-ring: #c4b09a;
+
+  --b-bg: #121211;
+  --b-bg-elev: #1a1a18;
+  --b-ink: #f2efe9;
+  --b-muted: #b0aaa0;
+  --b-faint: #7a746a;
+  --b-line: #2a2926;
+  --b-accent: #c4b09a;
+  --b-accent-fg: #121211;
+  --b-soft: color-mix(in srgb, #c4b09a 14%, transparent);
+
+  color-scheme: dark;
+  background: var(--background);
+}
+
+/* Alba Typo-Rollen (wie Design-Lab) */
+.v1-shell .b-display {
+  font-family: var(--b-display);
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+}
+
+.v1-shell .b-eyebrow {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--b-muted);
+}
+
+.v1-shell .b-title {
+  font-size: clamp(1.75rem, 2.5vw, 2.5rem);
+  line-height: 1.2;
+}
+
+.v1-shell .b-lead {
+  font-size: 1.0625rem;
+  line-height: 1.65;
+  font-weight: 400;
+  color: var(--b-muted);
+  max-width: 36rem;
+}
+
+.v1-shell .b-meta {
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--b-muted);
 }
 
 .v1-shell,
@@ -81,10 +176,17 @@
   border-left-color: oklch(0.55 0.18 295);
 }
 
-/* Rechter Bereich = Papierblatt auf dem Dunkelblau */
 .v1-shell [data-slot="sidebar-inset"] {
   background: var(--background);
-  box-shadow: var(--v1-paper-shadow);
+  box-shadow: none;
+}
+
+.v1-shell [data-slot="sidebar-inner"] {
+  padding-block: 0.5rem;
+}
+
+.v1-shell [data-sidebar="menu-button"][data-active="true"] {
+  font-weight: 600;
 }
 
 @keyframes v1-fade {
@@ -96,20 +198,18 @@
   }
 }
 
-/* Einheitlicher Entrance: kurzer Fade, kein Move, kein Stagger */
 .v1-shell .v1-fade,
 .v1-shell .v1-rise,
 .v1-shell .v1-prompt-reveal {
   animation: v1-fade 0.25s ease-out both;
 }
 
-/* Toasts im v1-Look (Card, weicher Schatten, kein richColors-Bunt) */
 .v1-shell [data-sonner-toaster] {
   font-family: var(--font-sans);
 }
 
 .v1-shell [data-sonner-toast].v1-toast {
-  border: 1px solid color-mix(in oklch, var(--border) 80%, transparent) !important;
+  border: 1px solid color-mix(in srgb, var(--border) 80%, transparent) !important;
   background: var(--card) !important;
   color: var(--card-foreground) !important;
   border-radius: var(--radius) !important;
@@ -154,10 +254,6 @@
   color: oklch(0.55 0.14 75);
 }
 
-/*
- * Root-Toaster ausblenden, solange v1 aktiv ist.
- * Sonner wrappt in <section>; data-sonner-toaster sitzt auf dem inneren <ol>.
- */
 body:has(.v1-shell) > section:has([data-sonner-toaster]) {
   display: none !important;
 }

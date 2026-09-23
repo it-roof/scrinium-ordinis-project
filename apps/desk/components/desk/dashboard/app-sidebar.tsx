@@ -1,35 +1,15 @@
 "use client"
 
-import {
-  BookOpen,
-  FilePenLine,
-  FileStack,
-  FolderOpen,
-  Inbox,
-  LayoutDashboard,
-  Library,
-  Scale,
-  Send,
-  Sparkles,
-  StickyNote,
-  Users,
-} from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import type * as React from "react"
 
-import { NavSecondary } from "@/components/desk/dashboard/nav-secondary"
 import { NavUser } from "@/components/desk/dashboard/nav-user"
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
-  SidebarGroup,
-  SidebarGroupLabel,
   SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
 } from "@/components/desk/ui/sidebar"
 import type { DeskRoleId } from "@/lib/area/desk-roles"
 import type { AreaFunctionId } from "@/lib/area/functions"
@@ -39,53 +19,59 @@ import {
   parsePracticeFromPathname,
   practiceBasePath,
 } from "@/lib/area/paths"
+import { writeActiveAreaCookie } from "@/lib/area/active-area"
 import { APP_MODULES, type AppModuleId } from "@/lib/modules"
 import { cn } from "@/lib/utils"
-import { writeActiveAreaCookie } from "@/lib/area/active-area"
 
-type NavItem = {
-  title: string
-  url: string
-  icon: React.ComponentType<{ className?: string }>
-  functionId?: AreaFunctionId
-}
-
-function isAllowed(
-  allowedFunctions: AreaFunctionId[] | null | undefined,
-  id: AreaFunctionId
-) {
-  return allowedFunctions == null || allowedFunctions.includes(id)
-}
-
-function NavSection({
-  label,
-  items,
-}: {
+/** Lab-Nav 1:1 — /neues-design/alba-manrope */
+const LAB_NAV: ReadonlyArray<{
   label: string
-  items: NavItem[]
-}) {
-  if (items.length === 0) {
-    return null
-  }
-
-  return (
-    <SidebarGroup className="group-data-[collapsible=icon]:hidden">
-      <SidebarGroupLabel>{label}</SidebarGroupLabel>
-      <SidebarMenu>
-        {items.map((item) => (
-          <SidebarMenuItem key={item.title}>
-            <SidebarMenuButton asChild tooltip={item.title}>
-              <Link href={item.url}>
-                <item.icon />
-                <span>{item.title}</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        ))}
-      </SidebarMenu>
-    </SidebarGroup>
-  )
-}
+  href: (area: AppModuleId) => string
+  match?: (pathname: string, href: string) => boolean
+}> = [
+  {
+    label: "Übersicht",
+    href: () => DESK_DASHBOARD_HREF,
+    match: (pathname, href) =>
+      pathname === href || pathname.startsWith(`${href}/`),
+  },
+  {
+    label: "Meine Aufgaben",
+    href: () => hrefFor("inbox"),
+  },
+  {
+    label: "Zuweisen",
+    href: () => hrefFor("staff-messages"),
+  },
+  {
+    label: "Akten",
+    href: (area) => hrefFor("matters", area),
+  },
+  {
+    label: "Mandanten",
+    href: (area) => hrefFor("clients", area),
+  },
+  {
+    label: "KI",
+    href: () => hrefFor("ai-chat"),
+  },
+  {
+    label: "Analyse",
+    href: (area) => hrefFor("case-facts-analysis", area),
+  },
+  {
+    label: "Vertragsanalyse",
+    href: () => hrefFor("contract-analysis"),
+  },
+  {
+    label: "Prompts",
+    href: () => hrefFor("prompts"),
+  },
+  {
+    label: "Notizen",
+    href: () => hrefFor("notes"),
+  },
+]
 
 function PracticeSwitcher({
   area,
@@ -119,7 +105,7 @@ function PracticeSwitcher({
 
   return (
     <div
-      className="flex flex-wrap gap-x-3 gap-y-1 px-2 pb-2"
+      className="mt-4 flex flex-wrap gap-x-2 gap-y-1 px-2"
       role="listbox"
       aria-label="Bereich wählen"
     >
@@ -133,10 +119,10 @@ function PracticeSwitcher({
             aria-selected={isActive}
             onClick={() => selectPractice(module.id)}
             className={cn(
-              "text-xs font-medium transition-colors",
+              "rounded-full px-2.5 py-1 text-xs font-medium transition-colors",
               isActive
-                ? "text-sidebar-foreground underline underline-offset-4"
-                : "text-sidebar-foreground/60 hover:text-sidebar-foreground"
+                ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
             )}
           >
             {module.label}
@@ -149,10 +135,10 @@ function PracticeSwitcher({
 
 export function AppSidebar({
   user,
-  brandLabel = "Scrinium Ordinis",
+  brandLabel: _brandLabel = "Scrinium Ordinis",
   area = "legal",
   deskRole = "rechtsanwalt",
-  allowedFunctions = null,
+  allowedFunctions: _allowedFunctions = null,
   practices = [],
   showAiDebug = false,
   ...props
@@ -170,132 +156,78 @@ export function AppSidebar({
   showAiDebug?: boolean
 }) {
   void deskRole
+  void _brandLabel
+  void _allowedFunctions
 
-  const communicationItems: NavItem[] = (
-    [
-      {
-        title: "Meine Aufgaben",
-        url: hrefFor("inbox"),
-        icon: Inbox,
-        functionId: "inbox",
-      },
-      {
-        title: "Aufgabe zuweisen",
-        url: hrefFor("staff-messages"),
-        icon: Send,
-        functionId: "staff-messages",
-      },
-    ] as const satisfies readonly NavItem[]
-  ).filter(
-    (item) =>
-      !item.functionId || isAllowed(allowedFunctions, item.functionId)
-  )
-
-  const functionItems: NavItem[] = (
-    [
-      {
-        title: "KI-Analyse",
-        url: hrefFor("case-facts-analysis", area),
-        icon: Scale,
-        functionId: "case-facts-analysis",
-      },
-      {
-        title: "Prompt-Bibliothek",
-        url: hrefFor("prompts"),
-        icon: Sparkles,
-        functionId: "prompts",
-      },
-      {
-        title: "Notizen",
-        url: hrefFor("notes"),
-        icon: StickyNote,
-        functionId: "notes",
-      },
-      {
-        title: "Schreiben",
-        url: hrefFor("letters", area),
-        icon: FilePenLine,
-        functionId: "letters",
-      },
-      {
-        title: "Textbausteine",
-        url: hrefFor("text-blocks", area),
-        icon: Library,
-        functionId: "text-blocks",
-      },
-      {
-        title: "Dokumentation",
-        url: hrefFor("docs", area),
-        icon: BookOpen,
-        functionId: "docs",
-      },
-      {
-        title: "Vorlagen",
-        url: hrefFor("templates", area),
-        icon: FileStack,
-        functionId: "templates",
-      },
-    ] as const satisfies readonly NavItem[]
-  ).filter(
-    (item) =>
-      !item.functionId || isAllowed(allowedFunctions, item.functionId)
-  )
-
-  const managementItems: NavItem[] = (
-    [
-      {
-        title: "Mandanten",
-        url: hrefFor("clients", area),
-        icon: Users,
-        functionId: "clients" as const,
-      },
-      {
-        title: "Akten",
-        url: hrefFor("matters", area),
-        icon: FolderOpen,
-        functionId: "matters" as const,
-      },
-    ] satisfies NavItem[]
-  ).filter(
-    (item) => !item.functionId || isAllowed(allowedFunctions, item.functionId)
-  )
+  const pathname = usePathname()
 
   return (
     <Sidebar collapsible="offcanvas" {...props}>
-      <SidebarHeader>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              asChild
-              className="data-[slot=sidebar-menu-button]:p-1.5!"
-            >
-              <Link href={DESK_DASHBOARD_HREF}>
-                <span className="text-base font-semibold">{brandLabel}</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
+      <SidebarHeader className="px-4 pt-8">
+        <Link
+          href={DESK_DASHBOARD_HREF}
+          className="flex items-center gap-3 px-2 pt-1 outline-none"
+        >
+          <span
+            className="b-display flex size-10 shrink-0 items-center justify-center rounded-full text-[1.15rem]"
+            style={{
+              background: "var(--b-soft)",
+              color: "var(--b-accent)",
+            }}
+            aria-hidden
+          >
+            A
+          </span>
+          <span className="min-w-0">
+            <span className="b-display block text-[1.25rem] leading-none">
+              Alba
+            </span>
+            <span className="b-meta mt-1 block">Quiet desk</span>
+          </span>
+        </Link>
         <PracticeSwitcher area={area} practices={practices} />
       </SidebarHeader>
-      <SidebarContent>
-        <SidebarGroup>
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild tooltip="Übersicht">
-                <Link href={DESK_DASHBOARD_HREF}>
-                  <LayoutDashboard />
-                  <span>Übersicht</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarGroup>
-        <NavSection label="Kommunikation" items={communicationItems} />
-        <NavSection label="Funktionen" items={functionItems} />
-        <NavSection label="Daten" items={managementItems} />
-        <NavSecondary className="mt-auto" />
+
+      <SidebarContent className="px-4 pt-9">
+        <nav className="flex flex-1 flex-col gap-1 px-0.5">
+          {LAB_NAV.map((item) => {
+            const url = item.href(area)
+            const isActive = item.match
+              ? item.match(pathname, url)
+              : pathname === url || pathname.startsWith(`${url}/`)
+            return (
+              <Link
+                key={item.label}
+                href={url}
+                className="rounded-full px-3.5 py-2.5 text-[0.9375rem] outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+                style={
+                  isActive
+                    ? {
+                        background: "var(--b-soft)",
+                        color: "var(--b-ink)",
+                        fontWeight: 600,
+                      }
+                    : {
+                        color: "var(--b-muted)",
+                        fontWeight: 400,
+                      }
+                }
+              >
+                {item.label}
+              </Link>
+            )
+          })}
+        </nav>
       </SidebarContent>
-      <SidebarFooter>
+
+      <SidebarFooter className="gap-3 px-4 pb-8">
+        <div
+          className="rounded-[10px] px-3.5 py-3"
+          style={{ background: "var(--b-soft)" }}
+        >
+          <p className="text-[0.8125rem] font-semibold">Scrinium</p>
+          <p className="b-meta mt-0.5">Quiet workspace</p>
+        </div>
         <NavUser user={user} showAiDebug={showAiDebug} />
       </SidebarFooter>
     </Sidebar>

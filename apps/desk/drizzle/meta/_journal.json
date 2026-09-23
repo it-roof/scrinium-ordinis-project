@@ -449,6 +449,13 @@
       "when": 1788513000000,
       "tag": "0063_module_notary",
       "breakpoints": true
+    },
+    {
+      "idx": 64,
+      "version": "7",
+      "when": 1788514000000,
+      "tag": "0064_ai_audit_client_nullable",
+      "breakpoints": true
     }
   ]
 }

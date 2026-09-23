@@ -15,10 +15,18 @@ describe("DESK_ROLE_BUNDLES", () => {
     expect(DESK_ROLE_BUNDLES.rechtsanwalt.functions).toContain(
       "case-facts-analysis"
     );
+    expect(DESK_ROLE_BUNDLES.rechtsanwalt.functions).toContain("ai-chat");
+    expect(DESK_ROLE_BUNDLES.rechtsanwalt.functions).toContain(
+      "contract-analysis"
+    );
     expect(DESK_ROLE_BUNDLES.sekretariat.functions).not.toContain("prompts");
     expect(DESK_ROLE_BUNDLES.sekretariat.functions).toContain("letters");
     expect(DESK_ROLE_BUNDLES.sekretariat.functions).not.toContain(
       "case-facts-analysis"
+    );
+    expect(DESK_ROLE_BUNDLES.sekretariat.functions).not.toContain("ai-chat");
+    expect(DESK_ROLE_BUNDLES.sekretariat.functions).not.toContain(
+      "contract-analysis"
     );
   });
 

@@ -84,8 +84,9 @@ Modul-Dokumentation: [`docs/README.md`](docs/README.md) · Erstes Modul: [Textba
 
 - Code: [`lib/ai/`](lib/ai/) — nur serverseitig (`server-only`), Modell-ID muss mit `eu.` beginnen
 - Tabellen: `ai_consents`, `ai_audit`, `ai_drafts`, `ai_jobs`, `matter_parties`
-- Ablauf: Vorschau → Residual-Gate → Job starten (`after`) → UI pollt Status → Entwurf
-- Pseudonymisierung: [`docs/ai-pseudonymization.md`](docs/ai-pseudonymization.md) — Stufe 1+2 lokal, Default-Gate `AI_PSEUDONYM_GATE=block` (Alternative `warn` dokumentiert); EU-Region + EU-Modell-ID enforced; Job-Owner-only Status; early clear + TTL auf Klartext am Job
+- **KI-Chat** (`/ki`, Function `ai-chat`): Klartext-Chat, Session-only (kein DB-Verlauf); UI-Disclaimer gegen Mandanten-/Falldaten; Audit content-frei ohne `client_id`
+- **KI-Analyse** (Akte): Vorschau → Residual-Gate → Job → Entwurf — mit Pseudonymisierung ([`docs/ai-pseudonymization.md`](docs/ai-pseudonymization.md)); EU-Region + EU-Modell-ID; Job-Owner-only; early clear + TTL
+- **Vertragsanalyse** (`/vertragsanalyse`, Function `contract-analysis`): Paste → Pseudonym-Vorschau/Gate → Sync-Analyse (Session-Ergebnis, kein Job/Draft); gleicher Pseudonym-Stack wie Analyse, ohne Akte
 - Env: `AWS_REGION` (eu-*), `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `BEDROCK_MODEL_ID` (eu.*), optional `AI_PSEUDONYM_GATE`
 - Dev-Debug: nur Test-Kanzlei — `AI_DEBUG=1` + `AI_DEBUG_TENANT_SLUG=test-kanzlei` → `/ai-debug` (kein Super-Admin / keine Platform-UI)
 - Tests: siehe Abschnitt Tests oben

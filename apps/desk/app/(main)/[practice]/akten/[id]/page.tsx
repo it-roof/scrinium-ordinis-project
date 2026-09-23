@@ -36,6 +36,10 @@ export default async function DeskMatterDetailPage({ params }: PageProps) {
     listAiDraftsForMatter(ctx.tenantId, id),
   ]);
 
+  const showCaseFactsAnalysis =
+    ctx.allowedFunctions === null ||
+    ctx.allowedFunctions.includes("case-facts-analysis");
+
   return (
     <DeskAppShell ctx={ctx} headerTitle="Akte">
       <div className="min-h-0 flex-1 overflow-y-auto p-4 lg:p-6">
@@ -47,6 +51,7 @@ export default async function DeskMatterDetailPage({ params }: PageProps) {
           consentStatus={consentStatusView(latestConsent)}
           canApprove={ctx.deskRole === "rechtsanwalt"}
           drafts={drafts}
+          showCaseFactsAnalysis={showCaseFactsAnalysis}
         />
       </div>
     </DeskAppShell>

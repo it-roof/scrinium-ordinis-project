@@ -23,7 +23,9 @@ export const AREA_FUNCTION_IDS = [
   "text-blocks",
   "prompts",
   "notes",
+  "ai-chat",
   "case-facts-analysis",
+  "contract-analysis",
   "letters",
   "docs",
   "templates",
@@ -67,9 +69,11 @@ export function normalizeOptionalAllowedFunctions(
   if (unique.has("inbox")) {
     unique.add("inbox-sent");
   }
-  // Notizen: neue RA-Funktion — bestehende Allowlists mit Prompts mitziehen
+  // Notizen / KI-Chat: mit Prompts mitziehen
   if (unique.has("prompts")) {
     unique.add("notes");
+    unique.add("ai-chat");
+    unique.add("contract-analysis");
   }
   // KI-Analyse: mitziehen wenn Prompts oder Akten freigeschaltet
   if (unique.has("prompts") || unique.has("matters")) {
@@ -98,9 +102,11 @@ export const FUNCTIONS_BY_AREA: Record<AppModuleId, AreaFunctionId[]> = {
     "matters",
     "prompts",
     "notes",
+    "ai-chat",
     "letters",
     "text-blocks",
     "case-facts-analysis",
+    "contract-analysis",
     "staff-messages",
   ],
   tax: [
@@ -126,7 +132,9 @@ export const FUNCTION_LABELS: Record<AreaFunctionId, string> = {
   "text-blocks": "Textbausteine",
   prompts: "Prompt-Bibliothek",
   notes: "Notizen",
+  "ai-chat": "KI",
   "case-facts-analysis": "KI-Analyse",
+  "contract-analysis": "Vertragsanalyse",
   letters: "Schreiben",
   docs: "Dokumentation",
   templates: "Vorlagen",
@@ -188,6 +196,15 @@ export function functionIdFromPathname(
   if (pathname === "/notizen" || pathname.startsWith("/notizen/")) {
     return "notes";
   }
+  if (pathname === "/ki" || pathname.startsWith("/ki/")) {
+    return "ai-chat";
+  }
+  if (
+    pathname === "/vertragsanalyse" ||
+    pathname.startsWith("/vertragsanalyse/")
+  ) {
+    return "contract-analysis";
+  }
 
   return null;
 }
@@ -212,9 +229,11 @@ export const MANAGEMENT_FUNCTION_IDS: AreaFunctionId[] = ["clients", "matters"];
 
 /** Sidebar-Gruppe Funktionen (Werkzeuge). */
 export const TOOL_FUNCTION_IDS: AreaFunctionId[] = [
+  "ai-chat",
+  "case-facts-analysis",
+  "contract-analysis",
   "prompts",
   "notes",
-  "case-facts-analysis",
   "letters",
   "text-blocks",
   "docs",

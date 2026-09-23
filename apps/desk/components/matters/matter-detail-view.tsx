@@ -33,6 +33,7 @@ export function MatterDetailView({
   consentStatus = "none",
   canApprove = false,
   drafts = [],
+  showCaseFactsAnalysis = true,
 }: {
   matter: MatterRecord;
   letters: LetterRecord[];
@@ -41,6 +42,8 @@ export function MatterDetailView({
   consentStatus?: ConsentStatusView;
   canApprove?: boolean;
   drafts?: AiDraftRecord[];
+  /** Nur bei Function `case-facts-analysis` (nicht Sekretariat). */
+  showCaseFactsAnalysis?: boolean;
 }) {
   const router = useRouter();
   const basePath = useAreaBasePath() ?? "";
@@ -141,13 +144,14 @@ export function MatterDetailView({
 
       <MatterPartiesSection matterId={matter.id} initialParties={parties} />
 
-      <MatterCaseFactsAnalysisSection
-        matterId={matter.id}
-        consentStatus={consentStatus}
-        canApprove={canApprove}
-        initialDrafts={drafts}
-      />
-
+      {showCaseFactsAnalysis ? (
+        <MatterCaseFactsAnalysisSection
+          matterId={matter.id}
+          consentStatus={consentStatus}
+          canApprove={canApprove}
+          initialDrafts={drafts}
+        />
+      ) : null}
       {showLetters ? (
         <section className="space-y-4">
           <h2 className="font-heading text-xl font-medium tracking-tight">

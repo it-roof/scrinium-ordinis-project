@@ -6,7 +6,8 @@ import { withTenantDb } from "@/lib/tenant/db";
 export type WriteAiAuditInput = {
   tenantId: string;
   userId: string;
-  clientId: string;
+  /** Null for free-form chat (no client context). */
+  clientId: string | null;
   matterId: string | null;
   task: string;
   model: string;
@@ -25,7 +26,7 @@ export async function writeAiAudit(input: WriteAiAuditInput): Promise<void> {
     await tx.insert(aiAudit).values({
       tenantId: input.tenantId,
       userId: input.userId,
-      clientId: input.clientId,
+      clientId: input.clientId ?? null,
       matterId: input.matterId,
       task: input.task,
       model: input.model,

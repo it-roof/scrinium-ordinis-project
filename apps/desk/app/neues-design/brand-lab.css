@@ -18,6 +18,8 @@
   font-size: 16px;
   line-height: 1.55;
   font-weight: 400;
+  /* Lab-Radius (nicht .v1-shell --radius: 1.25rem) — sonst wird rounded-2xl zum Pill */
+  --radius: 0.25rem;
   transition:
     background-color 0.28s ease,
     color 0.28s ease;
@@ -132,6 +134,20 @@
   flex-direction: column;
   overflow-y: auto;
   padding-bottom: 12rem;
+}
+
+.brand-lab-root .lab-function-card {
+  background: var(--b-bg-elev);
+  border-color: var(--b-line);
+  border-radius: 1.15rem;
+  transition:
+    border-color 200ms ease,
+    background-color 200ms ease;
+}
+
+.brand-lab-root .lab-function-card:hover {
+  border-color: color-mix(in srgb, var(--b-ink) 8%, var(--b-line));
+  background-color: color-mix(in srgb, var(--b-ink) 2%, var(--b-bg-elev));
 }
 
 

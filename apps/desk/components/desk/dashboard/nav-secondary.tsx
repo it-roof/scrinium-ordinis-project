@@ -1,7 +1,5 @@
 "use client"
 
-import { IconSettings } from "@tabler/icons-react"
-import { LogOut } from "lucide-react"
 import Link from "next/link"
 import type * as React from "react"
 
@@ -20,22 +18,24 @@ export function NavSecondary({
   return (
     <SidebarGroup {...props}>
       <SidebarGroupContent>
-        <SidebarMenu>
+        <SidebarMenu className="gap-1">
           <SidebarMenuItem>
-            <SidebarMenuButton asChild>
+            <SidebarMenuButton
+              asChild
+              className="h-auto px-3.5 py-2.5 text-[0.9375rem]"
+            >
               <Link href="/einstellungen">
-                <IconSettings />
                 <span>Einstellungen</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton
+              className="h-auto px-3.5 py-2.5 text-[0.9375rem]"
               onClick={() => {
                 void logoutAction()
               }}
             >
-              <LogOut />
               <span>Abmelden</span>
             </SidebarMenuButton>
           </SidebarMenuItem>

@@ -7,6 +7,14 @@ export const AI_MANUAL_MARKS_MAX = 50;
 export const AI_MANUAL_MARK_MAX_CHARS = 200;
 export const AI_DISMISSED_RESIDUALS_MAX = 50;
 
+/** Free-form KI chat (session-only UI). */
+export const AI_CHAT_MESSAGE_MAX_CHARS = 8_000;
+export const AI_CHAT_HISTORY_MAX_TURNS = 20;
+export const AI_CHAT_MAX_TOKENS = 4_000;
+
+/** Contract analysis (paste + pseudonym gate). */
+export const AI_CONTRACT_MAX_CHARS = 50_000;
+
 /**
  * Max age of pending/running jobs that may still hold plaintext input_facts /
  * marks. After this, secrets are wiped and the job fails (no silent Klartext at rest).
