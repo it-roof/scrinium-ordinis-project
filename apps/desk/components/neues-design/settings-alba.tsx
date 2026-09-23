@@ -3,18 +3,25 @@
 import type { ReactNode } from "react";
 
 import { AlbaShell, type AlbaShellUser } from "@/components/neues-design/alba-shell";
+import type { AreaFunctionId } from "@/lib/area/functions";
 
 export function SettingsAlba({
   user,
   tenantName,
+  allowedFunctions = null,
   children,
 }: {
   user: AlbaShellUser;
   tenantName: string;
+  allowedFunctions?: AreaFunctionId[] | null;
   children: ReactNode;
 }) {
   return (
-    <AlbaShell user={user} tenantName={tenantName}>
+    <AlbaShell
+      user={user}
+      tenantName={tenantName}
+      allowedFunctions={allowedFunctions}
+    >
       <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-6 pt-12 pb-14 md:px-10 md:pt-14">
         <header className="flex max-w-2xl flex-col">
           <h1 className="b-display b-title font-medium tracking-[-0.02em]">

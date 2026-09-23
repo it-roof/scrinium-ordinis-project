@@ -101,22 +101,13 @@ function fileKey(file: File) {
   return `${file.name}:${file.size}:${file.lastModified}`;
 }
 
-type V1NoteFormProps = {
-  mode: "create" | "edit";
-  initial?: UserNote | null;
-  /** Eingebettet im Notizen-Workspace (ohne Seiten-Chrome). */
-  embedded?: boolean;
-  onSaved?: (note: UserNote) => void;
-  onDeleted?: (id: string) => void;
-};
-
 export function V1NoteForm({
   mode,
   initial,
-  embedded = false,
-  onSaved,
-  onDeleted,
-}: V1NoteFormProps) {
+}: {
+  mode: "create" | "edit";
+  initial?: UserNote | null;
+}) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bodyTextareaRef = useRef<HTMLTextAreaElement>(null);
@@ -165,11 +156,6 @@ export function V1NoteForm({
     el.style.height = `${Math.min(Math.max(el.scrollHeight, 80), maxPx)}px`;
   }, [body, dictationTarget]);
 
-  function goToNote(id: string) {
-    router.push(`${NOTES_BASE}/${id}`);
-    router.refresh();
-  }
-
   function handleDelete() {
     if (!initial?.id) return;
     const label = title.trim() || initial.title.trim() || "diese Notiz";
@@ -184,11 +170,8 @@ export function V1NoteForm({
         return;
       }
       toast.success("Notiz gelöscht.");
-      onDeleted?.(initial.id);
-      if (!embedded) {
-        router.push(NOTES_BASE);
-        router.refresh();
-      }
+      router.push(NOTES_BASE);
+      router.refresh();
     });
   }
 
@@ -310,10 +293,8 @@ export function V1NoteForm({
       }
 
       toast.success(mode === "edit" ? "Notiz gespeichert." : "Notiz angelegt.");
-      onSaved?.(result.item);
-      if (!embedded) {
-        goToNote(result.item.id);
-      }
+      router.push(`${NOTES_BASE}/${result.item.id}`);
+      router.refresh();
     });
   }
 
@@ -326,74 +307,120 @@ export function V1NoteForm({
   const canAddMoreFiles =
     existingFiles.length + pendingFiles.length < MAX_FILES_PER_NOTE;
 
-  return (
-    <div
-      className={cn(
-        "lab-notes-form relative flex min-h-0 flex-1 flex-col",
-        embedded ? "overflow-y-auto" : "overflow-y-auto"
-      )}
-    >
-      <div
-        className={cn(
-          "flex w-full flex-1 flex-col",
-          embedded
-            ? "min-h-0"
-            : "mx-auto max-w-[42rem] px-6 pt-12 pb-14 md:px-10 md:pt-14"
-        )}
-      >
-        {!embedded ? (
-          <div>
-            <Link
-              href={
-                mode === "edit" && initial?.id
-                  ? `${NOTES_BASE}/${initial.id}`
-                  : NOTES_BASE
-              }
-              className="b-meta inline-flex w-fit items-center gap-1.5 transition-colors hover:text-[var(--b-ink)]"
-            >
-              <ArrowLeftIcon className="size-4" strokeWidth={1.75} />
-              {mode === "edit" ? "Zurück zur Notiz" : "Zurück zur Übersicht"}
-            </Link>
-            <header className="mt-6 max-w-2xl">
-              <h1 className="b-display b-title font-medium tracking-[-0.02em]">
-                {mode === "edit" ? "Notiz bearbeiten" : "Neue Notiz"}
-              </h1>
-              <p className="b-lead mt-2 text-[1.0625rem] leading-[1.55]">
-                Persönliche Notiz — nur für Sie sichtbar.
-              </p>
-            </header>
-          </div>
-        ) : null}
+  const backHref =
+    mode === "edit" && initial?.id
+      ? `${NOTES_BASE}/${initial.id}`
+      : NOTES_BASE;
 
-        <form
-          onSubmit={handleSubmit}
-          className={cn(
-            "flex min-h-0 flex-1 flex-col",
-            embedded ? "px-4 py-4 md:px-6 md:py-5" : "mt-8"
-          )}
+  return (
+    <div className="lab-notes lab-notes-form relative flex min-h-0 flex-1 flex-col overflow-y-auto">
+      <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col px-6 pt-12 pb-14 md:px-10 md:pt-14">
+        <Link
+          href={backHref}
+          className="b-meta inline-flex w-fit items-center gap-1.5 transition-colors hover:text-[var(--b-ink)]"
         >
-          <div className="flex flex-col gap-5">
-            <div className="grid gap-1.5">
-              <label
-                htmlFor="note-title"
-                className="b-meta font-medium"
-                style={{ color: "var(--b-muted)" }}
+          <ArrowLeftIcon className="size-4" strokeWidth={1.75} />
+          {mode === "edit" ? "Zurück zur Notiz" : "Zurück zur Übersicht"}
+        </Link>
+
+        <header className="mt-6 max-w-2xl">
+          <h1 className="b-display b-title font-medium tracking-[-0.02em]">
+            {mode === "edit" ? "Notiz bearbeiten" : "Neue Notiz"}
+          </h1>
+          <p className="b-lead mt-2 text-[1.0625rem] leading-[1.55]">
+            Persönliche Notiz — nur für Sie sichtbar.
+          </p>
+        </header>
+
+        <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-5">
+          <div className="grid gap-1.5">
+            <label
+              htmlFor="note-title"
+              className="b-meta font-medium"
+              style={{ color: "var(--b-muted)" }}
+            >
+              Titel
+            </label>
+            {titleDictating ? (
+              <div
+                className="flex h-11 items-center gap-1.5 overflow-hidden rounded-[0.75rem] border pr-1.5 pl-3.5"
+                style={{
+                  borderColor: "var(--b-line)",
+                  background: "var(--b-bg-elev)",
+                }}
               >
-                Titel
-              </label>
-              {titleDictating ? (
-                <div
-                  className="flex h-11 items-center gap-1.5 overflow-hidden rounded-[0.75rem] border pr-1.5 pl-3.5"
-                  style={{
-                    borderColor: "var(--b-line)",
-                    background: "var(--b-bg-elev)",
-                  }}
+                <p className="min-w-0 flex-1 truncate text-sm leading-normal">
+                  {title.trim() ? (
+                    <span style={{ color: "var(--b-ink)" }}>
+                      {title}
+                      {/\s$/.test(title) ? "" : " "}
+                    </span>
+                  ) : null}
+                  <span className="italic" style={{ color: "var(--b-muted)" }}>
+                    {liveText || (listening ? "" : "…")}
+                  </span>
+                </p>
+                <DictationWaveform active={listening} />
+                <ToolbarIconButton
+                  label="Titel-Diktat verwerfen"
+                  onClick={clearDictation}
+                  className="ml-2"
                 >
-                  <p className="min-w-0 flex-1 truncate text-sm leading-normal">
-                    {title.trim() ? (
+                  <XIcon className="size-4" strokeWidth={2} />
+                </ToolbarIconButton>
+                <ToolbarIconButton
+                  label="Titel-Diktat übernehmen"
+                  onClick={() => acceptDictation()}
+                  disabled={!liveText.trim() && !listening}
+                >
+                  <CheckIcon className="size-4" strokeWidth={2} />
+                </ToolbarIconButton>
+              </div>
+            ) : (
+              <div className="relative">
+                <input
+                  id="note-title"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="Kurzer Betreff…"
+                  required={!titleDictating}
+                  disabled={bodyDictating}
+                />
+                <button
+                  type="button"
+                  onClick={() => startDictation("title")}
+                  disabled={bodyDictating || pending}
+                  aria-label="Titel diktieren"
+                  title="Titel diktieren"
+                  className="absolute top-1/2 right-1.5 flex size-9 -translate-y-1/2 items-center justify-center rounded-[0.55rem] transition-colors disabled:pointer-events-none disabled:opacity-40"
+                  style={{ color: "var(--b-muted)" }}
+                >
+                  <MicIcon className="size-4" strokeWidth={1.75} />
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div className="grid gap-1.5">
+            <label
+              htmlFor="note-body"
+              className="b-meta font-medium"
+              style={{ color: "var(--b-muted)" }}
+            >
+              Notiz
+            </label>
+            <div className="lab-notes-composer">
+              {bodyDictating ? (
+                <div
+                  ref={bodyBoxRef}
+                  className="max-h-[min(42dvh,14rem)] overflow-y-auto px-3.5 pt-3.5 pb-1 text-[0.95rem] leading-[1.6]"
+                  style={{ minHeight: bodyBoxMinHeight ?? 80 }}
+                >
+                  <p className="whitespace-pre-wrap">
+                    {body.trim() ? (
                       <span style={{ color: "var(--b-ink)" }}>
-                        {title}
-                        {/\s$/.test(title) ? "" : " "}
+                        {body}
+                        {/\s$/.test(body) ? "" : " "}
                       </span>
                     ) : null}
                     <span
@@ -403,236 +430,163 @@ export function V1NoteForm({
                       {liveText || (listening ? "" : "…")}
                     </span>
                   </p>
-                  <DictationWaveform active={listening} />
-                  <ToolbarIconButton
-                    label="Titel-Diktat verwerfen"
-                    onClick={clearDictation}
-                    className="ml-2"
-                  >
-                    <XIcon className="size-4" strokeWidth={2} />
-                  </ToolbarIconButton>
-                  <ToolbarIconButton
-                    label="Titel-Diktat übernehmen"
-                    onClick={() => acceptDictation()}
-                    disabled={!liveText.trim() && !listening}
-                  >
-                    <CheckIcon className="size-4" strokeWidth={2} />
-                  </ToolbarIconButton>
                 </div>
               ) : (
-                <div className="relative">
-                  <input
-                    id="note-title"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    placeholder="Kurzer Betreff…"
-                    required={!titleDictating}
-                    disabled={bodyDictating}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => startDictation("title")}
-                    disabled={bodyDictating || pending}
-                    aria-label="Titel diktieren"
-                    title="Titel diktieren"
-                    className="absolute top-1/2 right-1.5 flex size-9 -translate-y-1/2 items-center justify-center rounded-[0.55rem] transition-colors disabled:pointer-events-none disabled:opacity-40"
-                    style={{ color: "var(--b-muted)" }}
-                  >
-                    <MicIcon className="size-4" strokeWidth={1.75} />
-                  </button>
-                </div>
+                <textarea
+                  ref={bodyTextareaRef}
+                  id="note-body"
+                  value={body}
+                  onChange={(e) => setBody(e.target.value)}
+                  placeholder="Ihre Notiz…"
+                  required={!bodyDictating}
+                  disabled={titleDictating}
+                  rows={3}
+                  className="field-sizing-fixed max-h-[min(42dvh,14rem)] min-h-20 w-full overflow-y-auto"
+                />
               )}
-            </div>
 
-            <div className="grid gap-1.5">
-              <label
-                htmlFor="note-body"
-                className="b-meta font-medium"
-                style={{ color: "var(--b-muted)" }}
-              >
-                Notiz
-              </label>
-              <div className="lab-notes-composer">
-                {bodyDictating ? (
-                  <div
-                    ref={bodyBoxRef}
-                    className="max-h-[min(42dvh,14rem)] overflow-y-auto px-3.5 pt-3.5 pb-1 text-[0.95rem] leading-[1.6]"
-                    style={{ minHeight: bodyBoxMinHeight ?? 80 }}
-                  >
-                    <p className="whitespace-pre-wrap">
-                      {body.trim() ? (
-                        <span style={{ color: "var(--b-ink)" }}>
-                          {body}
-                          {/\s$/.test(body) ? "" : " "}
-                        </span>
-                      ) : null}
-                      <span
-                        className="italic"
-                        style={{ color: "var(--b-muted)" }}
-                      >
-                        {liveText || (listening ? "" : "…")}
-                      </span>
-                    </p>
-                  </div>
-                ) : (
-                  <textarea
-                    ref={bodyTextareaRef}
-                    id="note-body"
-                    value={body}
-                    onChange={(e) => setBody(e.target.value)}
-                    placeholder="Ihre Notiz…"
-                    required={!bodyDictating}
-                    disabled={titleDictating}
-                    rows={3}
-                    className="field-sizing-fixed max-h-[min(42dvh,14rem)] min-h-20 w-full overflow-y-auto"
-                  />
-                )}
-
-                <div className="mt-1 flex flex-wrap items-center gap-1 pr-1.5 pb-1.5 pl-1.5">
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    multiple
-                    className="sr-only"
-                    onChange={(e) => handleFilesSelected(e.target.files)}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={!canAddMoreFiles || pending || dictationOpen}
-                    className="lab-notes-ghost-btn"
-                  >
-                    <PlusIcon className="size-3.5" strokeWidth={1.75} />
-                    Dokument anhängen
-                  </button>
-
-                  <div className="ml-auto flex h-9 items-center justify-end gap-1">
-                    {bodyDictating ? (
-                      <>
-                        <DictationWaveform active={listening} />
-                        <ToolbarIconButton
-                          label="Diktat verwerfen"
-                          onClick={clearDictation}
-                          className="ml-2"
-                        >
-                          <XIcon className="size-4" strokeWidth={2} />
-                        </ToolbarIconButton>
-                        <ToolbarIconButton
-                          label="Diktat übernehmen"
-                          onClick={() => acceptDictation()}
-                          disabled={!liveText.trim() && !listening}
-                        >
-                          <CheckIcon className="size-4" strokeWidth={2} />
-                        </ToolbarIconButton>
-                      </>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => startDictation("body")}
-                        disabled={titleDictating || pending}
-                        aria-label="Notiz diktieren"
-                        title="Notiz diktieren"
-                        className="flex size-9 shrink-0 items-center justify-center rounded-[0.55rem] transition-colors disabled:pointer-events-none disabled:opacity-40"
-                        style={{ color: "var(--b-muted)" }}
-                      >
-                        <MicIcon className="size-4" strokeWidth={1.75} />
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {bodyDictating ? (
-                <p className="b-meta mt-1 text-left">
-                  Diktat mit ✓ übernehmen, danach speichern. Steuerworte:
-                  Punkt, Komma, Absatz…
-                </p>
-              ) : null}
-            </div>
-
-            {existingFiles.length > 0 || pendingFiles.length > 0 ? (
-              <ul className="flex flex-wrap gap-2">
-                {existingFiles.map((file) => (
-                  <li key={file.id}>
-                    <div className="lab-notes-file">
-                      <a
-                        href={`/api/notes/files/${file.id}?download=1`}
-                        className="min-w-0 truncate hover:underline"
-                        title={file.filename}
-                      >
-                        {file.filename}
-                      </a>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveExisting(file)}
-                        disabled={pending}
-                        aria-label={`${file.filename} entfernen`}
-                        className="flex size-6 shrink-0 items-center justify-center rounded-md disabled:opacity-40"
-                        style={{ color: "var(--b-muted)" }}
-                      >
-                        <XIcon className="size-3.5" />
-                      </button>
-                    </div>
-                  </li>
-                ))}
-                {pendingFiles.map((file) => (
-                  <li key={fileKey(file)}>
-                    <div
-                      className="lab-notes-file"
-                      style={{ borderStyle: "dashed" }}
-                    >
-                      <span
-                        className="min-w-0 truncate"
-                        style={{ color: "var(--b-muted)" }}
-                        title={file.name}
-                      >
-                        {file.name}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setPendingFiles((prev) =>
-                            prev.filter((row) => fileKey(row) !== fileKey(file))
-                          )
-                        }
-                        disabled={pending}
-                        aria-label={`${file.name} entfernen`}
-                        className="flex size-6 shrink-0 items-center justify-center rounded-md disabled:opacity-40"
-                        style={{ color: "var(--b-muted)" }}
-                      >
-                        <XIcon className="size-3.5" />
-                      </button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-
-            <div className="flex items-center justify-end gap-2 pt-1">
-              {embedded && mode === "edit" && initial?.id ? (
+              <div className="mt-1 flex flex-wrap items-center gap-1 pr-1.5 pb-1.5 pl-1.5">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  className="sr-only"
+                  onChange={(e) => handleFilesSelected(e.target.files)}
+                />
                 <button
                   type="button"
-                  className="b-btn b-btn-secondary"
-                  style={{ color: "var(--b-muted)" }}
-                  onClick={handleDelete}
-                  disabled={pending}
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={!canAddMoreFiles || pending || dictationOpen}
+                  className="lab-notes-ghost-btn"
                 >
-                  Löschen
+                  <PlusIcon className="size-3.5" strokeWidth={1.75} />
+                  Dokument anhängen
                 </button>
-              ) : null}
-              <button
-                type="submit"
-                className="b-btn b-btn-primary"
-                disabled={pending || !canSave || dictationOpen}
-                title={
-                  dictationOpen
-                    ? "Bitte Diktat zuerst übernehmen"
-                    : undefined
-                }
-              >
-                {pending ? "Speichern…" : "Speichern"}
-              </button>
+
+                <div className="ml-auto flex h-9 items-center justify-end gap-1">
+                  {bodyDictating ? (
+                    <>
+                      <DictationWaveform active={listening} />
+                      <ToolbarIconButton
+                        label="Diktat verwerfen"
+                        onClick={clearDictation}
+                        className="ml-2"
+                      >
+                        <XIcon className="size-4" strokeWidth={2} />
+                      </ToolbarIconButton>
+                      <ToolbarIconButton
+                        label="Diktat übernehmen"
+                        onClick={() => acceptDictation()}
+                        disabled={!liveText.trim() && !listening}
+                      >
+                        <CheckIcon className="size-4" strokeWidth={2} />
+                      </ToolbarIconButton>
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => startDictation("body")}
+                      disabled={titleDictating || pending}
+                      aria-label="Notiz diktieren"
+                      title="Notiz diktieren"
+                      className="flex size-9 shrink-0 items-center justify-center rounded-[0.55rem] transition-colors disabled:pointer-events-none disabled:opacity-40"
+                      style={{ color: "var(--b-muted)" }}
+                    >
+                      <MicIcon className="size-4" strokeWidth={1.75} />
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
+
+            {bodyDictating ? (
+              <p className="b-meta mt-1 text-left">
+                Diktat mit ✓ übernehmen, danach speichern. Steuerworte: Punkt,
+                Komma, Absatz…
+              </p>
+            ) : null}
+          </div>
+
+          {existingFiles.length > 0 || pendingFiles.length > 0 ? (
+            <ul className="flex flex-wrap gap-2">
+              {existingFiles.map((file) => (
+                <li key={file.id}>
+                  <div className="lab-notes-file">
+                    <a
+                      href={`/api/notes/files/${file.id}?download=1`}
+                      className="min-w-0 truncate hover:underline"
+                      title={file.filename}
+                    >
+                      {file.filename}
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveExisting(file)}
+                      disabled={pending}
+                      aria-label={`${file.filename} entfernen`}
+                      className="flex size-6 shrink-0 items-center justify-center rounded-md disabled:opacity-40"
+                      style={{ color: "var(--b-muted)" }}
+                    >
+                      <XIcon className="size-3.5" />
+                    </button>
+                  </div>
+                </li>
+              ))}
+              {pendingFiles.map((file) => (
+                <li key={fileKey(file)}>
+                  <div
+                    className="lab-notes-file"
+                    style={{ borderStyle: "dashed" }}
+                  >
+                    <span
+                      className="min-w-0 truncate"
+                      style={{ color: "var(--b-muted)" }}
+                      title={file.name}
+                    >
+                      {file.name}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setPendingFiles((prev) =>
+                          prev.filter((row) => fileKey(row) !== fileKey(file))
+                        )
+                      }
+                      disabled={pending}
+                      aria-label={`${file.name} entfernen`}
+                      className="flex size-6 shrink-0 items-center justify-center rounded-md disabled:opacity-40"
+                      style={{ color: "var(--b-muted)" }}
+                    >
+                      <XIcon className="size-3.5" />
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+
+          <div className="flex flex-wrap items-center justify-end gap-2 pt-1">
+            {mode === "edit" && initial?.id ? (
+              <button
+                type="button"
+                className="b-btn b-btn-secondary"
+                style={{ color: "var(--b-muted)" }}
+                onClick={handleDelete}
+                disabled={pending}
+              >
+                Löschen
+              </button>
+            ) : null}
+            <button
+              type="submit"
+              className="b-btn b-btn-primary"
+              disabled={pending || !canSave || dictationOpen}
+              title={
+                dictationOpen ? "Bitte Diktat zuerst übernehmen" : undefined
+              }
+            >
+              {pending ? "Speichern…" : "Speichern"}
+            </button>
           </div>
         </form>
       </div>

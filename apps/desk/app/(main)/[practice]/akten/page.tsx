@@ -32,9 +32,7 @@ export default async function DeskMattersPage({ params }: PageProps) {
 
   return (
     <DeskAppShell ctx={ctx} headerTitle="Akten">
-      <div className="min-h-0 flex-1 overflow-y-auto p-4 lg:p-6">
-        <MattersView initialItems={items} clients={clientOptions} />
-      </div>
+      <MattersView initialItems={items} clients={clientOptions} />
     </DeskAppShell>
   );
 }

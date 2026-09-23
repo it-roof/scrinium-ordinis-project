@@ -1,11 +1,11 @@
 import { notFound } from "next/navigation";
 
-import { V1NotesWorkspace } from "@/components/desk/notes/notes-workspace";
+import { V1NoteForm } from "@/components/desk/notes/note-form";
 import {
   requireDeskUser,
   DeskAppShell,
 } from "@/components/desk/shell/desk-app-shell";
-import { getUserNoteById, listUserNotes } from "@/lib/notes/storage";
+import { getUserNoteById } from "@/lib/notes/storage";
 
 export const dynamic = "force-dynamic";
 
@@ -16,11 +16,7 @@ type PageProps = {
 export default async function V1NotizBearbeitenPage({ params }: PageProps) {
   const { id } = await params;
   const ctx = await requireDeskUser({ requireFunction: "notes" });
-
-  const [items, note] = await Promise.all([
-    listUserNotes(ctx.tenantId, ctx.userId),
-    getUserNoteById(ctx.tenantId, ctx.userId, id),
-  ]);
+  const note = await getUserNoteById(ctx.tenantId, ctx.userId, id);
 
   if (!note) {
     notFound();
@@ -28,11 +24,7 @@ export default async function V1NotizBearbeitenPage({ params }: PageProps) {
 
   return (
     <DeskAppShell ctx={ctx} headerTitle="Notiz bearbeiten">
-      <V1NotesWorkspace
-        initialItems={items}
-        selectedId={note.id}
-        mode="edit"
-      />
+      <V1NoteForm mode="edit" initial={note} />
     </DeskAppShell>
   );
 }

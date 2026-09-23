@@ -301,6 +301,75 @@
   font-size: 0.875rem;
 }
 
+/* Gemeinsame Formularfelder (Akten, Mandanten, Dialoge) */
+.brand-lab-root .lab-field,
+.brand-lab-root .lab-matters-field {
+  width: 100%;
+  height: 2.75rem;
+  border-radius: 0.65rem;
+  border: 1px solid var(--b-line);
+  background: var(--b-bg);
+  color: var(--b-ink);
+  padding: 0 0.9rem;
+  font-size: 0.9375rem;
+  outline: none;
+  box-shadow: none;
+}
+
+.brand-lab-root .lab-field:focus,
+.brand-lab-root .lab-matters-field:focus {
+  border-color: color-mix(in srgb, var(--b-ink) 28%, var(--b-line));
+}
+
+.brand-lab-root .lab-field::placeholder,
+.brand-lab-root .lab-matters-field::placeholder {
+  color: var(--b-faint);
+}
+
+.brand-lab-root select.lab-field,
+.brand-lab-root select.lab-matters-field {
+  cursor: pointer;
+}
+
+.brand-lab-root .lab-choice {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  border-radius: 0.85rem;
+  border: 1px solid var(--b-line);
+  background: var(--b-bg);
+  padding: 1rem 1.1rem;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+  transition:
+    border-color 150ms ease,
+    background-color 150ms ease;
+}
+
+.brand-lab-root .lab-choice:hover {
+  border-color: color-mix(in srgb, var(--b-ink) 18%, var(--b-line));
+  background: var(--b-soft);
+}
+
+/* Akten-Übersicht */
+.brand-lab-root .lab-matters {
+  color: var(--b-ink);
+}
+
+.brand-lab-root .lab-clients {
+  color: var(--b-ink);
+}
+
+/* Login — gleiche Formular-Sprache wie Dashboard */
+.brand-lab-root .lab-login {
+  color: var(--b-ink);
+}
+
+.brand-lab-root .lab-login .lab-field {
+  background: var(--b-bg-elev);
+}
+
 /* Persönliche Notizen — Liste + Detail an Alba */
 .brand-lab-root .lab-notes {
   color: var(--b-ink);
@@ -383,6 +452,10 @@
   padding: 0 1rem;
   font-size: 0.875rem;
   gap: 0.4rem;
+}
+
+.brand-lab-root a.b-btn {
+  text-decoration: none;
 }
 
 .brand-lab-root .lab-notes-file {
@@ -574,6 +647,7 @@
 
 @media (min-width: 768px) {
   .brand-lab-root .lab-intake {
+    min-height: 0;
     padding-left: 2.5rem;
     padding-right: 2.5rem;
     padding-top: 3.5rem;
@@ -708,6 +782,15 @@
     var(--b-bg) 70%,
     color-mix(in srgb, var(--b-bg) 85%, transparent)
   );
+}
+
+@media (min-width: 768px) {
+  .brand-lab-root .lab-intake-nav {
+    position: static;
+    margin-top: 2rem;
+    padding-bottom: 0;
+    background: none;
+  }
 }
 
 .brand-lab-root .lab-intake-nav .b-btn-primary {

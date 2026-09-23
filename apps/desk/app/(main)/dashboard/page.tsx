@@ -46,6 +46,7 @@ export default async function Page() {
       <DashboardAlba
         greeting={greeting}
         tenantName={ctx.tenantName}
+        allowedFunctions={ctx.allowedFunctions}
         user={{
           name: ctx.displayName,
           roleLabel: DESK_ROLE_LABELS[ctx.deskRole],

@@ -56,10 +56,7 @@ export async function createMatter(input: MatterInput) {
   if (validation) {
     return { success: false as const, error: validation };
   }
-  const item = await createMatterRow(user.tenantId, user.id, {
-    ...input,
-    module: "legal",
-  });
+  const item = await createMatterRow(user.tenantId, user.id, input);
   if (!item) {
     return { success: false as const, error: "Mandant nicht gefunden." };
   }

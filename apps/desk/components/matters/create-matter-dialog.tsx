@@ -3,7 +3,6 @@
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
-import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -11,44 +10,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { cn } from "@/lib/utils";
-import { createMatter } from "@/lib/matters/actions";
 import type { MatterRecord } from "@/lib/clients/types";
+import type { ContentModule } from "@/lib/db/schema";
+import { createMatter } from "@/lib/matters/actions";
 
-const fieldClass = "h-10 rounded-none";
-const selectFieldClass =
-  "h-10 w-full rounded-none px-2.5 data-[size=default]:h-10";
-const labelClass = "text-xs font-medium text-muted-foreground";
-
-function Field({
-  label,
-  htmlFor,
-  className,
-  children,
-}: {
-  label: string;
-  htmlFor: string;
-  className?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className={cn("space-y-1.5", className)}>
-      <Label htmlFor={htmlFor} className={labelClass}>
-        {label}
-      </Label>
-      {children}
-    </div>
-  );
-}
+export type MatterClientOption = {
+  id: string;
+  name: string;
+};
 
 const EMPTY_FORM = {
   clientId: "",
@@ -56,20 +25,17 @@ const EMPTY_FORM = {
   reference: "",
 };
 
-export type MatterClientOption = {
-  id: string;
-  name: string;
-};
-
 export function CreateMatterDialog({
   open,
   onOpenChange,
   clients,
+  module,
   onCreated,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   clients: MatterClientOption[];
+  module: ContentModule;
   onCreated: (matter: MatterRecord) => void;
 }) {
   const [form, setForm] = useState(EMPTY_FORM);
@@ -98,7 +64,7 @@ export function CreateMatterDialog({
         title: form.title,
         reference: form.reference,
         notes: "",
-        module: "legal",
+        module,
       });
       if (!result.success) {
         toast.error(result.error);
@@ -114,56 +80,90 @@ export function CreateMatterDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent
         showCloseButton
-        className="gap-0 overflow-hidden rounded-none p-0 sm:max-w-xl"
+        className="brand-lab-root brand-alba brand-alba-manrope gap-0 overflow-hidden rounded-[1.15rem] border p-0 sm:max-w-lg"
+        style={{
+          borderColor: "var(--b-line)",
+          background: "var(--b-bg-elev)",
+          color: "var(--b-ink)",
+        }}
       >
-        <form onSubmit={handleSubmit} className="flex flex-col">
-          <div className="space-y-1 border-b border-border/70 px-6 py-5 pr-12">
-            <DialogHeader className="gap-1">
-              <DialogTitle className="text-lg">Neue Akte</DialogTitle>
-              <DialogDescription>
+        <form onSubmit={handleSubmit} className="lab-matters-dialog flex flex-col">
+          <div
+            className="space-y-1 border-b px-6 py-5 pr-12"
+            style={{ borderColor: "var(--b-line)" }}
+          >
+            <DialogHeader className="gap-1.5">
+              <DialogTitle className="b-display text-[1.25rem] font-medium tracking-[-0.015em]">
+                Neue Akte
+              </DialogTitle>
+              <DialogDescription className="b-meta">
                 Mandant, Titel und optional Aktenzeichen.
               </DialogDescription>
             </DialogHeader>
           </div>
 
-          <div className="grid gap-x-4 gap-y-3 px-6 py-5 sm:grid-cols-6">
-            <Field label="Mandant" htmlFor="matter-client" className="sm:col-span-6">
-              <Select
-                value={form.clientId || undefined}
-                onValueChange={(value) =>
-                  setForm((prev) => ({ ...prev, clientId: value }))
-                }
+          <div className="grid gap-4 px-6 py-5">
+            <div className="grid gap-1.5">
+              <label
+                htmlFor="matter-client"
+                className="b-meta font-medium"
+                style={{ color: "var(--b-muted)" }}
               >
-                <SelectTrigger id="matter-client" className={selectFieldClass}>
-                  <SelectValue placeholder="Mandant wählen" />
-                </SelectTrigger>
-                <SelectContent>
-                  {clients.map((client) => (
-                    <SelectItem key={client.id} value={client.id}>
-                      {client.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Field>
-            <Field label="Titel" htmlFor="matter-title" className="sm:col-span-6">
-              <Input
+                Mandant
+              </label>
+              <select
+                id="matter-client"
+                value={form.clientId}
+                onChange={(event) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    clientId: event.target.value,
+                  }))
+                }
+                required
+                className="lab-matters-field"
+              >
+                <option value="" disabled>
+                  Mandant wählen
+                </option>
+                {clients.map((client) => (
+                  <option key={client.id} value={client.id}>
+                    {client.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="grid gap-1.5">
+              <label
+                htmlFor="matter-title"
+                className="b-meta font-medium"
+                style={{ color: "var(--b-muted)" }}
+              >
+                Titel
+              </label>
+              <input
                 id="matter-title"
                 value={form.title}
                 onChange={(event) =>
                   setForm((prev) => ({ ...prev, title: event.target.value }))
                 }
-                className={fieldClass}
+                className="lab-matters-field"
                 autoFocus
                 required
+                placeholder="z. B. Mietrecht Müller"
               />
-            </Field>
-            <Field
-              label="Aktenzeichen"
-              htmlFor="matter-reference"
-              className="sm:col-span-6"
-            >
-              <Input
+            </div>
+
+            <div className="grid gap-1.5">
+              <label
+                htmlFor="matter-reference"
+                className="b-meta font-medium"
+                style={{ color: "var(--b-muted)" }}
+              >
+                Aktenzeichen
+              </label>
+              <input
                 id="matter-reference"
                 value={form.reference}
                 onChange={(event) =>
@@ -172,29 +172,31 @@ export function CreateMatterDialog({
                     reference: event.target.value,
                   }))
                 }
-                className={fieldClass}
+                className="lab-matters-field"
                 placeholder="optional"
               />
-            </Field>
+            </div>
           </div>
 
-          <div className="flex flex-col-reverse gap-2 border-t border-border/70 bg-muted/40 px-6 py-4 sm:flex-row sm:justify-end">
-            <Button
+          <div
+            className="flex flex-col-reverse gap-2 border-t px-6 py-4 sm:flex-row sm:justify-end"
+            style={{ borderColor: "var(--b-line)" }}
+          >
+            <button
               type="button"
-              variant="outline"
-              className="h-11 rounded-none px-5"
+              className="b-btn b-btn-secondary"
               disabled={isPending}
               onClick={() => handleOpenChange(false)}
             >
               Abbrechen
-            </Button>
-            <Button
+            </button>
+            <button
               type="submit"
+              className="b-btn b-btn-primary"
               disabled={isPending || clients.length === 0}
-              className="h-11 rounded-none px-5"
             >
-              Speichern
-            </Button>
+              {isPending ? "Speichern…" : "Speichern"}
+            </button>
           </div>
         </form>
       </DialogContent>

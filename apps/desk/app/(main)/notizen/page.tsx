@@ -1,4 +1,4 @@
-import { V1NotesWorkspace } from "@/components/desk/notes/notes-workspace";
+import { V1NotesListView } from "@/components/desk/notes/notes-list-view";
 import {
   requireDeskUser,
   DeskAppShell,
@@ -13,7 +13,7 @@ export default async function V1NotizenPage() {
 
   return (
     <DeskAppShell ctx={ctx} headerTitle="Notizen">
-      <V1NotesWorkspace initialItems={items} mode="list" />
+      <V1NotesListView initialItems={items} />
     </DeskAppShell>
   );
 }

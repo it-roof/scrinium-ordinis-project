@@ -6,6 +6,7 @@ import { useTransition, type ReactNode } from "react";
 import {
   ClipboardListIcon,
   FilePenLineIcon,
+  FileStackIcon,
   FolderOpenIcon,
   HomeIcon,
   LogOutIcon,
@@ -17,37 +18,80 @@ import {
 import { PRODUCT_NAME } from "@scrinium/brand";
 
 import { LabThemeProvider } from "@/components/neues-design/lab-theme";
+import type { AreaFunctionId } from "@/lib/area/functions";
 import { logoutAction } from "@/lib/auth/actions";
 
-const NAV_PRIMARY: ReadonlyArray<{
+type NavItem = {
   label: string;
   href: string;
   icon: LucideIcon;
-}> = [{ label: "Übersicht", href: "/dashboard", icon: HomeIcon }];
+  functionId?: AreaFunctionId;
+};
 
-const NAV_DATA: ReadonlyArray<{
-  label: string;
-  href: string;
-  icon: LucideIcon;
-}> = [
-  { label: "Akten", href: "/r/akten", icon: FolderOpenIcon },
-  { label: "Mandanten", href: "/r/mandanten", icon: UserIcon },
+const NAV_PRIMARY: ReadonlyArray<NavItem> = [
+  { label: "Übersicht", href: "/dashboard", icon: HomeIcon },
 ];
 
-const NAV_FUNCTIONS: ReadonlyArray<{
-  label: string;
-  href: string;
-  icon: LucideIcon;
-}> = [
-  { label: "Prompt-Bibliothek", href: "/prompt", icon: SparklesIcon },
-  { label: "Notizen", href: "/notizen", icon: StickyNoteIcon },
+const NAV_DATA: ReadonlyArray<NavItem> = [
+  {
+    label: "Akten",
+    href: "/r/akten",
+    icon: FolderOpenIcon,
+    functionId: "matters",
+  },
+  {
+    label: "Mandanten",
+    href: "/r/mandanten",
+    icon: UserIcon,
+    functionId: "clients",
+  },
+];
+
+const NAV_FUNCTIONS: ReadonlyArray<NavItem> = [
+  {
+    label: "Prompt-Bibliothek",
+    href: "/prompt",
+    icon: SparklesIcon,
+    functionId: "prompts",
+  },
+  {
+    label: "Notizen",
+    href: "/notizen",
+    icon: StickyNoteIcon,
+    functionId: "notes",
+  },
   {
     label: "Mandats-Aufnahmebogen",
     href: "/aufnahmebogen",
     icon: ClipboardListIcon,
+    functionId: "client-intake",
   },
-  { label: "Vertragsanalyse", href: "/vertragsanalyse", icon: FilePenLineIcon },
+  {
+    label: "Textbausteine",
+    href: "/r/textbausteine",
+    icon: FileStackIcon,
+    functionId: "text-blocks",
+  },
+  {
+    label: "Vertragsanalyse",
+    href: "/vertragsanalyse",
+    icon: FilePenLineIcon,
+    functionId: "contract-analysis",
+  },
 ];
+
+function filterNav(
+  items: readonly NavItem[],
+  allowedFunctions: AreaFunctionId[] | null
+): NavItem[] {
+  if (allowedFunctions === null) {
+    return [...items];
+  }
+  const allowed = new Set(allowedFunctions);
+  return items.filter(
+    (item) => !item.functionId || allowed.has(item.functionId)
+  );
+}
 
 export type AlbaShellUser = {
   name: string;
@@ -62,7 +106,7 @@ function isNavActive(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-function NavItem({
+function NavLink({
   label,
   href,
   icon: Icon,
@@ -110,14 +154,18 @@ function AlbaShellInner({
   user,
   tenantName,
   fillMain,
+  allowedFunctions,
 }: {
   children: ReactNode;
   user: AlbaShellUser | null;
   tenantName: string | null;
   fillMain: boolean;
+  allowedFunctions: AreaFunctionId[] | null;
 }) {
   const pathname = usePathname();
   const settingsActive = pathname === "/einstellungen";
+  const functions = filterNav(NAV_FUNCTIONS, allowedFunctions);
+  const data = filterNav(NAV_DATA, allowedFunctions);
 
   return (
     <div className="brand-lab-root brand-alba brand-alba-manrope">
@@ -139,7 +187,7 @@ function AlbaShellInner({
           </Link>
           <nav className="mt-8 flex flex-1 flex-col gap-0.5 px-0.5">
             {NAV_PRIMARY.map((item) => (
-              <NavItem
+              <NavLink
                 key={item.href}
                 label={item.label}
                 href={item.href}
@@ -147,36 +195,44 @@ function AlbaShellInner({
                 active={isNavActive(pathname, item.href)}
               />
             ))}
-            <p
-              className="lab-nav-group mt-5 mb-1 px-3.5"
-              style={{ color: "var(--b-accent)" }}
-            >
-              Funktionen
-            </p>
-            {NAV_FUNCTIONS.map((item) => (
-              <NavItem
-                key={item.href}
-                label={item.label}
-                href={item.href}
-                icon={item.icon}
-                active={isNavActive(pathname, item.href)}
-              />
-            ))}
-            <p
-              className="lab-nav-group mt-5 mb-1 px-3.5"
-              style={{ color: "var(--b-accent)" }}
-            >
-              Daten
-            </p>
-            {NAV_DATA.map((item) => (
-              <NavItem
-                key={item.href}
-                label={item.label}
-                href={item.href}
-                icon={item.icon}
-                active={isNavActive(pathname, item.href)}
-              />
-            ))}
+            {functions.length > 0 ? (
+              <>
+                <p
+                  className="lab-nav-group mt-5 mb-1 px-3.5"
+                  style={{ color: "var(--b-accent)" }}
+                >
+                  Funktionen
+                </p>
+                {functions.map((item) => (
+                  <NavLink
+                    key={item.href}
+                    label={item.label}
+                    href={item.href}
+                    icon={item.icon}
+                    active={isNavActive(pathname, item.href)}
+                  />
+                ))}
+              </>
+            ) : null}
+            {data.length > 0 ? (
+              <>
+                <p
+                  className="lab-nav-group mt-5 mb-1 px-3.5"
+                  style={{ color: "var(--b-accent)" }}
+                >
+                  Daten
+                </p>
+                {data.map((item) => (
+                  <NavLink
+                    key={item.href}
+                    label={item.label}
+                    href={item.href}
+                    icon={item.icon}
+                    active={isNavActive(pathname, item.href)}
+                  />
+                ))}
+              </>
+            ) : null}
           </nav>
 
           <div className="mt-auto flex flex-col gap-1.5">
@@ -220,16 +276,24 @@ export function AlbaShell({
   user = null,
   tenantName = null,
   fillMain = false,
+  allowedFunctions = null,
 }: {
   children: ReactNode;
   user?: AlbaShellUser | null;
   tenantName?: string | null;
   /** Main ohne Lab-Scroll — für eingebettete App-Views (DeskAppShell). */
   fillMain?: boolean;
+  /** null = alle Funktionen; Array = nur erlaubte. */
+  allowedFunctions?: AreaFunctionId[] | null;
 }) {
   return (
     <LabThemeProvider>
-      <AlbaShellInner user={user} tenantName={tenantName} fillMain={fillMain}>
+      <AlbaShellInner
+        user={user}
+        tenantName={tenantName}
+        fillMain={fillMain}
+        allowedFunctions={allowedFunctions}
+      >
         {children}
       </AlbaShellInner>
     </LabThemeProvider>

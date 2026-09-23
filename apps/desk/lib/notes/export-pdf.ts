@@ -38,7 +38,7 @@ function writeParagraph(
   options?: { bold?: boolean; size?: number; color?: string; spaceAfter?: number }
 ) {
   resetCursor(doc);
-  doc.font(options?.bold ? "Times-Bold" : "Times-Roman");
+  doc.font(options?.bold ? "Helvetica-Bold" : "Helvetica");
   doc
     .fontSize(options?.size ?? 12)
     .fillColor(options?.color ?? "#111111")

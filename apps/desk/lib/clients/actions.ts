@@ -82,10 +82,7 @@ export async function createClient(input: ClientInput) {
   if (validation) {
     return { success: false as const, error: validation };
   }
-  const item = await createClientRow(user.tenantId, user.id, {
-    ...input,
-    module: "legal",
-  });
+  const item = await createClientRow(user.tenantId, user.id, input);
   revalidatePath("/", "layout");
   return { success: true as const, item };
 }

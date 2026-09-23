@@ -192,6 +192,7 @@ export async function DeskAppShell({
       <AlbaShell
         fillMain
         tenantName={ctx.tenantName}
+        allowedFunctions={ctx.allowedFunctions}
         user={{
           name: ctx.displayName,
           roleLabel: DESK_ROLE_LABELS[ctx.deskRole],

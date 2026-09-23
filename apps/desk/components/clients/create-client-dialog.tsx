@@ -3,14 +3,6 @@
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
-import { createClient, createPerson } from "@/lib/clients/actions";
-import {
-  CLIENT_KINDS,
-  PERSON_SALUTATIONS,
-  type ClientKind,
-  type ClientRecord,
-} from "@/lib/clients/types";
-import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -18,15 +10,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { createClient, createPerson } from "@/lib/clients/actions";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  CLIENT_KINDS,
+  PERSON_SALUTATIONS,
+  type ClientKind,
+  type ClientRecord,
+} from "@/lib/clients/types";
+import type { ContentModule } from "@/lib/db/schema";
 import { cn } from "@/lib/utils";
 
 const EMPTY_COMPANY = {
@@ -50,11 +41,7 @@ const EMPTY_PERSON = {
   phone: "",
 };
 
-const fieldClass = "h-10 rounded-none";
-/** SelectTrigger defaults to h-8/rounded-lg — match Input fields. */
-const selectFieldClass =
-  "h-10 w-full rounded-none px-2.5 data-[size=default]:h-10";
-const labelClass = "text-xs font-medium text-muted-foreground";
+type Step = "kind" | "company" | "company-person" | "person";
 
 function Field({
   label,
@@ -68,25 +55,64 @@ function Field({
   children: React.ReactNode;
 }) {
   return (
-    <div className={cn("space-y-1.5", className)}>
-      <Label htmlFor={htmlFor} className={labelClass}>
+    <div className={cn("grid gap-1.5", className)}>
+      <label
+        htmlFor={htmlFor}
+        className="b-meta font-medium"
+        style={{ color: "var(--b-muted)" }}
+      >
         {label}
-      </Label>
+      </label>
       {children}
     </div>
   );
 }
 
-type Step = "kind" | "company" | "company-person" | "person";
+function DialogShell({
+  title,
+  description,
+  children,
+  footer,
+}: {
+  title: string;
+  description: string;
+  children: React.ReactNode;
+  footer: React.ReactNode;
+}) {
+  return (
+    <div className="flex flex-col">
+      <div
+        className="space-y-1 border-b px-6 py-5 pr-12"
+        style={{ borderColor: "var(--b-line)" }}
+      >
+        <DialogHeader className="gap-1.5">
+          <DialogTitle className="b-display text-[1.25rem] font-medium tracking-[-0.015em]">
+            {title}
+          </DialogTitle>
+          <DialogDescription className="b-meta">{description}</DialogDescription>
+        </DialogHeader>
+      </div>
+      {children}
+      <div
+        className="flex flex-col-reverse gap-2 border-t px-6 py-4 sm:flex-row sm:justify-end"
+        style={{ borderColor: "var(--b-line)" }}
+      >
+        {footer}
+      </div>
+    </div>
+  );
+}
 
 export function CreateClientDialog({
   open,
   onOpenChange,
+  module,
   onClientCreated,
   onPersonCreated,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  module: ContentModule;
   onClientCreated: (client: ClientRecord) => void;
   onPersonCreated: (clientId: string) => void;
 }) {
@@ -134,7 +160,7 @@ export function CreateClientDialog({
         phone: "",
         mobile: "",
         notes: "",
-        module: "legal",
+        module,
       });
       if (!result.success) {
         toast.error(result.error);
@@ -149,9 +175,7 @@ export function CreateClientDialog({
 
   function handleCreateContact(event: React.FormEvent) {
     event.preventDefault();
-    if (!createdClient) {
-      return;
-    }
+    if (!createdClient) return;
     startTransition(async () => {
       const result = await createPerson({
         clientId: createdClient.id,
@@ -186,7 +210,7 @@ export function CreateClientDialog({
         phone: person.phone,
         mobile: "",
         notes: "",
-        module: "legal",
+        module,
       });
       if (!result.success) {
         toast.error(result.error);
@@ -202,546 +226,543 @@ export function CreateClientDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent
         showCloseButton
-        className="gap-0 overflow-hidden rounded-none p-0 sm:max-w-xl"
+        className="brand-lab-root brand-alba brand-alba-manrope gap-0 overflow-hidden rounded-[1.15rem] border p-0 sm:max-w-xl"
+        style={{
+          borderColor: "var(--b-line)",
+          background: "var(--b-bg-elev)",
+          color: "var(--b-ink)",
+        }}
       >
         {step === "kind" ? (
-          <div className="flex flex-col">
-            <div className="space-y-1 border-b border-border/70 px-6 py-5 pr-12">
-              <DialogHeader className="gap-1">
-                <DialogTitle className="text-lg">Neuer Mandant</DialogTitle>
-                <DialogDescription>
-                  Firma mit Kontaktpersonen oder Privatperson.
-                </DialogDescription>
-              </DialogHeader>
-            </div>
+          <DialogShell
+            title="Neuer Mandant"
+            description="Firma mit Kontaktpersonen oder Privatperson."
+            footer={
+              <button
+                type="button"
+                className="b-btn b-btn-secondary"
+                onClick={() => handleOpenChange(false)}
+              >
+                Abbrechen
+              </button>
+            }
+          >
             <div className="grid gap-3 px-6 py-5 sm:grid-cols-2">
               {CLIENT_KINDS.map((entry) => (
                 <button
                   key={entry.value}
                   type="button"
                   onClick={() => chooseKind(entry.value)}
-                  className="border border-border/80 bg-background px-4 py-5 text-left transition-colors hover:border-foreground/40 hover:bg-muted/40"
+                  className="lab-choice"
                 >
-                  <p className="font-heading text-base font-medium tracking-tight">
+                  <span className="b-display text-[1.0625rem] font-medium tracking-[-0.01em]">
                     {entry.label}
-                  </p>
-                  <p className="mt-1 text-sm text-muted-foreground">
+                  </span>
+                  <span className="b-meta">
                     {entry.value === "company"
                       ? "Unternehmen, optional mit Ansprechpartnern"
                       : "Natürliche Person als Mandant"}
-                  </p>
+                  </span>
                 </button>
               ))}
             </div>
-            <div className="flex justify-end border-t border-border/70 bg-muted/40 px-6 py-4">
-              <Button
-                type="button"
-                variant="outline"
-                className="h-11 rounded-none px-5"
-                onClick={() => handleOpenChange(false)}
-              >
-                Abbrechen
-              </Button>
-            </div>
-          </div>
+          </DialogShell>
         ) : null}
 
         {step === "company" ? (
-          <form onSubmit={handleCreateCompany} className="flex flex-col">
-            <div className="space-y-1 border-b border-border/70 px-6 py-5 pr-12">
-              <DialogHeader className="gap-1">
-                <DialogTitle className="text-lg">Neue Firma</DialogTitle>
-                <DialogDescription>
-                  Firmendaten und Adresse — danach optional eine Person.
-                </DialogDescription>
-              </DialogHeader>
-            </div>
-
-            <div className="grid gap-x-4 gap-y-3 px-6 py-5 sm:grid-cols-6">
-              <Field label="Firma" htmlFor="client-name" className="sm:col-span-6">
-                <Input
-                  id="client-name"
-                  value={company.name}
-                  onChange={(event) =>
-                    setCompany((prev) => ({ ...prev, name: event.target.value }))
-                  }
-                  className={fieldClass}
-                  autoFocus
-                  required
-                />
-              </Field>
-              <Field
-                label="Straße und Hausnummer"
-                htmlFor="client-street"
-                className="sm:col-span-6"
-              >
-                <Input
-                  id="client-street"
-                  value={company.street}
-                  onChange={(event) =>
-                    setCompany((prev) => ({
-                      ...prev,
-                      street: event.target.value,
-                    }))
-                  }
-                  className={fieldClass}
-                />
-              </Field>
-              <Field label="PLZ" htmlFor="client-postal" className="sm:col-span-2">
-                <Input
-                  id="client-postal"
-                  value={company.postalCode}
-                  onChange={(event) =>
-                    setCompany((prev) => ({
-                      ...prev,
-                      postalCode: event.target.value,
-                    }))
-                  }
-                  className={fieldClass}
-                />
-              </Field>
-              <Field label="Ort" htmlFor="client-city" className="sm:col-span-4">
-                <Input
-                  id="client-city"
-                  value={company.city}
-                  onChange={(event) =>
-                    setCompany((prev) => ({ ...prev, city: event.target.value }))
-                  }
-                  className={fieldClass}
-                />
-              </Field>
-              <Field
-                label="Land"
-                htmlFor="client-country"
-                className="sm:col-span-6"
-              >
-                <Input
-                  id="client-country"
-                  value={company.country}
-                  onChange={(event) =>
-                    setCompany((prev) => ({
-                      ...prev,
-                      country: event.target.value,
-                    }))
-                  }
-                  className={fieldClass}
-                />
-              </Field>
-            </div>
-
-            <div className="flex flex-col-reverse gap-2 border-t border-border/70 bg-muted/40 px-6 py-4 sm:flex-row sm:justify-end">
-              <Button
-                type="button"
-                variant="outline"
-                className="h-11 rounded-none px-5"
-                disabled={isPending}
-                onClick={() => setStep("kind")}
-              >
-                Zurück
-              </Button>
-              <Button
-                type="submit"
-                disabled={isPending}
-                className="h-11 rounded-none px-5"
-              >
-                Speichern und weiter
-              </Button>
-            </div>
+          <form onSubmit={handleCreateCompany}>
+            <DialogShell
+              title="Neue Firma"
+              description="Firmendaten und Adresse — danach optional eine Person."
+              footer={
+                <>
+                  <button
+                    type="button"
+                    className="b-btn b-btn-secondary"
+                    disabled={isPending}
+                    onClick={() => setStep("kind")}
+                  >
+                    Zurück
+                  </button>
+                  <button
+                    type="submit"
+                    className="b-btn b-btn-primary"
+                    disabled={isPending}
+                  >
+                    {isPending ? "Speichern…" : "Speichern und weiter"}
+                  </button>
+                </>
+              }
+            >
+              <div className="grid gap-4 px-6 py-5 sm:grid-cols-6">
+                <Field label="Firma" htmlFor="client-name" className="sm:col-span-6">
+                  <input
+                    id="client-name"
+                    value={company.name}
+                    onChange={(e) =>
+                      setCompany((prev) => ({ ...prev, name: e.target.value }))
+                    }
+                    className="lab-field"
+                    autoFocus
+                    required
+                  />
+                </Field>
+                <Field
+                  label="Straße und Hausnummer"
+                  htmlFor="client-street"
+                  className="sm:col-span-6"
+                >
+                  <input
+                    id="client-street"
+                    value={company.street}
+                    onChange={(e) =>
+                      setCompany((prev) => ({
+                        ...prev,
+                        street: e.target.value,
+                      }))
+                    }
+                    className="lab-field"
+                  />
+                </Field>
+                <Field label="PLZ" htmlFor="client-postal" className="sm:col-span-2">
+                  <input
+                    id="client-postal"
+                    value={company.postalCode}
+                    onChange={(e) =>
+                      setCompany((prev) => ({
+                        ...prev,
+                        postalCode: e.target.value,
+                      }))
+                    }
+                    className="lab-field"
+                  />
+                </Field>
+                <Field label="Ort" htmlFor="client-city" className="sm:col-span-4">
+                  <input
+                    id="client-city"
+                    value={company.city}
+                    onChange={(e) =>
+                      setCompany((prev) => ({ ...prev, city: e.target.value }))
+                    }
+                    className="lab-field"
+                  />
+                </Field>
+                <Field
+                  label="Land"
+                  htmlFor="client-country"
+                  className="sm:col-span-6"
+                >
+                  <input
+                    id="client-country"
+                    value={company.country}
+                    onChange={(e) =>
+                      setCompany((prev) => ({
+                        ...prev,
+                        country: e.target.value,
+                      }))
+                    }
+                    className="lab-field"
+                  />
+                </Field>
+              </div>
+            </DialogShell>
           </form>
         ) : null}
 
         {step === "company-person" ? (
-          <form onSubmit={handleCreateContact} className="flex flex-col">
-            <div className="space-y-1 border-b border-border/70 px-6 py-5 pr-12">
-              <DialogHeader className="gap-1">
-                <DialogTitle className="text-lg">Person hinzufügen</DialogTitle>
-                <DialogDescription>
-                  Optional für {createdClient?.name ?? "diese Firma"}.
-                </DialogDescription>
-              </DialogHeader>
-            </div>
-
-            <div className="grid gap-x-4 gap-y-3 px-6 py-5 sm:grid-cols-6">
-              <Field
-                label="Anrede"
-                htmlFor="contact-salutation"
-                className="sm:col-span-2"
-              >
-                <Select
-                  value={person.salutation || undefined}
-                  onValueChange={(value) =>
-                    setPerson((prev) => ({ ...prev, salutation: value }))
-                  }
-                >
-                  <SelectTrigger
-                    id="contact-salutation"
-                    className={selectFieldClass}
+          <form onSubmit={handleCreateContact}>
+            <DialogShell
+              title="Person hinzufügen"
+              description={`Optional für ${createdClient?.name ?? "diese Firma"}.`}
+              footer={
+                <>
+                  <button
+                    type="button"
+                    className="b-btn b-btn-secondary"
+                    disabled={isPending}
+                    onClick={finish}
                   >
-                    <SelectValue placeholder="—" />
-                  </SelectTrigger>
-                  <SelectContent>
+                    Überspringen
+                  </button>
+                  <button
+                    type="submit"
+                    className="b-btn b-btn-primary"
+                    disabled={isPending}
+                  >
+                    {isPending ? "Speichern…" : "Person speichern"}
+                  </button>
+                </>
+              }
+            >
+              <div className="grid gap-4 px-6 py-5 sm:grid-cols-6">
+                <Field
+                  label="Anrede"
+                  htmlFor="contact-salutation"
+                  className="sm:col-span-2"
+                >
+                  <select
+                    id="contact-salutation"
+                    value={person.salutation}
+                    onChange={(e) =>
+                      setPerson((prev) => ({
+                        ...prev,
+                        salutation: e.target.value,
+                      }))
+                    }
+                    className="lab-field"
+                  >
                     {PERSON_SALUTATIONS.map((option) => (
-                      <SelectItem key={option} value={option}>
+                      <option key={option} value={option}>
                         {option}
-                      </SelectItem>
+                      </option>
                     ))}
-                  </SelectContent>
-                </Select>
-              </Field>
-              <Field
-                label="Vorname"
-                htmlFor="contact-first-name"
-                className="sm:col-span-2"
-              >
-                <Input
-                  id="contact-first-name"
-                  value={person.firstName}
-                  onChange={(event) =>
-                    setPerson((prev) => ({
-                      ...prev,
-                      firstName: event.target.value,
-                    }))
-                  }
-                  className={fieldClass}
-                  autoFocus
-                  required
-                />
-              </Field>
-              <Field
-                label="Nachname"
-                htmlFor="contact-last-name"
-                className="sm:col-span-2"
-              >
-                <Input
-                  id="contact-last-name"
-                  value={person.lastName}
-                  onChange={(event) =>
-                    setPerson((prev) => ({
-                      ...prev,
-                      lastName: event.target.value,
-                    }))
-                  }
-                  className={fieldClass}
-                  required
-                />
-              </Field>
-              <Field
-                label="Funktion"
-                htmlFor="contact-role"
-                className="sm:col-span-6"
-              >
-                <Input
-                  id="contact-role"
-                  value={person.role}
-                  onChange={(event) =>
-                    setPerson((prev) => ({ ...prev, role: event.target.value }))
-                  }
-                  className={fieldClass}
-                  placeholder="z. B. GF"
-                />
-              </Field>
-              <Field
-                label="Straße und Hausnummer"
-                htmlFor="contact-street"
-                className="sm:col-span-6"
-              >
-                <Input
-                  id="contact-street"
-                  value={person.street}
-                  onChange={(event) =>
-                    setPerson((prev) => ({
-                      ...prev,
-                      street: event.target.value,
-                    }))
-                  }
-                  className={fieldClass}
-                />
-              </Field>
-              <Field label="PLZ" htmlFor="contact-postal" className="sm:col-span-2">
-                <Input
-                  id="contact-postal"
-                  value={person.postalCode}
-                  onChange={(event) =>
-                    setPerson((prev) => ({
-                      ...prev,
-                      postalCode: event.target.value,
-                    }))
-                  }
-                  className={fieldClass}
-                />
-              </Field>
-              <Field label="Ort" htmlFor="contact-city" className="sm:col-span-4">
-                <Input
-                  id="contact-city"
-                  value={person.city}
-                  onChange={(event) =>
-                    setPerson((prev) => ({ ...prev, city: event.target.value }))
-                  }
-                  className={fieldClass}
-                />
-              </Field>
-              <Field
-                label="Land"
-                htmlFor="contact-country"
-                className="sm:col-span-6"
-              >
-                <Input
-                  id="contact-country"
-                  value={person.country}
-                  onChange={(event) =>
-                    setPerson((prev) => ({
-                      ...prev,
-                      country: event.target.value,
-                    }))
-                  }
-                  className={fieldClass}
-                />
-              </Field>
-              <Field
-                label="E-Mail"
-                htmlFor="contact-email"
-                className="sm:col-span-6"
-              >
-                <Input
-                  id="contact-email"
-                  type="email"
-                  value={person.email}
-                  onChange={(event) =>
-                    setPerson((prev) => ({
-                      ...prev,
-                      email: event.target.value,
-                    }))
-                  }
-                  className={fieldClass}
-                />
-              </Field>
-              <Field
-                label="Telefon"
-                htmlFor="contact-phone"
-                className="sm:col-span-6"
-              >
-                <Input
-                  id="contact-phone"
-                  value={person.phone}
-                  onChange={(event) =>
-                    setPerson((prev) => ({
-                      ...prev,
-                      phone: event.target.value,
-                    }))
-                  }
-                  className={fieldClass}
-                />
-              </Field>
-            </div>
-
-            <div className="flex flex-col-reverse gap-2 border-t border-border/70 bg-muted/40 px-6 py-4 sm:flex-row sm:justify-end">
-              <Button
-                type="button"
-                variant="outline"
-                className="h-11 rounded-none px-5"
-                disabled={isPending}
-                onClick={finish}
-              >
-                Überspringen
-              </Button>
-              <Button
-                type="submit"
-                disabled={isPending}
-                className="h-11 rounded-none px-5"
-              >
-                Person speichern
-              </Button>
-            </div>
+                  </select>
+                </Field>
+                <Field
+                  label="Vorname"
+                  htmlFor="contact-first-name"
+                  className="sm:col-span-2"
+                >
+                  <input
+                    id="contact-first-name"
+                    value={person.firstName}
+                    onChange={(e) =>
+                      setPerson((prev) => ({
+                        ...prev,
+                        firstName: e.target.value,
+                      }))
+                    }
+                    className="lab-field"
+                    autoFocus
+                    required
+                  />
+                </Field>
+                <Field
+                  label="Nachname"
+                  htmlFor="contact-last-name"
+                  className="sm:col-span-2"
+                >
+                  <input
+                    id="contact-last-name"
+                    value={person.lastName}
+                    onChange={(e) =>
+                      setPerson((prev) => ({
+                        ...prev,
+                        lastName: e.target.value,
+                      }))
+                    }
+                    className="lab-field"
+                    required
+                  />
+                </Field>
+                <Field
+                  label="Funktion"
+                  htmlFor="contact-role"
+                  className="sm:col-span-6"
+                >
+                  <input
+                    id="contact-role"
+                    value={person.role}
+                    onChange={(e) =>
+                      setPerson((prev) => ({ ...prev, role: e.target.value }))
+                    }
+                    className="lab-field"
+                    placeholder="z. B. GF"
+                  />
+                </Field>
+                <Field
+                  label="Straße und Hausnummer"
+                  htmlFor="contact-street"
+                  className="sm:col-span-6"
+                >
+                  <input
+                    id="contact-street"
+                    value={person.street}
+                    onChange={(e) =>
+                      setPerson((prev) => ({
+                        ...prev,
+                        street: e.target.value,
+                      }))
+                    }
+                    className="lab-field"
+                  />
+                </Field>
+                <Field
+                  label="PLZ"
+                  htmlFor="contact-postal"
+                  className="sm:col-span-2"
+                >
+                  <input
+                    id="contact-postal"
+                    value={person.postalCode}
+                    onChange={(e) =>
+                      setPerson((prev) => ({
+                        ...prev,
+                        postalCode: e.target.value,
+                      }))
+                    }
+                    className="lab-field"
+                  />
+                </Field>
+                <Field
+                  label="Ort"
+                  htmlFor="contact-city"
+                  className="sm:col-span-4"
+                >
+                  <input
+                    id="contact-city"
+                    value={person.city}
+                    onChange={(e) =>
+                      setPerson((prev) => ({ ...prev, city: e.target.value }))
+                    }
+                    className="lab-field"
+                  />
+                </Field>
+                <Field
+                  label="Land"
+                  htmlFor="contact-country"
+                  className="sm:col-span-6"
+                >
+                  <input
+                    id="contact-country"
+                    value={person.country}
+                    onChange={(e) =>
+                      setPerson((prev) => ({
+                        ...prev,
+                        country: e.target.value,
+                      }))
+                    }
+                    className="lab-field"
+                  />
+                </Field>
+                <Field
+                  label="E-Mail"
+                  htmlFor="contact-email"
+                  className="sm:col-span-6"
+                >
+                  <input
+                    id="contact-email"
+                    type="email"
+                    value={person.email}
+                    onChange={(e) =>
+                      setPerson((prev) => ({
+                        ...prev,
+                        email: e.target.value,
+                      }))
+                    }
+                    className="lab-field"
+                  />
+                </Field>
+                <Field
+                  label="Telefon"
+                  htmlFor="contact-phone"
+                  className="sm:col-span-6"
+                >
+                  <input
+                    id="contact-phone"
+                    value={person.phone}
+                    onChange={(e) =>
+                      setPerson((prev) => ({
+                        ...prev,
+                        phone: e.target.value,
+                      }))
+                    }
+                    className="lab-field"
+                  />
+                </Field>
+              </div>
+            </DialogShell>
           </form>
         ) : null}
 
         {step === "person" ? (
-          <form onSubmit={handleCreatePersonClient} className="flex flex-col">
-            <div className="space-y-1 border-b border-border/70 px-6 py-5 pr-12">
-              <DialogHeader className="gap-1">
-                <DialogTitle className="text-lg">Neue Privatperson</DialogTitle>
-                <DialogDescription>
-                  Stammdaten und Adresse der natürlichen Person.
-                </DialogDescription>
-              </DialogHeader>
-            </div>
-
-            <div className="grid gap-x-4 gap-y-3 px-6 py-5 sm:grid-cols-6">
-              <Field
-                label="Anrede"
-                htmlFor="person-salutation"
-                className="sm:col-span-2"
-              >
-                <Select
-                  value={person.salutation || undefined}
-                  onValueChange={(value) =>
-                    setPerson((prev) => ({ ...prev, salutation: value }))
-                  }
-                >
-                  <SelectTrigger
-                    id="person-salutation"
-                    className={selectFieldClass}
+          <form onSubmit={handleCreatePersonClient}>
+            <DialogShell
+              title="Neue Privatperson"
+              description="Stammdaten und Adresse."
+              footer={
+                <>
+                  <button
+                    type="button"
+                    className="b-btn b-btn-secondary"
+                    disabled={isPending}
+                    onClick={() => setStep("kind")}
                   >
-                    <SelectValue placeholder="—" />
-                  </SelectTrigger>
-                  <SelectContent>
+                    Zurück
+                  </button>
+                  <button
+                    type="submit"
+                    className="b-btn b-btn-primary"
+                    disabled={isPending}
+                  >
+                    {isPending ? "Speichern…" : "Speichern"}
+                  </button>
+                </>
+              }
+            >
+              <div className="grid gap-4 px-6 py-5 sm:grid-cols-6">
+                <Field
+                  label="Anrede"
+                  htmlFor="person-salutation"
+                  className="sm:col-span-2"
+                >
+                  <select
+                    id="person-salutation"
+                    value={person.salutation}
+                    onChange={(e) =>
+                      setPerson((prev) => ({
+                        ...prev,
+                        salutation: e.target.value,
+                      }))
+                    }
+                    className="lab-field"
+                  >
                     {PERSON_SALUTATIONS.map((option) => (
-                      <SelectItem key={option} value={option}>
+                      <option key={option} value={option}>
                         {option}
-                      </SelectItem>
+                      </option>
                     ))}
-                  </SelectContent>
-                </Select>
-              </Field>
-              <Field
-                label="Vorname"
-                htmlFor="person-first-name"
-                className="sm:col-span-2"
-              >
-                <Input
-                  id="person-first-name"
-                  value={person.firstName}
-                  onChange={(event) =>
-                    setPerson((prev) => ({
-                      ...prev,
-                      firstName: event.target.value,
-                    }))
-                  }
-                  className={fieldClass}
-                  autoFocus
-                  required
-                />
-              </Field>
-              <Field
-                label="Nachname"
-                htmlFor="person-last-name"
-                className="sm:col-span-2"
-              >
-                <Input
-                  id="person-last-name"
-                  value={person.lastName}
-                  onChange={(event) =>
-                    setPerson((prev) => ({
-                      ...prev,
-                      lastName: event.target.value,
-                    }))
-                  }
-                  className={fieldClass}
-                  required
-                />
-              </Field>
-              <Field
-                label="Straße und Hausnummer"
-                htmlFor="person-street"
-                className="sm:col-span-6"
-              >
-                <Input
-                  id="person-street"
-                  value={person.street}
-                  onChange={(event) =>
-                    setPerson((prev) => ({
-                      ...prev,
-                      street: event.target.value,
-                    }))
-                  }
-                  className={fieldClass}
-                />
-              </Field>
-              <Field label="PLZ" htmlFor="person-postal" className="sm:col-span-2">
-                <Input
-                  id="person-postal"
-                  value={person.postalCode}
-                  onChange={(event) =>
-                    setPerson((prev) => ({
-                      ...prev,
-                      postalCode: event.target.value,
-                    }))
-                  }
-                  className={fieldClass}
-                />
-              </Field>
-              <Field label="Ort" htmlFor="person-city" className="sm:col-span-4">
-                <Input
-                  id="person-city"
-                  value={person.city}
-                  onChange={(event) =>
-                    setPerson((prev) => ({ ...prev, city: event.target.value }))
-                  }
-                  className={fieldClass}
-                />
-              </Field>
-              <Field
-                label="Land"
-                htmlFor="person-country"
-                className="sm:col-span-6"
-              >
-                <Input
-                  id="person-country"
-                  value={person.country}
-                  onChange={(event) =>
-                    setPerson((prev) => ({
-                      ...prev,
-                      country: event.target.value,
-                    }))
-                  }
-                  className={fieldClass}
-                />
-              </Field>
-              <Field
-                label="E-Mail"
-                htmlFor="person-email"
-                className="sm:col-span-6"
-              >
-                <Input
-                  id="person-email"
-                  type="email"
-                  value={person.email}
-                  onChange={(event) =>
-                    setPerson((prev) => ({
-                      ...prev,
-                      email: event.target.value,
-                    }))
-                  }
-                  className={fieldClass}
-                />
-              </Field>
-              <Field
-                label="Telefon"
-                htmlFor="person-phone"
-                className="sm:col-span-6"
-              >
-                <Input
-                  id="person-phone"
-                  value={person.phone}
-                  onChange={(event) =>
-                    setPerson((prev) => ({
-                      ...prev,
-                      phone: event.target.value,
-                    }))
-                  }
-                  className={fieldClass}
-                />
-              </Field>
-            </div>
-
-            <div className="flex flex-col-reverse gap-2 border-t border-border/70 bg-muted/40 px-6 py-4 sm:flex-row sm:justify-end">
-              <Button
-                type="button"
-                variant="outline"
-                className="h-11 rounded-none px-5"
-                disabled={isPending}
-                onClick={() => setStep("kind")}
-              >
-                Zurück
-              </Button>
-              <Button
-                type="submit"
-                disabled={isPending}
-                className="h-11 rounded-none px-5"
-              >
-                Speichern
-              </Button>
-            </div>
+                  </select>
+                </Field>
+                <Field
+                  label="Vorname"
+                  htmlFor="person-first-name"
+                  className="sm:col-span-2"
+                >
+                  <input
+                    id="person-first-name"
+                    value={person.firstName}
+                    onChange={(e) =>
+                      setPerson((prev) => ({
+                        ...prev,
+                        firstName: e.target.value,
+                      }))
+                    }
+                    className="lab-field"
+                    autoFocus
+                    required
+                  />
+                </Field>
+                <Field
+                  label="Nachname"
+                  htmlFor="person-last-name"
+                  className="sm:col-span-2"
+                >
+                  <input
+                    id="person-last-name"
+                    value={person.lastName}
+                    onChange={(e) =>
+                      setPerson((prev) => ({
+                        ...prev,
+                        lastName: e.target.value,
+                      }))
+                    }
+                    className="lab-field"
+                    required
+                  />
+                </Field>
+                <Field
+                  label="Straße und Hausnummer"
+                  htmlFor="person-street"
+                  className="sm:col-span-6"
+                >
+                  <input
+                    id="person-street"
+                    value={person.street}
+                    onChange={(e) =>
+                      setPerson((prev) => ({
+                        ...prev,
+                        street: e.target.value,
+                      }))
+                    }
+                    className="lab-field"
+                  />
+                </Field>
+                <Field
+                  label="PLZ"
+                  htmlFor="person-postal"
+                  className="sm:col-span-2"
+                >
+                  <input
+                    id="person-postal"
+                    value={person.postalCode}
+                    onChange={(e) =>
+                      setPerson((prev) => ({
+                        ...prev,
+                        postalCode: e.target.value,
+                      }))
+                    }
+                    className="lab-field"
+                  />
+                </Field>
+                <Field
+                  label="Ort"
+                  htmlFor="person-city"
+                  className="sm:col-span-4"
+                >
+                  <input
+                    id="person-city"
+                    value={person.city}
+                    onChange={(e) =>
+                      setPerson((prev) => ({ ...prev, city: e.target.value }))
+                    }
+                    className="lab-field"
+                  />
+                </Field>
+                <Field
+                  label="Land"
+                  htmlFor="person-country"
+                  className="sm:col-span-6"
+                >
+                  <input
+                    id="person-country"
+                    value={person.country}
+                    onChange={(e) =>
+                      setPerson((prev) => ({
+                        ...prev,
+                        country: e.target.value,
+                      }))
+                    }
+                    className="lab-field"
+                  />
+                </Field>
+                <Field
+                  label="E-Mail"
+                  htmlFor="person-email"
+                  className="sm:col-span-6"
+                >
+                  <input
+                    id="person-email"
+                    type="email"
+                    value={person.email}
+                    onChange={(e) =>
+                      setPerson((prev) => ({
+                        ...prev,
+                        email: e.target.value,
+                      }))
+                    }
+                    className="lab-field"
+                  />
+                </Field>
+                <Field
+                  label="Telefon"
+                  htmlFor="person-phone"
+                  className="sm:col-span-6"
+                >
+                  <input
+                    id="person-phone"
+                    value={person.phone}
+                    onChange={(e) =>
+                      setPerson((prev) => ({
+                        ...prev,
+                        phone: e.target.value,
+                      }))
+                    }
+                    className="lab-field"
+                  />
+                </Field>
+              </div>
+            </DialogShell>
           </form>
         ) : null}
       </DialogContent>

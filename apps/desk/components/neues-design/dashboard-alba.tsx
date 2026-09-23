@@ -4,12 +4,14 @@ import Link from "next/link";
 
 import { AlbaShell, type AlbaShellUser } from "@/components/neues-design/alba-shell";
 import {
+  filterLabCards,
   LAB_DATA,
   LAB_FUNCTIONS,
   LAB_MORE,
   LabFunctionIcon,
   type LabFunctionCard,
 } from "@/components/neues-design/lab-functions";
+import type { AreaFunctionId } from "@/lib/area/functions";
 
 function FunctionCard({ fn }: { fn: LabFunctionCard }) {
   return (
@@ -63,7 +65,17 @@ function SectionHeading({
   );
 }
 
-function DashboardAlbaContent({ greeting }: { greeting: string }) {
+function DashboardAlbaContent({
+  greeting,
+  allowedFunctions,
+}: {
+  greeting: string;
+  allowedFunctions: AreaFunctionId[] | null;
+}) {
+  const functions = filterLabCards(LAB_FUNCTIONS, allowedFunctions);
+  const data = filterLabCards(LAB_DATA, allowedFunctions);
+  const more = filterLabCards(LAB_MORE, allowedFunctions);
+
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col px-6 pt-12 pb-14 md:px-10 md:pt-14">
       <header className="flex max-w-2xl flex-col">
@@ -74,40 +86,52 @@ function DashboardAlbaContent({ greeting }: { greeting: string }) {
           {greeting}
         </h1>
         <p className="b-lead mt-2 max-w-none text-[1.0625rem] leading-[1.55] md:mt-2.5">
-          Die wichtigsten Funktionen und Daten für Ihren Arbeitsalltag -
-          einfach zu bedienen und unterstützt von der KI.
+          Die wichtigsten Funktionen und Daten für Ihren Arbeitsalltag —
+          einfach zu bedienen.
         </p>
       </header>
 
-      <SectionHeading
-        title="Funktionen"
-        subtitle="Werkzeuge für Ihren Arbeitsalltag."
-      />
-      <div className="mt-5 grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
-        {LAB_FUNCTIONS.map((fn) => (
-          <FunctionCard key={fn.href} fn={fn} />
-        ))}
-      </div>
+      {functions.length > 0 ? (
+        <>
+          <SectionHeading
+            title="Funktionen"
+            subtitle="Werkzeuge für Ihren Arbeitsalltag."
+          />
+          <div className="mt-5 grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
+            {functions.map((fn) => (
+              <FunctionCard key={fn.href} fn={fn} />
+            ))}
+          </div>
+        </>
+      ) : null}
 
-      <SectionHeading
-        title="Daten"
-        subtitle="Stammdaten und Bezüge Ihrer Mandate."
-      />
-      <div className="mt-5 grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
-        {LAB_DATA.map((fn) => (
-          <FunctionCard key={fn.href} fn={fn} />
-        ))}
-      </div>
+      {data.length > 0 ? (
+        <>
+          <SectionHeading
+            title="Daten"
+            subtitle="Stammdaten und Bezüge Ihrer Mandate."
+          />
+          <div className="mt-5 grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
+            {data.map((fn) => (
+              <FunctionCard key={fn.href} fn={fn} />
+            ))}
+          </div>
+        </>
+      ) : null}
 
-      <SectionHeading
-        title="Weitere"
-        subtitle="Organisation und ergänzende Hilfsmittel."
-      />
-      <div className="mt-5 grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
-        {LAB_MORE.map((fn) => (
-          <FunctionCard key={fn.href} fn={fn} />
-        ))}
-      </div>
+      {more.length > 0 ? (
+        <>
+          <SectionHeading
+            title="Weitere"
+            subtitle="Organisation und ergänzende Hilfsmittel."
+          />
+          <div className="mt-5 grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
+            {more.map((fn) => (
+              <FunctionCard key={fn.href} fn={fn} />
+            ))}
+          </div>
+        </>
+      ) : null}
     </div>
   );
 }
@@ -117,14 +141,23 @@ export function DashboardAlba({
   greeting = "Guten Tag,",
   user = null,
   tenantName = null,
+  allowedFunctions = null,
 }: {
   greeting?: string;
   user?: AlbaShellUser | null;
   tenantName?: string | null;
+  allowedFunctions?: AreaFunctionId[] | null;
 }) {
   return (
-    <AlbaShell user={user} tenantName={tenantName}>
-      <DashboardAlbaContent greeting={greeting} />
+    <AlbaShell
+      user={user}
+      tenantName={tenantName}
+      allowedFunctions={allowedFunctions}
+    >
+      <DashboardAlbaContent
+        greeting={greeting}
+        allowedFunctions={allowedFunctions}
+      />
     </AlbaShell>
   );
 }

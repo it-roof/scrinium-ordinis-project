@@ -20,9 +20,7 @@ export default async function DeskClientsPage({ params }: PageProps) {
 
   return (
     <DeskAppShell ctx={ctx} headerTitle="Mandanten">
-      <div className="min-h-0 flex-1 overflow-y-auto p-4 lg:p-6">
-        <ClientsView initialItems={items} />
-      </div>
+      <ClientsView initialItems={items} />
     </DeskAppShell>
   );
 }

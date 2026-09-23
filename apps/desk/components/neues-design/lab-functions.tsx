@@ -13,6 +13,8 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
+import type { AreaFunctionId } from "@/lib/area/functions";
+
 /** Akzentfarbe pro Funktion (Icon-Chip + „Öffnen“). */
 export type LabFunctionTone = {
   /** Icon- und Link-Farbe */
@@ -28,6 +30,8 @@ export type LabFunctionCard = {
   href: string;
   icon: LucideIcon;
   tone: LabFunctionTone;
+  /** ACL-Funktion — steuert Sichtbarkeit nach Rolle. */
+  functionId: AreaFunctionId;
 };
 
 /** Bereich „Funktionen“ — Werkzeuge. */
@@ -37,6 +41,7 @@ export const LAB_FUNCTIONS: ReadonlyArray<LabFunctionCard> = [
     body: "Bewährte Prompts speichern.\nSchnell suchen und kopieren.",
     href: "/prompt",
     icon: SparklesIcon,
+    functionId: "prompts",
     tone: {
       accent: "#6b4580",
       soft: "color-mix(in srgb, #b88fd0 20%, transparent)",
@@ -47,6 +52,7 @@ export const LAB_FUNCTIONS: ReadonlyArray<LabFunctionCard> = [
     body: "Persönliche Notizen nur für Sie.\nTippen oder diktieren.",
     href: "/notizen",
     icon: StickyNoteIcon,
+    functionId: "notes",
     tone: {
       accent: "#a05a2c",
       soft: "color-mix(in srgb, #e0a070 20%, transparent)",
@@ -57,9 +63,21 @@ export const LAB_FUNCTIONS: ReadonlyArray<LabFunctionCard> = [
     body: "Link an Mandanten senden.\nStammdaten in Schritten erfassen.",
     href: "/aufnahmebogen",
     icon: ClipboardListIcon,
+    functionId: "client-intake",
     tone: {
       accent: "#3d5a80",
       soft: "color-mix(in srgb, #7a9cc0 22%, transparent)",
+    },
+  },
+  {
+    title: "Textbausteine",
+    body: "Wiederkehrende Texte bereithalten.\nIn Schreiben übernehmen.",
+    href: "/r/textbausteine",
+    icon: FileStackIcon,
+    functionId: "text-blocks",
+    tone: {
+      accent: "#3f6b55",
+      soft: "color-mix(in srgb, #7cbc9a 20%, transparent)",
     },
   },
   {
@@ -67,6 +85,7 @@ export const LAB_FUNCTIONS: ReadonlyArray<LabFunctionCard> = [
     body: "Vertragstext prüfen lassen.\nLücken, AGB und Formulierungen.",
     href: "/vertragsanalyse",
     icon: FilePenLineIcon,
+    functionId: "contract-analysis",
     tone: {
       accent: "#4a5568",
       soft: "color-mix(in srgb, #94a3b8 22%, transparent)",
@@ -81,6 +100,7 @@ export const LAB_DATA: ReadonlyArray<LabFunctionCard> = [
     body: "Mandate im Überblick.\nNach Mandant und Zeichen finden.",
     href: "/r/akten",
     icon: FolderOpenIcon,
+    functionId: "matters",
     tone: {
       accent: "#3d6b8a",
       soft: "color-mix(in srgb, #7eb0d0 22%, transparent)",
@@ -91,6 +111,7 @@ export const LAB_DATA: ReadonlyArray<LabFunctionCard> = [
     body: "Stammdaten und Kontakte.\nEinwilligungen im Blick behalten.",
     href: "/r/mandanten",
     icon: UserIcon,
+    functionId: "clients",
     tone: {
       accent: "#2f7a72",
       soft: "color-mix(in srgb, #6dbfb4 20%, transparent)",
@@ -105,6 +126,7 @@ export const LAB_MORE: ReadonlyArray<LabFunctionCard> = [
     body: "Was bei Ihnen liegt.\nPriorisieren und abarbeiten.",
     href: "/eingang",
     icon: MessagesSquareIcon,
+    functionId: "inbox",
     tone: {
       accent: "#9a6b2f",
       soft: "color-mix(in srgb, #c4a574 22%, transparent)",
@@ -115,19 +137,10 @@ export const LAB_MORE: ReadonlyArray<LabFunctionCard> = [
     body: "Arbeit an Kolleginnen geben.\nBall übergeben und verfolgen.",
     href: "/zuweisen",
     icon: SendIcon,
+    functionId: "staff-messages",
     tone: {
       accent: "#8b5a3c",
       soft: "color-mix(in srgb, #d4a574 20%, transparent)",
-    },
-  },
-  {
-    title: "Textbausteine",
-    body: "Wiederkehrende Texte bereithalten.\nIn Schreiben übernehmen.",
-    href: "/r/textbausteine",
-    icon: FileStackIcon,
-    tone: {
-      accent: "#3f6b55",
-      soft: "color-mix(in srgb, #7cbc9a 20%, transparent)",
     },
   },
   {
@@ -135,6 +148,7 @@ export const LAB_MORE: ReadonlyArray<LabFunctionCard> = [
     body: "Einfacher Chat mit der KI.\nFormulierungen und Orientierung.",
     href: "/ki",
     icon: BotIcon,
+    functionId: "ai-chat",
     tone: {
       accent: "#2f6f6a",
       soft: "color-mix(in srgb, #6db5ae 20%, transparent)",
@@ -145,12 +159,24 @@ export const LAB_MORE: ReadonlyArray<LabFunctionCard> = [
     body: "Sachverhalt aus der Akte prüfen.\nEntwurf zur Freigabe erhalten.",
     href: "/r/analyse",
     icon: ScaleIcon,
+    functionId: "case-facts-analysis",
     tone: {
       accent: "#5b4d8a",
       soft: "color-mix(in srgb, #9b8fd0 22%, transparent)",
     },
   },
 ];
+
+export function filterLabCards(
+  cards: readonly LabFunctionCard[],
+  allowedFunctions: AreaFunctionId[] | null
+): LabFunctionCard[] {
+  if (allowedFunctions === null) {
+    return [...cards];
+  }
+  const allowed = new Set(allowedFunctions);
+  return cards.filter((card) => allowed.has(card.functionId));
+}
 
 /** Icon für Funktionskarten — farbige Fläche hinter dem Icon. */
 export function LabFunctionIcon({
