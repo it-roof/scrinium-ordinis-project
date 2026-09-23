@@ -1,16 +1,24 @@
 import nodemailer from "nodemailer";
+import type SMTPTransport from "nodemailer/lib/smtp-transport";
 
 import type { SmtpConnectionConfig } from "./types";
+
+type SmtpTransportOptions = SMTPTransport.Options & {
+  /** Node net.connect family — Types fehlen in @types/nodemailer */
+  family?: 4 | 6;
+};
 
 function createTransport(config: SmtpConnectionConfig) {
   const secure = config.port === 465;
 
-  return nodemailer.createTransport({
+  const options: SmtpTransportOptions = {
     host: config.host,
     port: config.port,
     secure,
     // Port 587: STARTTLS (u. a. Microsoft 365)
     requireTLS: !secure && config.port === 587,
+    // Hetzner/Coolify: IPv6 oft Timeout, lokal (IPv4) funktioniert
+    family: 4,
     auth: {
       user: config.username,
       pass: config.password,
@@ -18,7 +26,9 @@ function createTransport(config: SmtpConnectionConfig) {
     connectionTimeout: 20_000,
     greetingTimeout: 20_000,
     socketTimeout: 20_000,
-  });
+  };
+
+  return nodemailer.createTransport(options);
 }
 
 function formatFrom(config: SmtpConnectionConfig) {
@@ -37,11 +47,44 @@ export function formatSmtpError(error: unknown): string {
 
   const err = error as {
     code?: string;
+    errno?: string | number;
     responseCode?: number;
     response?: string;
     message?: string;
     command?: string;
   };
+
+  const code = String(err.code ?? err.errno ?? "").toUpperCase();
+  const message = (err.message ?? "").toLowerCase();
+
+  if (
+    code === "ETIMEDOUT" ||
+    code === "ESOCKETTIMEDOUT" ||
+    code === "ETIMEOUT" ||
+    message.includes("timeout") ||
+    message.includes("timed out")
+  ) {
+    return (
+      "Verbindung zum SMTP-Server abgebrochen (Timeout). " +
+      "Vom Server aus ist Port 465/587 oft gesperrt — Hosting/Firewall prüfen " +
+      "oder Port 587 (STARTTLS) bzw. 465 (SSL) und Host nochmals kontrollieren."
+    );
+  }
+
+  if (
+    code === "ECONNREFUSED" ||
+    code === "EHOSTUNREACH" ||
+    code === "ENOTFOUND"
+  ) {
+    return (
+      "SMTP-Server nicht erreichbar. Host und Port prüfen " +
+      "(häufig: ausgehender SMTP vom Hosting blockiert)."
+    );
+  }
+
+  if (code === "EAUTH" || err.responseCode === 535) {
+    return "SMTP-Anmeldung fehlgeschlagen. Benutzername und Passwort prüfen.";
+  }
 
   const parts: string[] = [];
 
@@ -57,7 +100,6 @@ export function formatSmtpError(error: unknown): string {
     "";
 
   if (detail) {
-    // Keine Passwörter/URLs mit Credentials durchreichen
     const cleaned = detail
       .replace(/pass(?:word)?[=:].*/gi, "[redacted]")
       .slice(0, 240);

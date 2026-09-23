@@ -1,4 +1,5 @@
 import nodemailer from "nodemailer";
+import type SMTPTransport from "nodemailer/lib/smtp-transport";
 
 import { DESK_APP_URL } from "@scrinium/brand";
 
@@ -8,6 +9,10 @@ type MailConfig = {
   user: string;
   password: string;
   from: string;
+};
+
+type SmtpTransportOptions = SMTPTransport.Options & {
+  family?: 4 | 6;
 };
 
 /**
@@ -57,16 +62,21 @@ export async function sendSystemMail(input: {
   }
 
   const secure = config.port === 465;
-  const transport = nodemailer.createTransport({
+  const options: SmtpTransportOptions = {
     host: config.host,
     port: config.port,
     secure,
     requireTLS: !secure && config.port === 587,
+    family: 4,
     auth: {
       user: config.user,
       pass: config.password,
     },
-  });
+    connectionTimeout: 20_000,
+    greetingTimeout: 20_000,
+    socketTimeout: 20_000,
+  };
+  const transport = nodemailer.createTransport(options);
 
   try {
     await transport.sendMail({

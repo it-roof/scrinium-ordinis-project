@@ -147,7 +147,7 @@ export function V1PromptForm({
       onCancel();
       return;
     }
-    router.push(`${PROMPT_BASE}?mode=verwalten`);
+    router.push(PROMPT_BASE);
   }
 
   function handleCompare() {
@@ -184,7 +184,7 @@ export function V1PromptForm({
         return;
       }
 
-      router.push(`${PROMPT_BASE}?mode=verwalten`);
+      router.push(PROMPT_BASE);
       router.refresh();
     });
   }
@@ -343,7 +343,7 @@ export function V1PromptForm({
   return (
     <div className="mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col gap-6 overflow-y-auto p-4 md:p-6">
       <Button asChild variant="ghost" size="sm" className="w-fit px-0">
-        <Link href={`${PROMPT_BASE}?mode=verwalten`}>
+        <Link href={PROMPT_BASE}>
           <ArrowLeftIcon />
           Zurück zur Bibliothek
         </Link>

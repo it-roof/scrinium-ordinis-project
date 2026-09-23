@@ -7,7 +7,7 @@ import { getUserAllowedFunctions } from "@/lib/tenant/modules";
 import { getAppBaseUrl } from "@/lib/mail/system";
 import { getTenantUiContext } from "@/lib/tenant/brand";
 import { getUserSmtpConnectionConfig } from "@/lib/smtp/storage";
-import { sendMailWithUserSmtp } from "@/lib/smtp/send";
+import { formatSmtpError, sendMailWithUserSmtp } from "@/lib/smtp/send";
 import {
   createIntakeInvite,
   findOpenInviteByToken,
@@ -110,12 +110,21 @@ export async function sendIntakeInviteMailAction(input: {
     return { ok: false, error: "Einladung nicht gefunden oder nicht offen." };
   }
 
-  const config = await getUserSmtpConnectionConfig(user.tenantId, user.id);
+  let config;
+  try {
+    config = await getUserSmtpConnectionConfig(user.tenantId, user.id);
+  } catch {
+    return {
+      ok: false,
+      error:
+        "SMTP-Passwort konnte nicht gelesen werden. Bitte unter Einstellungen das Passwort erneut speichern.",
+    };
+  }
   if (!config) {
     return {
       ok: false,
       error:
-        "Kein SMTP eingerichtet. Bitte Link kopieren oder unter Einstellungen SMTP hinterlegen.",
+        "Kein SMTP eingerichtet. Bitte unter Einstellungen Ihr SMTP hinterlegen und eine Testmail senden.",
     };
   }
 
@@ -137,8 +146,8 @@ export async function sendIntakeInviteMailAction(input: {
       html: mail.html,
     });
     return { ok: true };
-  } catch {
-    return { ok: false, error: "E-Mail konnte nicht gesendet werden." };
+  } catch (error) {
+    return { ok: false, error: formatSmtpError(error) };
   }
 }
 

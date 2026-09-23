@@ -1,15 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
-import {
-  CopyIcon,
-  PencilIcon,
-  PlusIcon,
-  Sparkles,
-  Trash2Icon,
-} from "lucide-react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import {
@@ -18,84 +9,20 @@ import {
   type PromptTagFilter,
 } from "@/components/prompts/use-prompt-list-filter";
 import { V1PromptsFilterBar } from "@/components/desk/prompts/prompts-filter-bar";
-import { Badge } from "@/components/desk/ui/badge";
-import { Button } from "@/components/desk/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/desk/ui/card";
-import { Input } from "@/components/desk/ui/input";
-import { deletePrompt, updatePromptNumber } from "@/lib/prompts/actions";
 import { formatPromptNumber, type Prompt } from "@/lib/prompts/types";
-import { cn } from "@/lib/utils";
 
-const PROMPT_BASE = "/prompt";
 const PROMPT_SORT_STORAGE_KEY = "scrinium.v1.prompt-sort-order";
-
-export type PromptLibraryMode = "ansehen" | "verwalten";
-
-type V1PromptsLibraryViewProps = {
-  initialItems: Prompt[];
-  mode: PromptLibraryMode;
-  canManage?: boolean;
-};
-
-function ModeToggle({
-  mode,
-  onChange,
-}: {
-  mode: PromptLibraryMode;
-  onChange: (next: PromptLibraryMode) => void;
-}) {
-  return (
-    <div className="inline-flex rounded-lg border border-border/60 bg-muted/40 p-0.5">
-      <Button
-        type="button"
-        variant="ghost"
-        size="sm"
-        onClick={() => onChange("ansehen")}
-        className={cn(
-          "h-8 rounded-md px-3 text-muted-foreground hover:text-foreground",
-          mode === "ansehen" &&
-            "bg-primary text-primary-foreground shadow-none hover:bg-primary hover:text-primary-foreground"
-        )}
-      >
-        Ansehen
-      </Button>
-      <Button
-        type="button"
-        variant="ghost"
-        size="sm"
-        onClick={() => onChange("verwalten")}
-        className={cn(
-          "h-8 rounded-md px-3 text-muted-foreground hover:text-foreground",
-          mode === "verwalten" &&
-            "bg-primary text-primary-foreground shadow-none hover:bg-primary hover:text-primary-foreground"
-        )}
-      >
-        Verwalten
-      </Button>
-    </div>
-  );
-}
 
 export function V1PromptsLibraryView({
   initialItems,
-  mode,
-  canManage = false,
-}: V1PromptsLibraryViewProps) {
-  const router = useRouter();
-  const pathname = usePathname();
-  const isManage = canManage && mode === "verwalten";
+}: {
+  initialItems: Prompt[];
+}) {
   const [items, setItems] = useState(initialItems);
   const [search, setSearch] = useState("");
   const [tagFilter, setTagFilter] = useState<PromptTagFilter>("all");
   const [sortOrder, setSortOrder] = useState<PromptSortOrder>("number-asc");
   const [openId, setOpenId] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
   const { filteredItems } = usePromptListFilter(
     items,
     search,
@@ -127,14 +54,6 @@ export function V1PromptsLibraryView({
     }
   }
 
-  function setMode(next: PromptLibraryMode) {
-    if (next === "verwalten") {
-      router.push(`${pathname}?mode=verwalten`);
-      return;
-    }
-    router.push(pathname);
-  }
-
   async function copyContent(item: Prompt) {
     try {
       await navigator.clipboard.writeText(item.content);
@@ -144,270 +63,111 @@ export function V1PromptsLibraryView({
     }
   }
 
-  function handleDelete(item: Prompt) {
-    const confirmed = window.confirm(
-      `„${item.title}" dauerhaft löschen? Diese Aktion kann nicht rückgängig gemacht werden.`
-    );
-    if (!confirmed) {
-      return;
-    }
-
-    startTransition(async () => {
-      const result = await deletePrompt(item.id);
-      if (!result.success) {
-        toast.error(result.error);
-        return;
-      }
-      setItems((current) => current.filter((row) => row.id !== item.id));
-      toast.success("Prompt gelöscht.");
-      router.refresh();
-    });
-  }
-
-  function handleNumberCommit(item: Prompt, raw: string) {
-    const parsed = Number.parseInt(raw.trim(), 10);
-    if (!Number.isInteger(parsed) || parsed < 1) {
-      toast.error("Bitte eine ganze Zahl ab 1 angeben.");
-      return;
-    }
-    if (parsed === item.number) {
-      return;
-    }
-
-    startTransition(async () => {
-      const result = await updatePromptNumber(item.id, parsed);
-      if (!result.success) {
-        toast.error(result.error);
-        return;
-      }
-      setItems((current) =>
-        current.map((row) => (row.id === result.item.id ? result.item : row))
-      );
-      router.refresh();
-    });
-  }
-
   return (
-    <div className="relative flex min-h-0 flex-1 flex-col overflow-y-auto">
-      <div className="@container/main mx-auto flex w-full max-w-5xl flex-1 flex-col px-6 pt-12 pb-14 md:px-10 md:pt-14">
-        <header className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
-          <div className="flex max-w-2xl flex-col">
-            <p className="b-eyebrow" style={{ color: "var(--b-accent)" }}>
-              Funktionen
-            </p>
-            <h1 className="b-display b-title mt-3 font-medium tracking-[-0.02em] md:mt-3.5">
-              Prompt-Bibliothek
-            </h1>
-            <p className="b-lead mt-2 max-w-none text-[1.0625rem] leading-[1.55] md:mt-2.5">
-              {isManage
-                ? "Gemeinsame Bibliothek für alle Kanzleien — anlegen, bearbeiten und löschen."
-                : "Gemeinsame Bibliothek für alle Kanzleien — durchsuchen und kopieren."}
-            </p>
-          </div>
-          <div className="flex shrink-0 flex-wrap items-center gap-2">
-            {canManage ? (
-              <ModeToggle mode={mode} onChange={setMode} />
-            ) : null}
-            {isManage ? (
-              <Button
-                asChild
-                size="sm"
-                className="h-8 rounded-md px-3 shadow-none"
-              >
-                <Link href={`${PROMPT_BASE}/neu`}>
-                  <PlusIcon />
-                  Neuer Prompt
-                </Link>
-              </Button>
-            ) : null}
-          </div>
+    <div className="lab-prompts relative flex min-h-0 flex-1 flex-col overflow-y-auto">
+      <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col px-6 pt-12 pb-14 md:px-10 md:pt-14">
+        <header className="flex max-w-2xl flex-col">
+          <h1 className="b-display b-title font-medium tracking-[-0.02em]">
+            Prompt-Bibliothek
+          </h1>
+          <p className="b-lead mt-2 max-w-none text-[1.0625rem] leading-[1.55] md:mt-2.5">
+            Gemeinsame Bibliothek — durchsuchen und kopieren.
+          </p>
         </header>
 
-        <div className="mt-10 flex flex-col gap-6 md:gap-8">
-          <div>
-            <V1PromptsFilterBar
-              items={items}
-              search={search}
-              onSearchChange={setSearch}
-              tagFilter={tagFilter}
-              onTagFilterChange={setTagFilter}
-              sortOrder={sortOrder}
-              onSortOrderChange={changeSortOrder}
-            />
-          </div>
+        <div className="mt-10 flex flex-col gap-6">
+          <V1PromptsFilterBar
+            items={items}
+            search={search}
+            onSearchChange={setSearch}
+            tagFilter={tagFilter}
+            onTagFilterChange={setTagFilter}
+            sortOrder={sortOrder}
+            onSortOrderChange={changeSortOrder}
+          />
 
           {filteredItems.length === 0 ? (
-            <Card className="border-dashed border-border/80 bg-card shadow-none">
-              <CardHeader className="items-center text-center">
-                <div className="mb-2 flex size-11 items-center justify-center rounded-xl bg-violet-100 text-violet-700 ring-1 ring-violet-200/70">
-                  <Sparkles className="size-5" />
-                </div>
-                <CardTitle className="font-heading text-lg font-medium tracking-tight">
-                  {items.length === 0 ? "Noch keine Prompts" : "Keine Treffer"}
-                </CardTitle>
-                <CardDescription className="max-w-sm text-sm leading-relaxed">
-                  {items.length === 0
-                    ? canManage
-                      ? "Legen Sie den ersten Prompt für die gemeinsame Bibliothek an."
-                      : "Die gemeinsame Bibliothek ist noch leer."
-                    : "Passe die Suche oder den Tag-Filter an."}
-                </CardDescription>
-              </CardHeader>
-              {items.length === 0 && canManage ? (
-                <CardContent className="flex justify-center">
-                  <Button asChild size="sm">
-                    <Link href={`${PROMPT_BASE}/neu`}>
-                      <PlusIcon />
-                      Ersten Prompt anlegen
-                    </Link>
-                  </Button>
-                </CardContent>
-              ) : null}
-            </Card>
+            <div className="lab-function-card border px-6 py-12 text-center">
+              <p className="b-display text-[1.125rem] font-medium tracking-[-0.01em]">
+                {items.length === 0 ? "Noch keine Prompts" : "Keine Treffer"}
+              </p>
+              <p className="b-meta mx-auto mt-2 max-w-sm">
+                {items.length === 0
+                  ? "Die gemeinsame Bibliothek ist noch leer."
+                  : "Suche oder Tag-Filter anpassen."}
+              </p>
+            </div>
           ) : (
-            <div className="grid gap-3">
+            <ul className="grid gap-3.5">
               {filteredItems.map((item) => {
                 const isOpen = openId === item.id;
                 return (
-                  <Card
-                    key={item.id}
-                    className={cn(
-                      "gap-0 border-border/80 bg-card py-0 shadow-none",
-                      "transition-colors duration-200 hover:bg-muted/40"
-                    )}
-                  >
-                    <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-start sm:justify-between">
-                      <div className="flex min-w-0 flex-1 gap-3 sm:gap-4">
-                        {isManage ? (
-                          <Input
-                            id={`prompt-number-${item.id}`}
-                            type="text"
-                            inputMode="numeric"
-                            pattern="[0-9]*"
-                            defaultValue={formatPromptNumber(item.number)}
-                            key={`${item.id}-${item.number}`}
-                            disabled={isPending}
-                            onBlur={(event) =>
-                              handleNumberCommit(item, event.target.value)
-                            }
-                            onKeyDown={(event) => {
-                              if (event.key === "Enter") {
-                                event.currentTarget.blur();
-                              }
-                            }}
-                            className={cn(
-                              "h-auto w-12 shrink-0 border-0 bg-transparent p-0 shadow-none",
-                              "font-heading text-lg font-medium tracking-tight tabular-nums text-foreground",
-                              "focus-visible:border-0 focus-visible:ring-0"
-                            )}
-                            aria-label={`Nummer für ${item.title}`}
-                          />
-                        ) : (
-                          <span
-                            className="shrink-0 font-heading text-lg font-medium tracking-tight tabular-nums text-foreground"
-                            aria-label={`Nummer ${formatPromptNumber(item.number)}`}
-                          >
-                            {formatPromptNumber(item.number)}
-                          </span>
-                        )}
-                        {isManage ? (
-                          <div className="min-w-0 flex-1 space-y-2">
-                            <h2 className="font-heading text-lg font-medium tracking-tight">
-                              {item.title}
-                            </h2>
-                            {item.tags.length > 0 ? (
-                              <div className="flex flex-wrap gap-1.5">
-                                {item.tags.map((tag) => (
-                                  <Badge
-                                    key={tag.id}
-                                    variant="secondary"
-                                    className="rounded-full bg-violet-100/80 font-normal text-violet-800"
-                                  >
-                                    {tag.name}
-                                  </Badge>
-                                ))}
-                              </div>
-                            ) : null}
-                          </div>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => setOpenId(isOpen ? null : item.id)}
-                            className="min-w-0 flex-1 space-y-2 text-left"
-                          >
-                            <h2 className="font-heading text-lg font-medium tracking-tight">
-                              {item.title}
-                            </h2>
-                            {item.tags.length > 0 ? (
-                              <div className="flex flex-wrap gap-1.5">
-                                {item.tags.map((tag) => (
-                                  <Badge
-                                    key={tag.id}
-                                    variant="secondary"
-                                    className="rounded-full bg-violet-100/80 font-normal text-violet-800"
-                                  >
-                                    {tag.name}
-                                  </Badge>
-                                ))}
-                              </div>
-                            ) : null}
-                            {isOpen ? (
-                              <pre className="whitespace-pre-wrap font-mono text-sm leading-relaxed text-foreground/90">
-                                {item.content}
-                              </pre>
-                            ) : (
-                              <p className="line-clamp-2 font-mono text-sm leading-relaxed text-muted-foreground">
-                                {item.content}
-                              </p>
-                            )}
-                            <span className="inline-flex text-sm font-medium text-violet-700/80">
-                              {isOpen ? "Weniger anzeigen" : "Mehr anzeigen"}
-                            </span>
-                          </button>
-                        )}
-                      </div>
-
-                      <div className="flex shrink-0 flex-wrap items-center gap-1">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-8 border-border/60 bg-background shadow-none"
-                          onClick={() => copyContent(item)}
+                  <li key={item.id}>
+                    <article className="lab-function-card flex flex-col gap-4 border p-5 sm:flex-row sm:items-start sm:justify-between">
+                      <button
+                        type="button"
+                        onClick={() => setOpenId(isOpen ? null : item.id)}
+                        className="flex min-w-0 flex-1 gap-3 text-left sm:gap-4"
+                      >
+                        <span
+                          className="b-display shrink-0 text-[1.125rem] font-medium tabular-nums tracking-[-0.01em]"
+                          style={{ color: "var(--b-muted)" }}
+                          aria-label={`Nummer ${formatPromptNumber(item.number)}`}
                         >
-                          <CopyIcon />
-                          Kopieren
-                        </Button>
-                        {isManage ? (
-                          <>
-                            <Button
-                              asChild
-                              variant="outline"
-                              size="sm"
-                              className="h-8 border-border/60 bg-background shadow-none"
+                          {formatPromptNumber(item.number)}
+                        </span>
+                        <span className="min-w-0 flex-1 space-y-2">
+                          <span className="b-display block text-[1.125rem] font-medium leading-[1.25] tracking-[-0.01em]">
+                            {item.title}
+                          </span>
+                          {item.tags.length > 0 ? (
+                            <span className="flex flex-wrap gap-1.5">
+                              {item.tags.map((tag) => (
+                                <span
+                                  key={tag.id}
+                                  className="lab-prompts-tag"
+                                >
+                                  {tag.name}
+                                </span>
+                              ))}
+                            </span>
+                          ) : null}
+                          {isOpen ? (
+                            <pre
+                              className="whitespace-pre-wrap font-mono text-[0.875rem] leading-relaxed"
+                              style={{ color: "var(--b-ink)" }}
                             >
-                              <Link href={`${PROMPT_BASE}/${item.id}/bearbeiten`}>
-                                <PencilIcon />
-                                Bearbeiten
-                              </Link>
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon-sm"
-                              className="text-destructive hover:text-destructive"
-                              onClick={() => handleDelete(item)}
-                              disabled={isPending}
-                              aria-label="Löschen"
+                              {item.content}
+                            </pre>
+                          ) : (
+                            <span
+                              className="line-clamp-2 block font-mono text-[0.875rem] leading-relaxed"
+                              style={{ color: "var(--b-muted)" }}
                             >
-                              <Trash2Icon />
-                            </Button>
-                          </>
-                        ) : null}
-                      </div>
-                    </div>
-                  </Card>
+                              {item.content}
+                            </span>
+                          )}
+                          <span
+                            className="inline-flex text-[0.875rem] font-semibold tracking-[0.01em]"
+                            style={{ color: "var(--b-accent)" }}
+                          >
+                            {isOpen ? "Weniger" : "Mehr anzeigen"}
+                          </span>
+                        </span>
+                      </button>
+
+                      <button
+                        type="button"
+                        className="b-btn b-btn-secondary shrink-0 self-start"
+                        onClick={() => copyContent(item)}
+                      >
+                        Kopieren
+                      </button>
+                    </article>
+                  </li>
                 );
               })}
-            </div>
+            </ul>
           )}
         </div>
       </div>

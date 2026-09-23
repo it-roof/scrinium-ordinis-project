@@ -9,19 +9,14 @@ import {
   FolderOpenIcon,
   HomeIcon,
   LogOutIcon,
-  MoonIcon,
   SparklesIcon,
   StickyNoteIcon,
-  SunIcon,
   UserIcon,
   type LucideIcon,
 } from "lucide-react";
 import { PRODUCT_NAME } from "@scrinium/brand";
 
-import {
-  LabThemeProvider,
-  useLabTheme,
-} from "@/components/neues-design/lab-theme";
+import { LabThemeProvider } from "@/components/neues-design/lab-theme";
 import { logoutAction } from "@/lib/auth/actions";
 
 const NAV_PRIMARY: ReadonlyArray<{
@@ -110,79 +105,13 @@ function SidebarSignOut() {
   );
 }
 
-function AppearanceSwitch() {
-  const { appearance, setAppearance } = useLabTheme();
-
-  return (
-    <div
-      className="flex items-center justify-between gap-2 px-3.5"
-      role="group"
-      aria-label="Design"
-    >
-      <span
-        className="text-[0.8125rem] font-medium"
-        style={{ color: "var(--b-muted)" }}
-      >
-        Design
-      </span>
-      <div
-        className="flex items-center rounded-3xl p-0.5"
-        style={{
-          background: "var(--b-bg)",
-          border: "1px solid var(--b-line)",
-        }}
-      >
-        {(
-          [
-            {
-              id: "light" as const,
-              label: "Hell",
-              Icon: SunIcon,
-            },
-            {
-              id: "dark" as const,
-              label: "Dunkel",
-              Icon: MoonIcon,
-            },
-          ] as const
-        ).map((opt) => {
-          const isActive = appearance === opt.id;
-          const Icon = opt.Icon;
-          return (
-            <button
-              key={opt.id}
-              type="button"
-              onClick={() => setAppearance(opt.id)}
-              aria-label={opt.label}
-              aria-pressed={isActive}
-              className="flex size-7 items-center justify-center rounded-3xl transition-colors"
-              style={
-                isActive
-                  ? {
-                      background: "var(--b-ink)",
-                      color: "var(--b-bg-elev)",
-                    }
-                  : { color: "var(--b-muted)" }
-              }
-            >
-              <Icon className="size-3.5" strokeWidth={1.75} />
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
 function AlbaShellInner({
   children,
-  showAppearanceSwitch,
   user,
   tenantName,
   fillMain,
 }: {
   children: ReactNode;
-  showAppearanceSwitch: boolean;
   user: AlbaShellUser | null;
   tenantName: string | null;
   fillMain: boolean;
@@ -250,29 +179,26 @@ function AlbaShellInner({
             ))}
           </nav>
 
-          <div className="mt-auto flex flex-col gap-3">
-            {showAppearanceSwitch ? <AppearanceSwitch /> : null}
-            <div className="flex flex-col gap-1.5">
-              {user ? (
-                <Link
-                  href="/einstellungen"
-                  className="lab-user-card block px-3.5 py-3"
-                  data-active={settingsActive ? "true" : "false"}
-                >
-                  <p className="truncate text-[0.8125rem] font-semibold">
-                    {user.name}
-                  </p>
-                  <p className="b-meta mt-0.5 truncate">{user.email}</p>
-                  <p className="b-meta mt-0.5 truncate">{user.roleLabel}</p>
-                </Link>
-              ) : (
-                <div className="lab-user-card px-3.5 py-3">
-                  <p className="text-[0.8125rem] font-semibold">Scrinium</p>
-                  <p className="b-meta mt-0.5">Quiet workspace</p>
-                </div>
-              )}
-              {user ? <SidebarSignOut /> : null}
-            </div>
+          <div className="mt-auto flex flex-col gap-1.5">
+            {user ? (
+              <Link
+                href="/einstellungen"
+                className="lab-user-card block px-3.5 py-3"
+                data-active={settingsActive ? "true" : "false"}
+              >
+                <p className="truncate text-[0.8125rem] font-semibold">
+                  {user.name}
+                </p>
+                <p className="b-meta mt-0.5 truncate">{user.email}</p>
+                <p className="b-meta mt-0.5 truncate">{user.roleLabel}</p>
+              </Link>
+            ) : (
+              <div className="lab-user-card px-3.5 py-3">
+                <p className="text-[0.8125rem] font-semibold">Scrinium</p>
+                <p className="b-meta mt-0.5">Quiet workspace</p>
+              </div>
+            )}
+            {user ? <SidebarSignOut /> : null}
           </div>
         </aside>
 
@@ -291,13 +217,11 @@ function AlbaShellInner({
 /** Gemeinsame Alba-Shell (Sidebar + Main) für Dashboard, Einstellungen, … */
 export function AlbaShell({
   children,
-  showAppearanceSwitch = false,
   user = null,
   tenantName = null,
   fillMain = false,
 }: {
   children: ReactNode;
-  showAppearanceSwitch?: boolean;
   user?: AlbaShellUser | null;
   tenantName?: string | null;
   /** Main ohne Lab-Scroll — für eingebettete App-Views (DeskAppShell). */
@@ -305,12 +229,7 @@ export function AlbaShell({
 }) {
   return (
     <LabThemeProvider>
-      <AlbaShellInner
-        showAppearanceSwitch={showAppearanceSwitch}
-        user={user}
-        tenantName={tenantName}
-        fillMain={fillMain}
-      >
+      <AlbaShellInner user={user} tenantName={tenantName} fillMain={fillMain}>
         {children}
       </AlbaShellInner>
     </LabThemeProvider>

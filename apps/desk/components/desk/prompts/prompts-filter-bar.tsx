@@ -1,9 +1,11 @@
 "use client";
 
-import { ArrowDownWideNarrowIcon, ArrowUpNarrowWideIcon, SearchIcon } from "lucide-react";
+import {
+  ArrowDownWideNarrowIcon,
+  ArrowUpNarrowWideIcon,
+  SearchIcon,
+} from "lucide-react";
 
-import { Input } from "@/components/desk/ui/input";
-import { cn } from "@/lib/utils";
 import type { Prompt } from "@/lib/prompts/types";
 import {
   countUntaggedPrompts,
@@ -55,12 +57,16 @@ export function V1PromptsFilterBar({
     <div className="space-y-3">
       <div className="flex gap-2">
         <div className="relative min-w-0 flex-1">
-          <SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
+          <SearchIcon
+            className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2"
+            style={{ color: "var(--b-muted)" }}
+            strokeWidth={1.75}
+          />
+          <input
             value={search}
             onChange={(event) => onSearchChange(event.target.value)}
             placeholder="Suchen…"
-            className="h-10 border-border/70 bg-transparent shadow-none pl-9"
+            className="lab-prompts-search"
             aria-label="Prompts suchen"
           />
         </div>
@@ -70,10 +76,7 @@ export function V1PromptsFilterBar({
             onClick={() =>
               onSortOrderChange(numberAsc ? "number-desc" : "number-asc")
             }
-            className={cn(
-              "inline-flex h-10 shrink-0 items-center gap-1.5 rounded-lg border border-border/60 px-3 text-sm",
-              "text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
-            )}
+            className="lab-prompts-sort"
             title={
               numberAsc
                 ? "Nach Nummer aufsteigend — Klick für absteigend"
@@ -86,9 +89,9 @@ export function V1PromptsFilterBar({
             }
           >
             {numberAsc ? (
-              <ArrowUpNarrowWideIcon className="size-4" />
+              <ArrowUpNarrowWideIcon className="size-4" strokeWidth={1.75} />
             ) : (
-              <ArrowDownWideNarrowIcon className="size-4" />
+              <ArrowDownWideNarrowIcon className="size-4" strokeWidth={1.75} />
             )}
             <span className="tabular-nums">Nr.</span>
           </button>
@@ -97,7 +100,7 @@ export function V1PromptsFilterBar({
 
       {filters.length > 0 ? (
         <div
-          className="flex flex-wrap gap-1.5"
+          className="flex flex-wrap gap-2"
           role="tablist"
           aria-label="Nach Tag filtern"
         >
@@ -110,24 +113,11 @@ export function V1PromptsFilterBar({
                 role="tab"
                 aria-selected={active}
                 onClick={() => onTagFilterChange(filter.key)}
-                className={cn(
-                  "inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-colors",
-                  active
-                    ? "border-transparent bg-muted font-medium text-foreground"
-                    : "border-border/60 text-muted-foreground hover:bg-muted/60 hover:text-foreground"
-                )}
+                className="lab-prompts-chip"
+                data-active={active ? "true" : "false"}
               >
                 <span>{filter.label}</span>
-                <span
-                  className={cn(
-                    "rounded-full px-1.5 py-0.5 text-xs tabular-nums",
-                    active
-                      ? "bg-background/80 text-muted-foreground"
-                      : "bg-muted/80 text-muted-foreground/70"
-                  )}
-                >
-                  {filter.count}
-                </span>
+                <span className="tabular-nums opacity-70">{filter.count}</span>
               </button>
             );
           })}

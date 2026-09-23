@@ -115,21 +115,15 @@ function DashboardAlbaContent({ greeting }: { greeting: string }) {
 /** ALBA · Manrope — Dashboard-Übersicht */
 export function DashboardAlba({
   greeting = "Guten Tag,",
-  showAppearanceSwitch = false,
   user = null,
   tenantName = null,
 }: {
   greeting?: string;
-  showAppearanceSwitch?: boolean;
   user?: AlbaShellUser | null;
   tenantName?: string | null;
 }) {
   return (
-    <AlbaShell
-      showAppearanceSwitch={showAppearanceSwitch}
-      user={user}
-      tenantName={tenantName}
-    >
+    <AlbaShell user={user} tenantName={tenantName}>
       <DashboardAlbaContent greeting={greeting} />
     </AlbaShell>
   );

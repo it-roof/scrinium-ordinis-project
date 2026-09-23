@@ -190,7 +190,6 @@ export async function DeskAppShell({
       }
     >
       <AlbaShell
-        showAppearanceSwitch
         fillMain
         tenantName={ctx.tenantName}
         user={{

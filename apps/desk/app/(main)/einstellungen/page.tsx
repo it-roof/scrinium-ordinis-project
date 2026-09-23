@@ -3,6 +3,7 @@ import { and, eq } from "drizzle-orm";
 
 import { SettingsAlba } from "@/components/neues-design/settings-alba";
 import { AccountSettingsForm } from "@/components/settings/account-settings-form";
+import { AppearanceSettings } from "@/components/settings/appearance-settings";
 import { SmtpSettingsForm } from "@/components/settings/smtp-settings-form";
 import { requireDeskUser } from "@/components/desk/shell/desk-app-shell";
 import { DESK_ROLE_LABELS } from "@/lib/area/desk-roles";
@@ -60,6 +61,7 @@ export default async function DeskSettingsPage() {
           email={ctx.email.trim().toLowerCase()}
           dashboardView={dashboardView}
         />
+        <AppearanceSettings />
         <SmtpSettingsForm
           initial={settings}
           defaultFromName={displayName}
