@@ -15,28 +15,22 @@ export function LoginForm({
   passwordless?: boolean;
 }) {
   const [state, formAction, isPending] = useActionState(loginAction, null);
-  const title = brandLabel?.trim() || PRODUCT_WORDMARK;
+  const brand = brandLabel?.trim() || PRODUCT_WORDMARK;
 
   return (
-    <div className="flex w-full flex-col">
-      <header className="flex flex-col">
-        <p
-          className="b-eyebrow"
-          style={{ color: "var(--b-accent)" }}
-        >
-          {title}
+    <div className="flex w-full flex-col gap-8">
+      <header className="flex flex-col gap-1.5">
+        <p className="b-eyebrow" style={{ color: "var(--b-accent)" }}>
+          {brand}
         </p>
-        <h1 className="b-display b-title mt-3 font-medium tracking-[-0.02em] md:mt-3.5">
+        <h1 className="b-display text-[1.75rem] font-medium tracking-[-0.02em] md:text-[2rem]">
           Anmelden
         </h1>
-        <p className="b-lead mt-2 text-[1.0625rem] leading-[1.55]">
-          Für Ihren Arbeitsbereich.
-        </p>
       </header>
 
       {passwordless ? (
         <p
-          className="mt-6 rounded-[0.65rem] border px-3.5 py-2.5 text-[0.8125rem] leading-snug"
+          className="rounded-[0.85rem] border px-4 py-3 text-[0.8125rem] leading-snug"
           style={{
             borderColor: "color-mix(in srgb, #b45309 35%, var(--b-line))",
             background: "color-mix(in srgb, #b45309 8%, var(--b-bg-elev))",
@@ -47,7 +41,7 @@ export function LoginForm({
         </p>
       ) : null}
 
-      <form action={formAction} className="mt-8 flex flex-col gap-5">
+      <form action={formAction} className="lab-login-panel flex flex-col gap-5">
         <div className="grid gap-1.5">
           <label
             htmlFor="email"
@@ -69,21 +63,13 @@ export function LoginForm({
 
         {passwordless ? null : (
           <div className="grid gap-1.5">
-            <div className="flex items-baseline justify-between gap-3">
-              <label
-                htmlFor="password"
-                className="b-meta font-medium"
-                style={{ color: "var(--b-muted)" }}
-              >
-                Passwort
-              </label>
-              <Link
-                href="/passwort-vergessen"
-                className="b-meta transition-colors hover:text-[var(--b-ink)]"
-              >
-                Passwort vergessen?
-              </Link>
-            </div>
+            <label
+              htmlFor="password"
+              className="b-meta font-medium"
+              style={{ color: "var(--b-muted)" }}
+            >
+              Passwort
+            </label>
             <input
               id="password"
               name="password"
@@ -105,12 +91,6 @@ export function LoginForm({
           </p>
         ) : null}
 
-        {passwordless ? null : (
-          <p className="b-meta">
-            Nach mehreren Fehlversuchen wird der Zugang vorübergehend gesperrt.
-          </p>
-        )}
-
         <button
           type="submit"
           className="b-btn b-btn-primary mt-1 w-full"
@@ -119,6 +99,20 @@ export function LoginForm({
           {isPending ? "Anmelden…" : "Anmelden"}
         </button>
       </form>
+
+      {passwordless ? null : (
+        <div className="flex flex-col items-center gap-2 text-center">
+          <Link
+            href="/passwort-vergessen"
+            className="b-meta font-medium transition-colors hover:text-[var(--b-ink)]"
+          >
+            Passwort vergessen?
+          </Link>
+          <p className="b-meta max-w-xs">
+            Nach mehreren Fehlversuchen wird der Zugang vorübergehend gesperrt.
+          </p>
+        </div>
+      )}
     </div>
   );
 }
