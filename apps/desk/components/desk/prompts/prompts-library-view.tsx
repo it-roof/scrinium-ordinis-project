@@ -1,6 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import {
+  ArrowDownIcon,
+  ArrowUpIcon,
+  CopyIcon,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -12,6 +17,11 @@ import { V1PromptsFilterBar } from "@/components/desk/prompts/prompts-filter-bar
 import { formatPromptNumber, type Prompt } from "@/lib/prompts/types";
 
 const PROMPT_SORT_STORAGE_KEY = "scrinium.v1.prompt-sort-order";
+
+/** Fließtext-Ausschnitt: Zeilenumbrüche zu Leerzeichen. */
+function promptPreview(content: string): string {
+  return content.replace(/\s+/g, " ").trim();
+}
 
 export function V1PromptsLibraryView({
   initialItems,
@@ -82,8 +92,6 @@ export function V1PromptsLibraryView({
             onSearchChange={setSearch}
             tagFilter={tagFilter}
             onTagFilterChange={setTagFilter}
-            sortOrder={sortOrder}
-            onSortOrderChange={changeSortOrder}
           />
 
           {filteredItems.length === 0 ? (
@@ -98,76 +106,113 @@ export function V1PromptsLibraryView({
               </p>
             </div>
           ) : (
+            <div className="flex flex-col gap-3">
+              <div className="flex justify-start">
+                <button
+                  type="button"
+                  className="b-meta inline-flex items-center gap-1.5 transition-colors hover:text-[var(--b-ink)]"
+                  style={{ color: "var(--b-muted)" }}
+                  onClick={() =>
+                    changeSortOrder(
+                      sortOrder === "number-asc"
+                        ? "number-desc"
+                        : "number-asc"
+                    )
+                  }
+                  aria-label={
+                    sortOrder === "number-asc"
+                      ? "Sortierung: aufsteigend nach Nummer — Klick für absteigend"
+                      : "Sortierung: absteigend nach Nummer — Klick für aufsteigend"
+                  }
+                >
+                  {sortOrder === "number-asc" ? (
+                    <ArrowUpIcon className="size-3.5" strokeWidth={1.75} />
+                  ) : (
+                    <ArrowDownIcon className="size-3.5" strokeWidth={1.75} />
+                  )}
+                  {sortOrder === "number-asc"
+                    ? "Aufsteigend nach Nummer"
+                    : "Absteigend nach Nummer"}
+                </button>
+              </div>
             <ul className="grid gap-3.5">
               {filteredItems.map((item) => {
                 const isOpen = openId === item.id;
                 return (
                   <li key={item.id}>
-                    <article className="lab-function-card flex flex-col gap-4 border p-5 sm:flex-row sm:items-start sm:justify-between">
-                      <button
-                        type="button"
-                        onClick={() => setOpenId(isOpen ? null : item.id)}
-                        className="flex min-w-0 flex-1 gap-3 text-left sm:gap-4"
-                      >
+                    <article className="lab-function-card min-w-0 border px-5 py-4 sm:px-6 sm:py-5">
+                      <div className="flex min-w-0 items-start gap-3 sm:gap-4">
                         <span
-                          className="b-display shrink-0 text-[1.125rem] font-medium tabular-nums tracking-[-0.01em]"
+                          className="b-display flex h-10 shrink-0 items-center text-[1.25rem] font-medium leading-none tabular-nums tracking-[-0.01em]"
                           style={{ color: "var(--b-muted)" }}
                           aria-label={`Nummer ${formatPromptNumber(item.number)}`}
                         >
                           {formatPromptNumber(item.number)}
                         </span>
-                        <span className="min-w-0 flex-1 space-y-2">
-                          <span className="b-display block text-[1.125rem] font-medium leading-[1.25] tracking-[-0.01em]">
-                            {item.title}
-                          </span>
-                          {item.tags.length > 0 ? (
-                            <span className="flex flex-wrap gap-1.5">
-                              {item.tags.map((tag) => (
-                                <span
-                                  key={tag.id}
-                                  className="lab-prompts-tag"
-                                >
-                                  {tag.name}
-                                </span>
-                              ))}
-                            </span>
-                          ) : null}
-                          {isOpen ? (
-                            <pre
-                              className="whitespace-pre-wrap font-mono text-[0.875rem] leading-relaxed"
-                              style={{ color: "var(--b-ink)" }}
-                            >
-                              {item.content}
-                            </pre>
-                          ) : (
-                            <span
-                              className="line-clamp-2 block font-mono text-[0.875rem] leading-relaxed"
-                              style={{ color: "var(--b-muted)" }}
-                            >
-                              {item.content}
-                            </span>
-                          )}
-                          <span
-                            className="inline-flex text-[0.875rem] font-semibold tracking-[0.01em]"
-                            style={{ color: "var(--b-accent)" }}
-                          >
-                            {isOpen ? "Weniger" : "Mehr anzeigen"}
-                          </span>
-                        </span>
-                      </button>
 
-                      <button
-                        type="button"
-                        className="b-btn b-btn-secondary shrink-0 self-start"
-                        onClick={() => copyContent(item)}
-                      >
-                        Kopieren
-                      </button>
+                        <div className="flex min-w-0 flex-1 flex-col gap-3">
+                          <div className="flex min-w-0 flex-col gap-1.5">
+                            <div className="lab-prompts-row min-w-0">
+                              <span className="b-display min-w-0 flex-1 truncate text-[1.25rem] font-medium leading-none tracking-[-0.01em]">
+                                {item.title}
+                              </span>
+                              <button
+                                type="button"
+                                className="b-btn b-btn-secondary shrink-0 gap-1.5"
+                                onClick={() => copyContent(item)}
+                              >
+                                <CopyIcon className="size-4" strokeWidth={1.75} />
+                                Kopieren
+                              </button>
+                            </div>
+
+                            {item.tags.length > 0 ? (
+                              <div className="flex flex-wrap gap-1.5">
+                                {item.tags.map((tag) => (
+                                  <span key={tag.id} className="lab-prompts-tag">
+                                    {tag.name}
+                                  </span>
+                                ))}
+                              </div>
+                            ) : null}
+                          </div>
+
+                          <div className="flex max-w-xl min-w-0 flex-col gap-1.5">
+                            {isOpen ? (
+                              <pre
+                                className="min-w-0 whitespace-pre-wrap break-words font-mono text-[0.8125rem] leading-snug"
+                                style={{ color: "var(--b-ink)" }}
+                              >
+                                {item.content}
+                              </pre>
+                            ) : (
+                              <p
+                                className="line-clamp-2 min-w-0 font-mono text-[0.8125rem] leading-snug break-words"
+                                style={{ color: "var(--b-muted)" }}
+                              >
+                                {promptPreview(item.content)}
+                              </p>
+                            )}
+
+                            <button
+                              type="button"
+                              className="self-start text-[0.875rem] font-semibold tracking-[0.01em]"
+                              style={{ color: "var(--b-accent)" }}
+                              onClick={() =>
+                                setOpenId(isOpen ? null : item.id)
+                              }
+                            >
+                              {isOpen ? "Weniger" : "Mehr anzeigen"}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
                     </article>
                   </li>
                 );
               })}
             </ul>
+            </div>
           )}
         </div>
       </div>

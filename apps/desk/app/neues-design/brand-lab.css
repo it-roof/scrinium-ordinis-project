@@ -89,6 +89,10 @@
   border-radius: 999px;
   border: none;
   cursor: pointer;
+  transition:
+    color 150ms ease,
+    background-color 150ms ease,
+    border-color 150ms ease;
 }
 
 .brand-lab-root .b-btn-primary {
@@ -96,10 +100,19 @@
   color: var(--b-accent-fg);
 }
 
+.brand-lab-root .b-btn-primary:hover {
+  background: color-mix(in srgb, var(--b-accent) 88%, var(--b-ink));
+}
+
 .brand-lab-root .b-btn-secondary {
   background: transparent;
   color: var(--b-ink);
   border: 1px solid var(--b-line);
+}
+
+.brand-lab-root .b-btn-secondary:hover {
+  background: var(--b-soft);
+  border-color: color-mix(in srgb, var(--b-ink) 18%, var(--b-line));
 }
 
 .brand-lab-root .b-btn-ghost {
@@ -213,6 +226,12 @@
   background: var(--b-soft);
 }
 
+.brand-lab-root .lab-prompts-sort[data-active="true"] {
+  color: var(--b-ink);
+  border-color: color-mix(in srgb, var(--b-ink) 22%, var(--b-line));
+  background: var(--b-soft);
+}
+
 .brand-lab-root .lab-prompts-chip {
   display: inline-flex;
   align-items: center;
@@ -252,6 +271,34 @@
   padding: 0.2rem 0.65rem;
   font-size: 0.75rem;
   font-weight: 500;
+}
+
+.brand-lab-root .lab-prompts-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 2.5rem;
+}
+
+.brand-lab-root .lab-prompts-row .lab-prompts-title {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  gap: 0.75rem;
+  text-align: left;
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: inherit;
+}
+
+.brand-lab-root .lab-prompts-row .b-btn {
+  min-height: 2.5rem;
+  height: 2.5rem;
+  padding: 0 1.1rem;
+  font-size: 0.875rem;
 }
 
 .brand-lab-root .lab-nav-item {

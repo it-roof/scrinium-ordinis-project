@@ -1,17 +1,13 @@
 "use client";
 
-import {
-  ArrowDownWideNarrowIcon,
-  ArrowUpNarrowWideIcon,
-  SearchIcon,
-} from "lucide-react";
+import { useState } from "react";
+import { ListFilterIcon, SearchIcon } from "lucide-react";
 
 import type { Prompt } from "@/lib/prompts/types";
 import {
   countUntaggedPrompts,
   getPromptTagOptions,
   UNTAGGED_PROMPT_FILTER,
-  type PromptSortOrder,
   type PromptTagFilter,
 } from "@/components/prompts/use-prompt-list-filter";
 
@@ -21,17 +17,14 @@ export function V1PromptsFilterBar({
   onSearchChange,
   tagFilter,
   onTagFilterChange,
-  sortOrder = "number-asc",
-  onSortOrderChange,
 }: {
   items: Prompt[];
   search: string;
   onSearchChange: (value: string) => void;
   tagFilter: PromptTagFilter;
   onTagFilterChange: (value: PromptTagFilter) => void;
-  sortOrder?: PromptSortOrder;
-  onSortOrderChange?: (value: PromptSortOrder) => void;
 }) {
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const tagOptions = getPromptTagOptions(items);
   const untaggedCount = countUntaggedPrompts(items);
   const filters =
@@ -51,7 +44,7 @@ export function V1PromptsFilterBar({
           })),
         ].filter((filter) => filter.key === "all" || filter.count > 0);
 
-  const numberAsc = sortOrder === "number-asc";
+  const filterActive = tagFilter !== "all";
 
   return (
     <div className="space-y-3">
@@ -70,36 +63,26 @@ export function V1PromptsFilterBar({
             aria-label="Prompts suchen"
           />
         </div>
-        {onSortOrderChange ? (
+        {filters.length > 0 ? (
           <button
             type="button"
-            onClick={() =>
-              onSortOrderChange(numberAsc ? "number-desc" : "number-asc")
-            }
+            onClick={() => setFiltersOpen((open) => !open)}
             className="lab-prompts-sort"
-            title={
-              numberAsc
-                ? "Nach Nummer aufsteigend — Klick für absteigend"
-                : "Nach Nummer absteigend — Klick für aufsteigend"
-            }
-            aria-label={
-              numberAsc
-                ? "Sortierung: Nummer aufsteigend"
-                : "Sortierung: Nummer absteigend"
-            }
+            data-active={filtersOpen || filterActive ? "true" : "false"}
+            aria-expanded={filtersOpen}
+            aria-controls="lab-prompts-tag-filters"
+            title="Nach Tag filtern"
+            aria-label="Filter"
           >
-            {numberAsc ? (
-              <ArrowUpNarrowWideIcon className="size-4" strokeWidth={1.75} />
-            ) : (
-              <ArrowDownWideNarrowIcon className="size-4" strokeWidth={1.75} />
-            )}
-            <span className="tabular-nums">Nr.</span>
+            <ListFilterIcon className="size-4" strokeWidth={1.75} />
+            <span>Filter</span>
           </button>
         ) : null}
       </div>
 
-      {filters.length > 0 ? (
+      {filtersOpen && filters.length > 0 ? (
         <div
+          id="lab-prompts-tag-filters"
           className="flex flex-wrap gap-2"
           role="tablist"
           aria-label="Nach Tag filtern"
