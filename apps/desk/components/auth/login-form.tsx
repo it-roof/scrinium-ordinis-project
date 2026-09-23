@@ -18,6 +18,10 @@ export function LoginForm({
 
   return (
     <div className="flex w-full flex-col items-center gap-6">
+      <h1 className="b-display text-center text-[1.75rem] font-medium tracking-[-0.02em] md:text-[2rem]">
+        Anmelden
+      </h1>
+
       {passwordless ? (
         <p
           className="w-full rounded-[0.85rem] border px-4 py-3 text-[0.8125rem] leading-snug"
@@ -32,10 +36,6 @@ export function LoginForm({
       ) : null}
 
       <form action={formAction} className="lab-login-panel flex w-full flex-col gap-5">
-        <h1 className="b-display text-[1.5rem] font-medium tracking-[-0.02em] md:text-[1.625rem]">
-          Anmelden
-        </h1>
-
         <div className="grid gap-1.5">
           <label
             htmlFor="email"
@@ -94,7 +94,12 @@ export function LoginForm({
         </button>
       </form>
 
-      <p className="b-meta text-center">{brand}</p>
+      <p
+        className="b-eyebrow text-center"
+        style={{ color: "var(--b-accent)" }}
+      >
+        {brand}
+      </p>
     </div>
   );
 }
