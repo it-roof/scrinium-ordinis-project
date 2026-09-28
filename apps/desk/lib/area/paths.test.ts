@@ -24,6 +24,7 @@ describe("hrefFor", () => {
     expect(hrefFor("matters", "tax")).toBe("/s/akten");
     expect(hrefFor("text-blocks", "legal")).toBe("/r/textbausteine");
     expect(hrefFor("case-facts-analysis", "legal")).toBe("/r/analyse");
+    expect(hrefFor("akten-chat", "legal")).toBe("/r/akten-chat");
     expect(hrefFor("docs", "tax")).toBe("/s/dokumentation");
     expect(hrefFor("templates", "tax")).toBe("/s/vorlagen");
     expect(hrefFor("letters", "legal")).toBe("/r/schreiben");
@@ -58,6 +59,7 @@ describe("DESK_SCOPED_FLAT_SEGMENTS", () => {
         "akten",
         "textbausteine",
         "analyse",
+        "akten-chat",
         "dokumentation",
         "vorlagen",
         "schreiben",

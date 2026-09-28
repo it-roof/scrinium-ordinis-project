@@ -118,12 +118,20 @@ export function NavUser({
                 </a>
               </DropdownMenuItem>
               {showAiDebug ? (
-                <DropdownMenuItem asChild>
-                  <a href="/ai-debug">
-                    <IconBug />
-                    KI-Debug
-                  </a>
-                </DropdownMenuItem>
+                <>
+                  <DropdownMenuItem asChild>
+                    <a href="/ai-debug">
+                      <IconBug />
+                      KI-Debug
+                    </a>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <a href="/ai-debug/produkt-ki">
+                      <IconBug />
+                      Produkt-KI
+                    </a>
+                  </DropdownMenuItem>
+                </>
               ) : null}
             </DropdownMenuGroup>
             <DropdownMenuSeparator />

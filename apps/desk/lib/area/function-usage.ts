@@ -84,6 +84,7 @@ function compareByUsage(
  */
 export const LAWYER_QUICK_VIEW_FUNCTION_IDS: AreaFunctionId[] = [
   "ai-chat",
+  "akten-chat",
   "case-facts-analysis",
   "contract-analysis",
   "prompts",

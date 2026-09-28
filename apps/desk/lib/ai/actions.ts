@@ -25,12 +25,21 @@ import {
 } from "@/lib/ai/pipeline";
 import { processAiJob } from "@/lib/ai/process-job";
 import { CASE_FACTS_ANALYSIS_TASK } from "@/lib/ai/prompts/case-facts-analysis";
+import { COUNTER_REVIEW_TASK } from "@/lib/ai/prompts/counter-review";
+import { CREATE_LETTER_TASK } from "@/lib/ai/prompts/create-letter";
+import { CREATE_EMAIL_TEXT_TASK } from "@/lib/ai/prompts/create-email-text";
 import type { AiDraftRecord } from "@/lib/ai/drafts-storage";
 import type { PseudonymGatePolicy } from "@/lib/ai/gate-policy";
 import { AI_FACTS_MAX_CHARS } from "@/lib/ai/limits";
 import type { AiDebugTrace } from "@/lib/db/schema";
 import { assertUserCanAccessAreaFunction } from "@/lib/tenant/access";
 import { requireSessionUser } from "@/lib/tenant/session";
+
+export type MatterAiJobTask =
+  | typeof CASE_FACTS_ANALYSIS_TASK
+  | typeof COUNTER_REVIEW_TASK
+  | typeof CREATE_LETTER_TASK
+  | typeof CREATE_EMAIL_TEXT_TASK;
 
 export type PreviewCaseFactsResult =
   | {
@@ -165,7 +174,8 @@ export async function previewCaseFactsAnalysis(input: {
 }
 
 /**
- * Start async case-facts analysis. Enforces residual gate when policy=block.
+ * Start async matter AI job (case-facts analysis or counter-review).
+ * Enforces residual gate when policy=block.
  */
 export async function startCaseFactsAnalysisJob(input: {
   matterId: string;
@@ -173,6 +183,8 @@ export async function startCaseFactsAnalysisJob(input: {
   manualMarks?: string[];
   dismissedResiduals?: string[];
   previewConfirmed?: boolean;
+  /** Default: case_facts_analysis */
+  task?: MatterAiJobTask;
 }): Promise<StartCaseFactsJobResult> {
   const { user, error, code } = await requireAiUser();
   if (!user) {
@@ -208,6 +220,8 @@ export async function startCaseFactsAnalysisJob(input: {
     };
   }
 
+  const task = input.task ?? CASE_FACTS_ANALYSIS_TASK;
+
   try {
     await failStaleAiJobsWithSecrets(user.tenantId);
     const ctx = await loadMatterAiContext(user.tenantId, input.matterId.trim());
@@ -234,7 +248,7 @@ export async function startCaseFactsAnalysisJob(input: {
       userId: user.id,
       clientId: ctx.clientId,
       matterId: ctx.matterId,
-      task: CASE_FACTS_ANALYSIS_TASK,
+      task,
       facts,
       manualMarks: pipeline.appliedMarks,
       dismissedResiduals: pipeline.appliedDismissals,

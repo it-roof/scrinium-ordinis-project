@@ -16,6 +16,7 @@ describe("DESK_ROLE_BUNDLES", () => {
       "case-facts-analysis"
     );
     expect(DESK_ROLE_BUNDLES.rechtsanwalt.functions).toContain("ai-chat");
+    expect(DESK_ROLE_BUNDLES.rechtsanwalt.functions).toContain("akten-chat");
     expect(DESK_ROLE_BUNDLES.rechtsanwalt.functions).toContain(
       "contract-analysis"
     );
@@ -27,6 +28,7 @@ describe("DESK_ROLE_BUNDLES", () => {
       "case-facts-analysis"
     );
     expect(DESK_ROLE_BUNDLES.sekretariat.functions).not.toContain("ai-chat");
+    expect(DESK_ROLE_BUNDLES.sekretariat.functions).not.toContain("akten-chat");
     expect(DESK_ROLE_BUNDLES.sekretariat.functions).not.toContain(
       "contract-analysis"
     );

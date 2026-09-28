@@ -28,6 +28,24 @@ import {
   CASE_FACTS_ANALYSIS_MAX_TOKENS,
   CASE_FACTS_ANALYSIS_TASK,
 } from "@/lib/ai/prompts/case-facts-analysis";
+import {
+  buildCounterReviewSystemPrompt,
+  buildCounterReviewUserMessage,
+  COUNTER_REVIEW_MAX_TOKENS,
+  COUNTER_REVIEW_TASK,
+} from "@/lib/ai/prompts/counter-review";
+import {
+  buildCreateLetterSystemPrompt,
+  buildCreateLetterUserMessage,
+  CREATE_LETTER_MAX_TOKENS,
+  CREATE_LETTER_TASK,
+} from "@/lib/ai/prompts/create-letter";
+import {
+  buildCreateEmailTextSystemPrompt,
+  buildCreateEmailTextUserMessage,
+  CREATE_EMAIL_TEXT_MAX_TOKENS,
+  CREATE_EMAIL_TEXT_TASK,
+} from "@/lib/ai/prompts/create-email-text";
 import type { AiDebugTrace } from "@/lib/db/schema";
 
 /**
@@ -126,7 +144,47 @@ export async function processAiJob(
     const mapping = pipeline.mapping;
     const placeholderCount = pipeline.placeholderCount;
 
-    const userMessage = buildCaseFactsUserMessage(pseudoText);
+    const isCounterReview = job.task === COUNTER_REVIEW_TASK;
+    const isCreateLetter = job.task === CREATE_LETTER_TASK;
+    const isCreateEmail = job.task === CREATE_EMAIL_TEXT_TASK;
+    if (
+      job.task !== CASE_FACTS_ANALYSIS_TASK &&
+      job.task !== COUNTER_REVIEW_TASK &&
+      job.task !== CREATE_LETTER_TASK &&
+      job.task !== CREATE_EMAIL_TEXT_TASK
+    ) {
+      throw new AiGatewayError(AI_ERROR.VALIDATION, "Unknown AI task");
+    }
+
+    const userMessage = isCreateEmail
+      ? buildCreateEmailTextUserMessage(pseudoText)
+      : isCreateLetter
+        ? buildCreateLetterUserMessage(pseudoText)
+        : isCounterReview
+          ? buildCounterReviewUserMessage(pseudoText)
+          : buildCaseFactsUserMessage(pseudoText);
+    const system = isCreateEmail
+      ? buildCreateEmailTextSystemPrompt()
+      : isCreateLetter
+        ? buildCreateLetterSystemPrompt()
+        : isCounterReview
+          ? buildCounterReviewSystemPrompt()
+          : buildCaseFactsAnalysisSystemPrompt();
+    const maxTokens = isCreateEmail
+      ? CREATE_EMAIL_TEXT_MAX_TOKENS
+      : isCreateLetter
+        ? CREATE_LETTER_MAX_TOKENS
+        : isCounterReview
+          ? COUNTER_REVIEW_MAX_TOKENS
+          : CASE_FACTS_ANALYSIS_MAX_TOKENS;
+    const auditTask = isCreateEmail
+      ? CREATE_EMAIL_TEXT_TASK
+      : isCreateLetter
+        ? CREATE_LETTER_TASK
+        : isCounterReview
+          ? COUNTER_REVIEW_TASK
+          : CASE_FACTS_ANALYSIS_TASK;
+
     traceExtra = {
       pseudonymizedUserMessage: userMessage,
       placeholderCount,
@@ -137,9 +195,9 @@ export async function processAiJob(
     debug?.push("bedrock_call", modelForAudit);
     await flushDebug();
     const result = await askClaude({
-      system: buildCaseFactsAnalysisSystemPrompt(),
+      system,
       user: userMessage,
-      maxTokens: CASE_FACTS_ANALYSIS_MAX_TOKENS,
+      maxTokens,
     });
 
     traceExtra = {
@@ -174,7 +232,7 @@ export async function processAiJob(
       userId: job.userId,
       clientId: ctx.clientId,
       matterId: ctx.matterId,
-      task: CASE_FACTS_ANALYSIS_TASK,
+      task: auditTask,
       model: result.model,
       inputTokens: result.inputTokens,
       outputTokens: result.outputTokens,
@@ -190,7 +248,7 @@ export async function processAiJob(
       tenantId,
       clientId: ctx.clientId,
       matterId: ctx.matterId,
-      task: CASE_FACTS_ANALYSIS_TASK,
+      task: auditTask,
       content,
       userId: job.userId,
     });
@@ -217,7 +275,7 @@ export async function processAiJob(
         userId: job.userId,
         clientId: job.clientId,
         matterId: job.matterId,
-        task: CASE_FACTS_ANALYSIS_TASK,
+        task: job.task,
         model: modelForAudit,
         previewConfirmed: job.previewConfirmed,
         success: false,

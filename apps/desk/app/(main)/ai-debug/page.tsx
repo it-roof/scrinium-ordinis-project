@@ -44,6 +44,16 @@ export default async function DeskAiDebugPage() {
   return (
     <DeskAppShell ctx={ctx} headerTitle="KI-Debug">
       <div className="mx-auto flex w-full max-w-3xl min-h-0 flex-1 flex-col gap-8 overflow-y-auto p-4 lg:p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="b-meta">
+            Nur Test-Kanzlei ·{" "}
+            <code className="font-mono text-xs">AI_DEBUG</code>
+          </p>
+          <a href="/ai-debug/produkt-ki" className="b-btn b-btn-ghost text-sm">
+            Produkt-KI
+          </a>
+        </div>
+
         <AiDebugLab
           matters={withConsent}
           debugEnabled={debugEnabled}

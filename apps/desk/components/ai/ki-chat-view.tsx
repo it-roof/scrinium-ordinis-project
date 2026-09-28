@@ -11,6 +11,7 @@ import {
 import { ArrowUpIcon, RotateCcwIcon } from "lucide-react";
 import { toast } from "sonner";
 
+import { KiActionBadges } from "@/components/ai/ki-action-badges";
 import {
   sendAiChatMessage,
   type AiChatMessage,
@@ -18,8 +19,6 @@ import {
 import { AI_CHAT_MESSAGE_MAX_CHARS } from "@/lib/ai/limits";
 import { hrefFor } from "@/lib/area/paths";
 import type { PracticeId } from "@/lib/modules";
-import { Button } from "@/components/desk/ui/button";
-import { Textarea } from "@/components/desk/ui/textarea";
 import { cn } from "@/lib/utils";
 
 type DisplayMessage = AiChatMessage & { id: string };
@@ -33,7 +32,8 @@ export function KiChatView({ practiceArea }: { practiceArea: PracticeId }) {
   const [draft, setDraft] = useState("");
   const [isPending, startTransition] = useTransition();
   const bottomRef = useRef<HTMLDivElement>(null);
-  const analyseHref = hrefFor("case-facts-analysis", practiceArea);
+  const aktenChatHref = hrefFor("akten-chat", practiceArea);
+  const hasStarted = messages.length > 0;
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -82,101 +82,111 @@ export function KiChatView({ practiceArea }: { practiceArea: PracticeId }) {
     }
   }
 
-  return (
-    <div className="mx-auto flex h-full min-h-0 w-full max-w-3xl flex-1 flex-col gap-4 p-4 lg:p-6">
-      <div className="flex shrink-0 items-start justify-between gap-3">
-        <div className="min-w-0 space-y-1">
-          <h1 className="font-heading text-2xl font-medium tracking-tight">KI</h1>
-          <p className="text-sm text-muted-foreground">
-            Einfacher Chat — Gespräch bleibt nur in diesem Tab (neu laden = weg).
-          </p>
-        </div>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={resetChat}
-          disabled={isPending || messages.length === 0}
-        >
-          <RotateCcwIcon data-icon="inline-start" />
-          Neuer Chat
-        </Button>
-      </div>
-
-      <div
-        className="shrink-0 rounded-lg border border-amber-200/80 bg-amber-50/80 px-4 py-3 text-sm text-amber-950"
-        role="note"
-      >
-        Bitte keine Mandanten- oder Falldaten einfügen. Dafür die{" "}
-        <Link href={analyseHref} className="font-medium underline underline-offset-2">
-          KI-Analyse
-        </Link>{" "}
-        mit Pseudonymisierung nutzen.
-      </div>
-
-      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto rounded-lg border border-border/70 bg-background px-4 py-4">
-        {messages.length === 0 && !isPending ? (
-          <p className="py-12 text-center text-sm text-muted-foreground">
-            Frage stellen — z. B. Formulierungshilfe oder allgemeine Orientierung.
-          </p>
-        ) : null}
-        {messages.map((msg) => (
-          <div
-            key={msg.id}
-            className={cn(
-              "flex",
-              msg.role === "user" ? "justify-end" : "justify-start"
-            )}
-          >
-            <div
-              className={cn(
-                "max-w-[85%] whitespace-pre-wrap rounded-2xl px-4 py-2.5 text-sm leading-relaxed",
-                msg.role === "user"
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-foreground"
-              )}
+  const composer = (
+    <div className="lab-chat-composer">
+      <KiActionBadges slot="free" />
+      <textarea
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onKeyDown={onKeyDown}
+        placeholder="Nachricht schreiben…"
+        rows={hasStarted ? 3 : 4}
+        disabled={isPending}
+        maxLength={AI_CHAT_MESSAGE_MAX_CHARS}
+      />
+      <div className="lab-chat-toolbar">
+        <p className="lab-chat-note">Nur in diesem Tab — neu laden = weg.</p>
+        <div className="lab-chat-toolbar-right">
+          {hasStarted ? (
+            <button
+              type="button"
+              className="lab-chat-icon-btn"
+              onClick={resetChat}
+              disabled={isPending}
+              aria-label="Neuer Chat"
+              title="Neuer Chat"
             >
-              {msg.content}
-            </div>
-          </div>
-        ))}
-        {isPending ? (
-          <div className="flex justify-start">
-            <div className="rounded-2xl bg-muted px-4 py-2.5 text-sm text-muted-foreground">
-              Denkt nach…
-            </div>
-          </div>
-        ) : null}
-        <div ref={bottomRef} />
-      </div>
-
-      <div className="shrink-0 space-y-2">
-        <div className="relative">
-          <Textarea
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={onKeyDown}
-            placeholder="Nachricht schreiben…"
-            rows={3}
-            disabled={isPending}
-            className="resize-none pr-14"
-            maxLength={AI_CHAT_MESSAGE_MAX_CHARS}
-          />
-          <Button
+              <RotateCcwIcon className="size-4" />
+            </button>
+          ) : null}
+          <button
             type="button"
-            size="icon"
-            className="absolute right-2 bottom-2"
+            className="lab-chat-send"
             onClick={handleSend}
             disabled={isPending || !draft.trim()}
             aria-label="Senden"
           >
-            <ArrowUpIcon />
-          </Button>
+            <ArrowUpIcon className="size-4" />
+          </button>
         </div>
-        <p className="text-xs text-muted-foreground">
-          Enter senden · Shift+Enter neue Zeile
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="lab-chat flex min-h-0 flex-1 flex-col">
+      <div
+        className="shrink-0 border-b border-[var(--b-line)] px-4 py-3 lg:px-6"
+        role="note"
+      >
+        <p className="b-meta">
+          Keine Mandanten- oder Falldaten. Dafür den{" "}
+          <Link href={aktenChatHref} className="underline underline-offset-2">
+            Akten-Chat
+          </Link>{" "}
+          nutzen.
         </p>
       </div>
+
+      {!hasStarted ? (
+        <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-8 px-4 py-8">
+          <div className="max-w-md space-y-2 text-center">
+            <p className="b-eyebrow">Freier Chat</p>
+            <h1 className="b-title">KI</h1>
+            <p className="b-lead">
+              Formulierungen und Orientierung — ohne Aktenbezug.
+            </p>
+          </div>
+          <div className="w-full max-w-xl">{composer}</div>
+        </div>
+      ) : (
+        <>
+          <div className="lab-chat-scroll min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4 lg:px-6">
+            {messages.map((msg) => (
+              <div
+                key={msg.id}
+                className={cn(
+                  "flex",
+                  msg.role === "user" ? "justify-end" : "justify-start"
+                )}
+              >
+                <div
+                  className={cn(
+                    "max-w-[85%] whitespace-pre-wrap text-sm leading-relaxed",
+                    msg.role === "user" ? "lab-chat-user" : "lab-chat-assistant"
+                  )}
+                >
+                  {msg.content}
+                </div>
+              </div>
+            ))}
+            {isPending ? (
+              <div className="lab-chat-processing flex items-center gap-2.5">
+                <span className="lab-chat-processing-dots" aria-hidden>
+                  <span />
+                  <span />
+                  <span />
+                </span>
+                <span className="b-meta">Wird bearbeitet…</span>
+              </div>
+            ) : null}
+            <div ref={bottomRef} />
+          </div>
+          <div className="shrink-0 border-t border-[var(--b-line)] px-4 py-3 lg:px-6">
+            <div className="mx-auto max-w-3xl">{composer}</div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

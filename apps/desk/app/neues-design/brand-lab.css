@@ -904,6 +904,24 @@
   flex-direction: column;
   background: var(--b-bg);
   color: var(--b-ink);
+  position: relative;
+}
+
+.brand-lab-root .lab-chat--drag {
+  outline: 2px dashed color-mix(in srgb, var(--b-accent) 55%, var(--b-line));
+  outline-offset: -10px;
+}
+
+.brand-lab-root .lab-chat-drop-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--b-bg) 88%, transparent);
+  pointer-events: none;
 }
 
 .brand-lab-root .lab-chat-scroll {
@@ -984,6 +1002,14 @@
 .brand-lab-root .lab-chat-chip:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.brand-lab-root .lab-chat-chip--planned {
+  opacity: 0.55;
+}
+
+.brand-lab-root .lab-chat-badges {
+  margin-bottom: 0.65rem;
 }
 
 .brand-lab-root .lab-chat-icon-btn {

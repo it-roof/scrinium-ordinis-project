@@ -956,6 +956,77 @@ export const letters = pgTable(
 );
 
 /**
+ * KI-Chat unter einer Akte (≈ Claude-Projekt → Thread).
+ * Vollständiger Verlauf in matter_ai_chat_messages.
+ */
+export const matterAiChats = pgTable(
+  "matter_ai_chats",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    matterId: uuid("matter_id")
+      .notNull()
+      .references(() => matters.id, { onDelete: "cascade" }),
+    module: moduleEnum("module").notNull().default("legal"),
+    title: text("title").notNull().default(""),
+    createdBy: uuid("created_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    /** Optional: erzeugtes Letter aus diesem Chat. */
+    letterId: uuid("letter_id").references(() => letters.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    tenantMatterIdx: index("matter_ai_chats_tenant_matter_idx").on(
+      table.tenantId,
+      table.matterId
+    ),
+    tenantMatterUpdatedIdx: index(
+      "matter_ai_chats_tenant_matter_updated_idx"
+    ).on(table.tenantId, table.matterId, table.updatedAt),
+  })
+);
+
+export const matterAiChatMessages = pgTable(
+  "matter_ai_chat_messages",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    chatId: uuid("chat_id")
+      .notNull()
+      .references(() => matterAiChats.id, { onDelete: "cascade" }),
+    /** user | assistant | system */
+    role: text("role").notNull(),
+    content: text("content").notNull(),
+    /** Produkt-Aktions-ID, falls Badge ausgelöst (z. B. analyze-case-facts). */
+    actionId: text("action_id"),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    tenantChatIdx: index("matter_ai_chat_messages_tenant_chat_idx").on(
+      table.tenantId,
+      table.chatId
+    ),
+    tenantChatCreatedIdx: index(
+      "matter_ai_chat_messages_tenant_chat_created_idx"
+    ).on(table.tenantId, table.chatId, table.createdAt),
+  })
+);
+
+/**
  * Interne Aufgabe (Laufzettel): Ball + Absicht, kein Chat.
  * DB-Spalten sender_id / recipient_id = createdBy / ballHolder (bestehende Namen).
  */
@@ -1244,6 +1315,8 @@ export type AiDraft = typeof aiDrafts.$inferSelect;
 export type AiDraftStatus = (typeof aiDraftStatusEnum.enumValues)[number];
 export type AiJob = typeof aiJobs.$inferSelect;
 export type AiJobStatus = (typeof aiJobStatusEnum.enumValues)[number];
+export type MatterAiChat = typeof matterAiChats.$inferSelect;
+export type MatterAiChatMessage = typeof matterAiChatMessages.$inferSelect;
 export type StaffMessage = typeof staffMessages.$inferSelect;
 export type StaffMessageFile = typeof staffMessageFiles.$inferSelect;
 export type StaffMessageEvent = typeof staffMessageEvents.$inferSelect;

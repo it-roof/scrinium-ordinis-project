@@ -24,6 +24,7 @@ export const AREA_FUNCTION_IDS = [
   "prompts",
   "notes",
   "ai-chat",
+  "akten-chat",
   "case-facts-analysis",
   "contract-analysis",
   "client-intake",
@@ -74,11 +75,13 @@ export function normalizeOptionalAllowedFunctions(
   if (unique.has("prompts")) {
     unique.add("notes");
     unique.add("ai-chat");
+    unique.add("akten-chat");
     unique.add("contract-analysis");
   }
-  // KI-Analyse: mitziehen wenn Prompts oder Akten freigeschaltet
+  // KI-Analyse / Akten-Chat: mitziehen wenn Prompts oder Akten freigeschaltet
   if (unique.has("prompts") || unique.has("matters")) {
     unique.add("case-facts-analysis");
+    unique.add("akten-chat");
   }
   if (unique.has("clients")) {
     unique.add("client-intake");
@@ -107,6 +110,7 @@ export const FUNCTIONS_BY_AREA: Record<AppModuleId, AreaFunctionId[]> = {
     "prompts",
     "notes",
     "ai-chat",
+    "akten-chat",
     "letters",
     "text-blocks",
     "case-facts-analysis",
@@ -137,7 +141,8 @@ export const FUNCTION_LABELS: Record<AreaFunctionId, string> = {
   "text-blocks": "Textbausteine",
   prompts: "Prompt-Bibliothek",
   notes: "Notizen",
-  "ai-chat": "KI",
+  "ai-chat": "Freier Chat",
+  "akten-chat": "Akten-Chat",
   "case-facts-analysis": "KI-Analyse",
   "contract-analysis": "Vertragsanalyse",
   "client-intake": "Mandats-Aufnahmebogen",
@@ -191,6 +196,9 @@ export function functionIdFromPathname(
   if (pathname === "/analyse" || pathname.startsWith("/analyse/")) {
     return "case-facts-analysis";
   }
+  if (pathname === "/akten-chat" || pathname.startsWith("/akten-chat/")) {
+    return "akten-chat";
+  }
   if (
     pathname === "/nachrichten-an-mitarbeiter" ||
     pathname.startsWith("/nachrichten-an-mitarbeiter/") ||
@@ -242,6 +250,7 @@ export const MANAGEMENT_FUNCTION_IDS: AreaFunctionId[] = ["clients", "matters"];
 /** Sidebar-Gruppe Funktionen (Werkzeuge). */
 export const TOOL_FUNCTION_IDS: AreaFunctionId[] = [
   "ai-chat",
+  "akten-chat",
   "case-facts-analysis",
   "contract-analysis",
   "client-intake",

@@ -96,6 +96,14 @@ export const AREA_FEATURE_META: Record<AreaFunctionId, AreaFeatureMeta> = {
     tintClass: "hover:ring-teal-300/35",
     glowClass: "bg-teal-300/35",
   },
+  "akten-chat": {
+    description: "Chats an der Akte — Analyse, Schreiben und E-Mail.",
+    icon: MessagesSquareIcon,
+    iconWrap: "bg-sky-50/90 text-sky-800/85 ring-sky-200/45",
+    linkClass: "text-sky-800/75 group-hover:text-sky-900",
+    tintClass: "hover:ring-sky-300/35",
+    glowClass: "bg-sky-300/35",
+  },
   docs: {
     description: "Interne Anleitungen und Prozesse.",
     icon: BookOpenIcon,

@@ -52,8 +52,12 @@ const LAB_NAV: ReadonlyArray<{
     href: (area) => hrefFor("clients", area),
   },
   {
-    label: "KI",
+    label: "Freier Chat",
     href: () => hrefFor("ai-chat"),
+  },
+  {
+    label: "Akten-Chat",
+    href: (area) => hrefFor("akten-chat", area),
   },
   {
     label: "Analyse",

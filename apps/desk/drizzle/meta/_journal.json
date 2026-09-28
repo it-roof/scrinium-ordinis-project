@@ -463,6 +463,13 @@
       "when": 1788515000000,
       "tag": "0065_client_intake",
       "breakpoints": true
+    },
+    {
+      "idx": 66,
+      "version": "7",
+      "when": 1788516000000,
+      "tag": "0066_matter_ai_chats",
+      "breakpoints": true
     }
   ]
 }

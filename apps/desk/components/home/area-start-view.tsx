@@ -141,6 +141,14 @@ const featureMeta: Record<
     cardClass:
       "hover:border-teal-200/80 hover:bg-gradient-to-br hover:from-teal-50/50 hover:to-white",
   },
+  "akten-chat": {
+    description: "Chats an der Akte — Analyse, Schreiben und E-Mail.",
+    icon: MessagesSquareIcon,
+    iconWrap: "bg-sky-100 text-sky-800 ring-sky-200/70",
+    linkClass: "text-sky-700",
+    cardClass:
+      "hover:border-sky-200/80 hover:bg-gradient-to-br hover:from-sky-50/50 hover:to-white",
+  },
   docs: {
     description: "Interne Anleitungen und Prozesse.",
     icon: BookOpenIcon,

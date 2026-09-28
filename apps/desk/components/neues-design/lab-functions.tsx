@@ -48,6 +48,17 @@ export const LAB_FUNCTIONS: ReadonlyArray<LabFunctionCard> = [
     },
   },
   {
+    title: "Akten-Chat",
+    body: "Chats an der Akte.\nAnalyse, Schreiben und E-Mail.",
+    href: "/r/akten-chat",
+    icon: MessagesSquareIcon,
+    functionId: "akten-chat",
+    tone: {
+      accent: "#3d5a80",
+      soft: "color-mix(in srgb, #7ba3c9 22%, transparent)",
+    },
+  },
+  {
     title: "Notizen",
     body: "Persönliche Notizen nur für Sie.\nTippen oder diktieren.",
     href: "/notizen",
@@ -144,8 +155,8 @@ export const LAB_MORE: ReadonlyArray<LabFunctionCard> = [
     },
   },
   {
-    title: "KI",
-    body: "Einfacher Chat mit der KI.\nFormulierungen und Orientierung.",
+    title: "Freier Chat",
+    body: "Formulierungen und Orientierung.\nOhne Mandanten- oder Falldaten.",
     href: "/ki",
     icon: BotIcon,
     functionId: "ai-chat",

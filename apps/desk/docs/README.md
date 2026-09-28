@@ -34,6 +34,7 @@ Jedes Modul-Dokument beschreibt:
 | Datenbank & Migrationen | [`lib/db/README.md`](../lib/db/README.md) |
 | Auth & Sessions | [`AGENTS.md`](../AGENTS.md) |
 | KI-Pseudonymisierung | [`ai-pseudonymization.md`](./ai-pseudonymization.md) |
+| KI-Chat & vordefinierte Aktionen (Konzept) | [`ki-chat-konzept.md`](./ki-chat-konzept.md) |
 | Enterprise Lightweight | [`.cursor/rules/enterprise-lightweight.mdc`](../../.cursor/rules/enterprise-lightweight.mdc) |
 | Multi-Tenant | [`.cursor/rules/multi-tenant-isolation.mdc`](../../.cursor/rules/multi-tenant-isolation.mdc) |
 | Bereichs-Inhalte | [`.cursor/rules/area-content-isolation.mdc`](../../.cursor/rules/area-content-isolation.mdc) |
