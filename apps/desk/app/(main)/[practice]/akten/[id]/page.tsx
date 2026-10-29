@@ -9,8 +9,10 @@ import {
   consentStatusView,
   getLatestAiConsent,
 } from "@/lib/ai/consent";
-import { listAiDraftsForMatter } from "@/lib/ai/drafts-storage";
+import { listMatterAiChats } from "@/lib/ai/matter-chat/storage";
 import { listMatterParties } from "@/lib/ai/parties-storage";
+import { listMatterFiles } from "@/lib/matters/files-storage";
+import { getLetters } from "@/lib/letters/storage";
 import { getMatterById } from "@/lib/matters/storage";
 
 export const dynamic = "force-dynamic";
@@ -30,30 +32,37 @@ export default async function DeskMatterDetailPage({ params }: PageProps) {
     notFound();
   }
 
-  const [parties, latestConsent, drafts] = await Promise.all([
+  const canAktenChat =
+    ctx.allowedFunctions === null ||
+    ctx.allowedFunctions.includes("akten-chat");
+
+  const canLetters =
+    ctx.allowedFunctions === null ||
+    ctx.allowedFunctions.includes("letters");
+
+  const [parties, latestConsent, chats, letters, files] = await Promise.all([
     listMatterParties(ctx.tenantId, id),
     getLatestAiConsent(ctx.tenantId, matter.clientId),
-    listAiDraftsForMatter(ctx.tenantId, id),
+    canAktenChat
+      ? listMatterAiChats(ctx.tenantId, id, ctx.area)
+      : Promise.resolve([]),
+    canLetters
+      ? getLetters(ctx.tenantId, ctx.area, id)
+      : Promise.resolve([]),
+    listMatterFiles(ctx.tenantId, id, ctx.area),
   ]);
-
-  const showCaseFactsAnalysis =
-    ctx.allowedFunctions === null ||
-    ctx.allowedFunctions.includes("case-facts-analysis");
 
   return (
     <DeskAppShell ctx={ctx} headerTitle="Akte">
-      <div className="min-h-0 flex-1 overflow-y-auto p-4 lg:p-6">
-        <MatterDetailView
-          matter={matter}
-          letters={[]}
-          showLetters={false}
-          parties={parties}
-          consentStatus={consentStatusView(latestConsent)}
-          canApprove={ctx.deskRole === "rechtsanwalt"}
-          drafts={drafts}
-          showCaseFactsAnalysis={showCaseFactsAnalysis}
-        />
-      </div>
+      <MatterDetailView
+        matter={matter}
+        letters={letters}
+        showLetters={canLetters}
+        files={files}
+        parties={parties}
+        consentStatus={consentStatusView(latestConsent)}
+        chats={chats}
+      />
     </DeskAppShell>
   );
 }

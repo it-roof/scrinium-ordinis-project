@@ -21,7 +21,6 @@ const PRACTICE_PREFIXED_FLAT: Record<string, string> = {
   eingang: "/eingang",
   gesendet: "/gesendet",
   zuweisen: "/zuweisen",
-  ki: "/ki",
   notizen: "/notizen",
   vertragsanalyse: "/vertragsanalyse",
 };
@@ -106,6 +105,14 @@ function syncPracticeCookie(
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isWartungPage = pathname === "/wartung";
+
+  // Freier Chat entfernt → regulierter Akten-Chat
+  if (pathname === "/ki" || pathname.startsWith("/ki/")) {
+    const slug = practiceSlugFromCookie(request);
+    const url = request.nextUrl.clone();
+    url.pathname = `/${slug}/akten-chat`;
+    return NextResponse.redirect(url);
+  }
 
   // /mandanten → /{practice}/mandanten
   const scoped = redirectFlatScopedToPractice(request, pathname);

@@ -88,16 +88,8 @@ export const AREA_FEATURE_META: Record<AreaFunctionId, AreaFeatureMeta> = {
     tintClass: "hover:ring-orange-300/35",
     glowClass: "bg-orange-300/40",
   },
-  "ai-chat": {
-    description: "Einfacher KI-Chat — ohne Mandanten- oder Falldaten.",
-    icon: MessagesSquareIcon,
-    iconWrap: "bg-teal-50/90 text-teal-800/85 ring-teal-200/45",
-    linkClass: "text-teal-800/75 group-hover:text-teal-900",
-    tintClass: "hover:ring-teal-300/35",
-    glowClass: "bg-teal-300/35",
-  },
   "akten-chat": {
-    description: "Chats an der Akte — Analyse, Schreiben und E-Mail.",
+    description: "Regulierter KI-Chat — optional an Akte, immer pseudonymisiert.",
     icon: MessagesSquareIcon,
     iconWrap: "bg-sky-50/90 text-sky-800/85 ring-sky-200/45",
     linkClass: "text-sky-800/75 group-hover:text-sky-900",

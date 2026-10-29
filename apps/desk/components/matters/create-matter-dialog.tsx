@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
+import { useLabTheme } from "@/components/neues-design/lab-theme";
 import {
   Dialog,
   DialogContent,
@@ -38,6 +39,7 @@ export function CreateMatterDialog({
   module: ContentModule;
   onCreated: (matter: MatterRecord) => void;
 }) {
+  const { appearance } = useLabTheme();
   const [form, setForm] = useState(EMPTY_FORM);
   const [isPending, startTransition] = useTransition();
 
@@ -80,14 +82,15 @@ export function CreateMatterDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent
         showCloseButton
-        className="brand-lab-root brand-alba brand-alba-manrope gap-0 overflow-hidden rounded-[1.15rem] border p-0 sm:max-w-lg"
+        className="brand-alba brand-alba-manrope lab-matters-dialog gap-0 overflow-hidden rounded-[1.15rem] border p-0 sm:max-w-lg"
+        data-lab-appearance={appearance}
         style={{
           borderColor: "var(--b-line)",
           background: "var(--b-bg-elev)",
           color: "var(--b-ink)",
         }}
       >
-        <form onSubmit={handleSubmit} className="lab-matters-dialog flex flex-col">
+        <form onSubmit={handleSubmit} className="flex flex-col">
           <div
             className="space-y-1 border-b px-6 py-5 pr-12"
             style={{ borderColor: "var(--b-line)" }}

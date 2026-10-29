@@ -5,7 +5,7 @@ alwaysApply: true
 
 # Multi-Tenant & Datentrennung
 
-Scrinium Ordinis / Desk ist eine **Multi-Tenant-Plattform** für mehrere Kanzleien.
+Scrinium / Desk ist eine **Multi-Tenant-Plattform** für mehrere Kanzleien.
 **Eine App, getrennte Daten.** Keine separaten Installationen pro Kanzlei (außer ein Mandant verlangt später explizit eine dedizierte DB).
 
 ## Pflicht (DSGVO / TOMs)
@@ -47,6 +47,6 @@ Hinweis: Tabelle `users` hat bewusst **kein** RLS (Login per E-Mail). Fachdaten 
 
 ## Marken
 
-- **Produkt (Desk + Website):** Scrinium Ordinis
+- **Produkt (Desk + Website):** Scrinium
 - Einzelne Kanzleien = Tenants / Kunden, nicht die Produktmarke
 - Plattform-Super-Admin ≠ Tenant (fachlich; technisch ggf. noch nachziehen)

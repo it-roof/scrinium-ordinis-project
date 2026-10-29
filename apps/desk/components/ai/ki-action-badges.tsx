@@ -7,10 +7,13 @@ export function KiActionBadges({
   slot,
   onAction,
   disabled,
+  leadingLabel,
 }: {
   slot: ProductChatSlot;
   onAction?: (actionId: string) => void;
   disabled?: boolean;
+  /** z. B. „Vorschläge:“ — in derselben Zeile wie die Badges */
+  leadingLabel?: string;
 }) {
   const badges = productBadgesForChat(slot);
   if (badges.length === 0) {
@@ -18,7 +21,14 @@ export function KiActionBadges({
   }
 
   return (
-    <div className="lab-chat-badges flex flex-wrap gap-2" role="toolbar" aria-label="Aktionen">
+    <div
+      className="lab-chat-badges flex flex-wrap items-center gap-2"
+      role="toolbar"
+      aria-label={leadingLabel?.replace(/:$/, "") || "Aktionen"}
+    >
+      {leadingLabel ? (
+        <span className="b-meta shrink-0">{leadingLabel}</span>
+      ) : null}
       {badges.map((action) => {
         const planned = action.status === "planned";
         return (

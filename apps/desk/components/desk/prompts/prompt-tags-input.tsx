@@ -3,8 +3,6 @@
 import { useMemo, useState } from "react";
 import { XIcon } from "lucide-react";
 
-import { Badge } from "@/components/desk/ui/badge";
-import { Input } from "@/components/desk/ui/input";
 import {
   normalizeTagList,
   normalizeTagName,
@@ -29,7 +27,9 @@ export function V1PromptTagsInput({
 
   const availableSuggestions = useMemo(() => {
     const selected = new Set(value.map(tagKey));
-    return suggestions.filter((suggestion) => !selected.has(tagKey(suggestion)));
+    return suggestions.filter(
+      (suggestion) => !selected.has(tagKey(suggestion))
+    );
   }, [suggestions, value]);
 
   const matchingSuggestions = useMemo(() => {
@@ -65,29 +65,32 @@ export function V1PromptTagsInput({
   }
 
   return (
-    <div className="space-y-3">
+    <div className="flex flex-col gap-3">
       <div
         className={cn(
-          "flex min-h-10 flex-wrap items-center gap-2 rounded-md border border-input bg-transparent px-3 py-2 shadow-xs",
-          "focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/50",
+          "flex min-h-11 flex-wrap items-center gap-2 rounded-[0.65rem] border px-3 py-2",
           disabled && "opacity-60"
         )}
+        style={{
+          borderColor: "var(--b-line)",
+          background: "var(--b-bg)",
+        }}
       >
         {value.map((tag) => (
-          <Badge key={tagKey(tag)} variant="secondary" className="gap-1">
+          <span key={tagKey(tag)} className="lab-prompts-tag inline-flex items-center gap-1">
             {tag}
             <button
               type="button"
               onClick={() => removeTag(tag)}
               disabled={disabled}
-              className="rounded-sm opacity-70 transition-opacity hover:opacity-100"
+              className="opacity-70 transition-opacity hover:opacity-100"
               aria-label={`Tag ${tag} entfernen`}
             >
-              <XIcon className="size-3" />
+              <XIcon className="size-3" strokeWidth={1.75} />
             </button>
-          </Badge>
+          </span>
         ))}
-        <Input
+        <input
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
           onKeyDown={handleKeyDown}
@@ -102,7 +105,8 @@ export function V1PromptTagsInput({
               ? "Tag eingeben und Enter…"
               : "Weitere Tags hinzufügen…"
           }
-          className="h-8 min-w-[12rem] flex-1 border-0 bg-transparent px-0 shadow-none focus-visible:ring-0"
+          className="min-w-[12rem] flex-1 border-0 bg-transparent px-0 text-[0.9375rem] outline-none"
+          style={{ color: "var(--b-ink)" }}
         />
       </div>
 
@@ -114,7 +118,7 @@ export function V1PromptTagsInput({
               type="button"
               disabled={disabled}
               onClick={() => addTag(suggestion)}
-              className="rounded-md border bg-muted/40 px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              className="lab-prompts-chip"
             >
               {suggestion}
             </button>

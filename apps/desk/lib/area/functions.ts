@@ -23,7 +23,6 @@ export const AREA_FUNCTION_IDS = [
   "text-blocks",
   "prompts",
   "notes",
-  "ai-chat",
   "akten-chat",
   "case-facts-analysis",
   "contract-analysis",
@@ -74,7 +73,6 @@ export function normalizeOptionalAllowedFunctions(
   // Notizen / KI-Chat: mit Prompts mitziehen
   if (unique.has("prompts")) {
     unique.add("notes");
-    unique.add("ai-chat");
     unique.add("akten-chat");
     unique.add("contract-analysis");
   }
@@ -109,7 +107,6 @@ export const FUNCTIONS_BY_AREA: Record<AppModuleId, AreaFunctionId[]> = {
     "matters",
     "prompts",
     "notes",
-    "ai-chat",
     "akten-chat",
     "letters",
     "text-blocks",
@@ -141,7 +138,6 @@ export const FUNCTION_LABELS: Record<AreaFunctionId, string> = {
   "text-blocks": "Textbausteine",
   prompts: "Prompt-Bibliothek",
   notes: "Notizen",
-  "ai-chat": "Freier Chat",
   "akten-chat": "Akten-Chat",
   "case-facts-analysis": "KI-Analyse",
   "contract-analysis": "Vertragsanalyse",
@@ -210,9 +206,6 @@ export function functionIdFromPathname(
   if (pathname === "/notizen" || pathname.startsWith("/notizen/")) {
     return "notes";
   }
-  if (pathname === "/ki" || pathname.startsWith("/ki/")) {
-    return "ai-chat";
-  }
   if (
     pathname === "/vertragsanalyse" ||
     pathname.startsWith("/vertragsanalyse/")
@@ -249,7 +242,6 @@ export const MANAGEMENT_FUNCTION_IDS: AreaFunctionId[] = ["clients", "matters"];
 
 /** Sidebar-Gruppe Funktionen (Werkzeuge). */
 export const TOOL_FUNCTION_IDS: AreaFunctionId[] = [
-  "ai-chat",
   "akten-chat",
   "case-facts-analysis",
   "contract-analysis",

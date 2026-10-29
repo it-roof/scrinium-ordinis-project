@@ -168,9 +168,9 @@ export async function sendTestEmail(
   await transport.sendMail({
     from: formatFrom(config),
     to: toEmail,
-    subject: "Scrinium Ordinis — SMTP-Test",
+    subject: "Scrinium — SMTP-Test",
     text: [
-      "Diese Testmail bestätigt, dass dein SMTP-Konto in Scrinium Ordinis funktioniert.",
+      "Diese Testmail bestätigt, dass dein SMTP-Konto in Scrinium funktioniert.",
       "",
       `Absender: ${config.fromName} <${config.fromEmail}>`,
       `Server: ${config.host}:${config.port}`,

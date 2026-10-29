@@ -51,9 +51,13 @@ export default async function AktenChatThreadPage({ params }: PageProps) {
         practice={ctx.area}
         matterId={matter.id}
         matterTitle={matter.title}
+        matterReference={matter.reference}
+        clientId={matter.clientId}
+        clientName={matter.clientName}
         chatId={chat.id}
         chatTitle={chat.title}
         initialMessages={chat.messages}
+        initialLetterId={chat.letterId}
         consentGranted={consentGranted}
       />
     </DeskAppShell>

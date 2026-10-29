@@ -6,6 +6,8 @@
     "dev": "turbo run dev",
     "dev:desk": "turbo run dev --filter=@scrinium/desk",
     "dev:website": "turbo run dev --filter=@scrinium/website",
+    "dev:intake": "turbo run dev --filter=@scrinium/intake",
+    "dev:matters": "turbo run dev --filter=@scrinium/matters",
     "dev:client-doc": "turbo run dev --filter=@scrinium/client-doc",
     "build": "turbo run build",
     "lint": "turbo run lint",

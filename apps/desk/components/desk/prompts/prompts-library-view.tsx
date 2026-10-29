@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import {
   ArrowDownIcon,
   ArrowUpIcon,
   CopyIcon,
+  PencilIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -25,8 +27,13 @@ function promptPreview(content: string): string {
 
 export function V1PromptsLibraryView({
   initialItems,
+  canEdit = false,
+  basePath = "/prompt",
 }: {
   initialItems: Prompt[];
+  canEdit?: boolean;
+  /** Basis-Pfad für Bearbeiten-Links (z. B. `/platform/prompts`). */
+  basePath?: string;
 }) {
   const [items, setItems] = useState(initialItems);
   const [search, setSearch] = useState("");
@@ -77,12 +84,24 @@ export function V1PromptsLibraryView({
     <div className="lab-prompts relative flex min-h-0 flex-1 flex-col overflow-y-auto">
       <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col px-6 pt-12 pb-14 md:px-10 md:pt-14">
         <header className="flex max-w-2xl flex-col">
-          <h1 className="b-display b-title font-medium tracking-[-0.02em]">
-            Prompt-Bibliothek
-          </h1>
-          <p className="b-lead mt-2 max-w-none text-[1.0625rem] leading-[1.55] md:mt-2.5">
-            Gemeinsame Bibliothek — durchsuchen und kopieren.
-          </p>
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="min-w-0">
+              <h1 className="b-display b-title font-medium tracking-[-0.02em]">
+                Prompt-Bibliothek
+              </h1>
+              <p className="b-lead mt-2 max-w-none text-[1.0625rem] leading-[1.55] md:mt-2.5">
+                Gemeinsame Bibliothek — durchsuchen und kopieren.
+              </p>
+            </div>
+            {canEdit ? (
+              <Link
+                href={`${basePath}/neu`}
+                className="b-btn b-btn-primary shrink-0"
+              >
+                Prompt erstellen
+              </Link>
+            ) : null}
+          </div>
         </header>
 
         <div className="mt-10 flex flex-col gap-6">
@@ -101,9 +120,21 @@ export function V1PromptsLibraryView({
               </p>
               <p className="b-meta mx-auto mt-2 max-w-sm">
                 {items.length === 0
-                  ? "Die gemeinsame Bibliothek ist noch leer."
+                  ? canEdit
+                    ? "Lege den ersten Prompt für die gemeinsame Bibliothek an."
+                    : "Die gemeinsame Bibliothek ist noch leer."
                   : "Suche oder Tag-Filter anpassen."}
               </p>
+              {items.length === 0 && canEdit ? (
+                <div className="mt-6 flex justify-center">
+                  <Link
+                    href={`${basePath}/neu`}
+                    className="b-btn b-btn-primary"
+                  >
+                    Prompt erstellen
+                  </Link>
+                </div>
+              ) : null}
             </div>
           ) : (
             <div className="flex flex-col gap-3">
@@ -156,14 +187,31 @@ export function V1PromptsLibraryView({
                               <span className="b-display min-w-0 flex-1 truncate text-[1.25rem] font-medium leading-none tracking-[-0.01em]">
                                 {item.title}
                               </span>
-                              <button
-                                type="button"
-                                className="b-btn b-btn-secondary shrink-0 gap-1.5"
-                                onClick={() => copyContent(item)}
-                              >
-                                <CopyIcon className="size-4" strokeWidth={1.75} />
-                                Kopieren
-                              </button>
+                              <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+                                {canEdit ? (
+                                  <Link
+                                    href={`${basePath}/${item.id}/bearbeiten`}
+                                    className="b-btn b-btn-ghost gap-1.5"
+                                  >
+                                    <PencilIcon
+                                      className="size-4"
+                                      strokeWidth={1.75}
+                                    />
+                                    Bearbeiten
+                                  </Link>
+                                ) : null}
+                                <button
+                                  type="button"
+                                  className="b-btn b-btn-secondary gap-1.5"
+                                  onClick={() => copyContent(item)}
+                                >
+                                  <CopyIcon
+                                    className="size-4"
+                                    strokeWidth={1.75}
+                                  />
+                                  Kopieren
+                                </button>
+                              </div>
                             </div>
 
                             {item.tags.length > 0 ? (

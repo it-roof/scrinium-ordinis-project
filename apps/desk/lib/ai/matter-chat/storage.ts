@@ -1,4 +1,4 @@
-import { and, asc, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, isNull } from "drizzle-orm";
 
 import {
   matterAiChatMessages,
@@ -24,7 +24,8 @@ export type MatterAiChatMessageRecord = {
 };
 
 export type MatterAiChatDetail = MatterAiChatListItem & {
-  matterId: string;
+  matterId: string | null;
+  letterId: string | null;
   module: PracticeId;
   messages: MatterAiChatMessageRecord[];
 };
@@ -40,7 +41,7 @@ function asMessageRole(
 
 export async function listMatterAiChats(
   tenantId: string,
-  matterId: string,
+  matterId: string | null,
   module: PracticeId
 ): Promise<MatterAiChatListItem[]> {
   return withTenantDb(tenantId, async (tx) => {
@@ -55,7 +56,9 @@ export async function listMatterAiChats(
       .where(
         and(
           eq(matterAiChats.tenantId, tenantId),
-          eq(matterAiChats.matterId, matterId),
+          matterId == null
+            ? isNull(matterAiChats.matterId)
+            : eq(matterAiChats.matterId, matterId),
           eq(matterAiChats.module, module)
         )
       )
@@ -65,27 +68,54 @@ export async function listMatterAiChats(
   });
 }
 
+/** Neuester Chat der Practice (mit oder ohne Akte). */
+export async function getLatestMatterAiChat(
+  tenantId: string,
+  module: PracticeId
+): Promise<{ id: string; matterId: string | null } | null> {
+  return withTenantDb(tenantId, async (tx) => {
+    const [row] = await tx
+      .select({
+        id: matterAiChats.id,
+        matterId: matterAiChats.matterId,
+      })
+      .from(matterAiChats)
+      .where(
+        and(
+          eq(matterAiChats.tenantId, tenantId),
+          eq(matterAiChats.module, module)
+        )
+      )
+      .orderBy(desc(matterAiChats.updatedAt))
+      .limit(1);
+
+    return row ?? null;
+  });
+}
+
 export async function createMatterAiChat(params: {
   tenantId: string;
   userId: string;
-  matterId: string;
+  matterId: string | null;
   module: PracticeId;
   title?: string;
 }): Promise<MatterAiChatListItem | null> {
   return withTenantDb(params.tenantId, async (tx) => {
-    const [matter] = await tx
-      .select({ id: matters.id, module: matters.module })
-      .from(matters)
-      .where(
-        and(
-          eq(matters.id, params.matterId),
-          eq(matters.tenantId, params.tenantId),
-          eq(matters.module, params.module)
+    if (params.matterId != null) {
+      const [matter] = await tx
+        .select({ id: matters.id, module: matters.module })
+        .from(matters)
+        .where(
+          and(
+            eq(matters.id, params.matterId),
+            eq(matters.tenantId, params.tenantId),
+            eq(matters.module, params.module)
+          )
         )
-      )
-      .limit(1);
+        .limit(1);
 
-    if (!matter) return null;
+      if (!matter) return null;
+    }
 
     const title = (params.title ?? "").trim() || "Neuer Chat";
     const [row] = await tx
@@ -156,6 +186,7 @@ export async function getMatterAiChatDetail(params: {
       id: chat.id,
       title: chat.title,
       matterId: chat.matterId,
+      letterId: chat.letterId,
       module: chat.module as PracticeId,
       createdAt: chat.createdAt,
       updatedAt: chat.updatedAt,
@@ -228,6 +259,52 @@ export async function appendMatterAiChatMessages(params: {
   });
 }
 
+/** Akte an einen bisher unzugeordneten Chat binden (einmalig). */
+export async function assignMatterAiChat(params: {
+  tenantId: string;
+  chatId: string;
+  module: PracticeId;
+  matterId: string;
+}): Promise<{ id: string; matterId: string } | null> {
+  return withTenantDb(params.tenantId, async (tx) => {
+    const [matter] = await tx
+      .select({ id: matters.id })
+      .from(matters)
+      .where(
+        and(
+          eq(matters.id, params.matterId),
+          eq(matters.tenantId, params.tenantId),
+          eq(matters.module, params.module)
+        )
+      )
+      .limit(1);
+
+    if (!matter) return null;
+
+    const [row] = await tx
+      .update(matterAiChats)
+      .set({
+        matterId: params.matterId,
+        updatedAt: new Date().toISOString(),
+      })
+      .where(
+        and(
+          eq(matterAiChats.id, params.chatId),
+          eq(matterAiChats.tenantId, params.tenantId),
+          eq(matterAiChats.module, params.module),
+          isNull(matterAiChats.matterId)
+        )
+      )
+      .returning({
+        id: matterAiChats.id,
+        matterId: matterAiChats.matterId,
+      });
+
+    if (!row?.matterId) return null;
+    return { id: row.id, matterId: row.matterId };
+  });
+}
+
 export async function renameMatterAiChat(params: {
   tenantId: string;
   chatId: string;
@@ -241,6 +318,27 @@ export async function renameMatterAiChat(params: {
     const [row] = await tx
       .update(matterAiChats)
       .set({ title, updatedAt: new Date().toISOString() })
+      .where(
+        and(
+          eq(matterAiChats.id, params.chatId),
+          eq(matterAiChats.tenantId, params.tenantId),
+          eq(matterAiChats.module, params.module)
+        )
+      )
+      .returning({ id: matterAiChats.id });
+
+    return Boolean(row);
+  });
+}
+
+export async function deleteMatterAiChat(params: {
+  tenantId: string;
+  chatId: string;
+  module: PracticeId;
+}): Promise<boolean> {
+  return withTenantDb(params.tenantId, async (tx) => {
+    const [row] = await tx
+      .delete(matterAiChats)
       .where(
         and(
           eq(matterAiChats.id, params.chatId),

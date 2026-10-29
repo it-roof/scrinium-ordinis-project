@@ -1,14 +1,8 @@
-import { AktenChatMatterPicker } from "@/components/ai/akten-chat-matter-picker";
-import {
-  requireDeskPractice,
-  DeskAppShell,
-} from "@/components/desk/shell/desk-app-shell";
-import {
-  consentStatusView,
-  getLatestAiConsent,
-} from "@/lib/ai/consent";
-import { practiceBasePath } from "@/lib/area/paths";
-import { getMatters } from "@/lib/matters/storage";
+import { redirect } from "next/navigation";
+
+import { requireDeskPractice } from "@/components/desk/shell/desk-app-shell";
+import { createMatterAiChat } from "@/lib/ai/matter-chat/storage";
+import { aktenChatHref } from "@/lib/ai/matter-chat/paths";
 
 export const dynamic = "force-dynamic";
 
@@ -16,36 +10,22 @@ type PageProps = {
   params: Promise<{ practice: string }>;
 };
 
+/** Sidebar: immer einen neuen Chat ohne Akte starten. */
 export default async function AktenChatIndexPage({ params }: PageProps) {
   const { practice: practiceSlug } = await params;
   const ctx = await requireDeskPractice(practiceSlug, {
     requireFunction: "akten-chat",
   });
-  const matters = await getMatters(ctx.tenantId, ctx.area);
-  const basePath = practiceBasePath(ctx.area);
 
-  const withConsent = await Promise.all(
-    matters.map(async (matter) => {
-      const latest = await getLatestAiConsent(ctx.tenantId, matter.clientId);
-      return {
-        ...matter,
-        consentGranted: consentStatusView(latest) === "granted",
-      };
-    })
-  );
+  const created = await createMatterAiChat({
+    tenantId: ctx.tenantId,
+    userId: ctx.userId,
+    matterId: null,
+    module: ctx.area,
+  });
+  if (!created) {
+    redirect(aktenChatHref(ctx.area, null));
+  }
 
-  return (
-    <DeskAppShell ctx={ctx} headerTitle="Akten-Chat">
-      <div className="mx-auto flex w-full max-w-5xl min-h-0 flex-1 flex-col gap-8 overflow-y-auto p-4 lg:p-6">
-        <div className="space-y-2">
-          <p className="b-eyebrow">KI</p>
-          <h1 className="b-title">Akten-Chat</h1>
-          <p className="b-lead">
-            Akte wählen — Chats hängen an der Akte und bleiben gespeichert.
-          </p>
-        </div>
-        <AktenChatMatterPicker matters={withConsent} basePath={basePath} />
-      </div>
-    </DeskAppShell>
-  );
+  redirect(aktenChatHref(ctx.area, null, created.id));
 }

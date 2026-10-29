@@ -83,7 +83,6 @@ function compareByUsage(
  * inbox wird als „Meine Aufgaben“ gelabelt und führt zur Aufgabenliste.
  */
 export const LAWYER_QUICK_VIEW_FUNCTION_IDS: AreaFunctionId[] = [
-  "ai-chat",
   "akten-chat",
   "case-facts-analysis",
   "contract-analysis",

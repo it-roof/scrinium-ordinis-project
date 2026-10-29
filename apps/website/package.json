@@ -3,10 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --port 3001",
+    "dev": "next dev --port 3081",
     "build": "next build",
-    "start": "next start --port 3001",
-    "lint": "eslint"
+    "start": "next start --port 3081",
+    "lint": "eslint",
+    "image:seedream": "node scripts/generate-seedream-image.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",

@@ -4,7 +4,7 @@
 This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
 <!-- END:nextjs-agent-rules -->
 
-App: **`apps/desk`** (Scrinium Ordinis — Kanzlei-Werkzeug). Monorepo-Hinweise: Root [`AGENTS.md`](../../AGENTS.md).
+App: **`apps/desk`** (Scrinium — Kanzlei-Werkzeug). Monorepo-Hinweise: Root [`AGENTS.md`](../../AGENTS.md).
 
 ## Interne Aufgaben (Laufzettel)
 
@@ -89,11 +89,10 @@ Modul-Dokumentation: [`docs/README.md`](docs/README.md) · Erstes Modul: [Textba
 
 - Code: [`lib/ai/`](lib/ai/) — nur serverseitig (`server-only`), Modell-ID muss mit `eu.` beginnen
 - Tabellen: `ai_consents`, `ai_audit`, `ai_drafts`, `ai_jobs`, `matter_parties`
-- **KI-Chat** (`/ki`, Function `ai-chat`): Klartext-Chat, Session-only (kein DB-Verlauf); UI-Disclaimer gegen Mandanten-/Falldaten; Audit content-frei ohne `client_id`
-- **Akten-Chat** (`/r/akten-chat`, Function `akten-chat`): Chats an der Akte (`matter_ai_chats` / `matter_ai_chat_messages`); Badge-Leiste aus Aktionskatalog; Pseudonym folgt mit Analyse-Anbindung — [`docs/ki-chat-konzept.md`](docs/ki-chat-konzept.md)
+- **Akten-Chat** (reguliert, Function `akten-chat`): Claude-artiger Dialog mit optionaler Akte (`matter_ai_chats` / `matter_ai_chat_messages`); **immer** Pseudonym vor Bedrock; Badges/Kontext-Rail mit Akte + Consent — [`docs/ki-chat-konzept.md`](docs/ki-chat-konzept.md). Freier Chat (`/ki`) entfernt (Redirect → Akten-Chat).
 - **KI-Analyse** (Akte): Vorschau → Residual-Gate → Job → Entwurf — mit Pseudonymisierung ([`docs/ai-pseudonymization.md`](docs/ai-pseudonymization.md)); EU-Region + EU-Modell-ID; Job-Owner-only; early clear + TTL
 - **Vertragsanalyse** (`/vertragsanalyse`, Function `contract-analysis`): Workspace Session-only — PDF/DOCX oder Sachverhalt → Erstanalyse → Gegenfragen → verbesserten Vertrag + DOCX-Download ([`lib/ai/contract-kit/`](lib/ai/contract-kit/)). Upload derzeit roh an Bedrock (Document); Absolut-Regel TODO in [`docs/ai-pseudonymization.md`](docs/ai-pseudonymization.md). Datei wird nicht gespeichert. Außerhalb KI-Chat-Konzept v1.
-- **Konzept (Zielbild):** Freier Chat + Akten-Chat, eine Aktionsliste (Prompt- vs. Funktions-Aktionen); Vertragsanalyse nicht in v1-Badges — [`docs/ki-chat-konzept.md`](docs/ki-chat-konzept.md)
+- **Konzept:** ein regulierter Chat + Aktionsliste (Prompt- vs. Funktions-Aktionen); Vertragsanalyse nicht in v1-Badges — [`docs/ki-chat-konzept.md`](docs/ki-chat-konzept.md)
 - Env: `AWS_REGION` (eu-*), `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `BEDROCK_MODEL_ID` (eu.*), optional `AI_PSEUDONYM_GATE`
 - Dev-Debug: nur Test-Kanzlei — `AI_DEBUG=1` + `AI_DEBUG_TENANT_SLUG=test-kanzlei` → `/ai-debug` und `/ai-debug/produkt-ki` (Produktprompts + Aktionskatalog; kein Super-Admin / keine Platform-UI)
 - Tests: siehe Abschnitt Tests oben

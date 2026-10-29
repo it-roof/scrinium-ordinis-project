@@ -1,5 +1,4 @@
 import {
-  BotIcon,
   ClipboardListIcon,
   FilePenLineIcon,
   FileStackIcon,
@@ -152,17 +151,6 @@ export const LAB_MORE: ReadonlyArray<LabFunctionCard> = [
     tone: {
       accent: "#8b5a3c",
       soft: "color-mix(in srgb, #d4a574 20%, transparent)",
-    },
-  },
-  {
-    title: "Freier Chat",
-    body: "Formulierungen und Orientierung.\nOhne Mandanten- oder Falldaten.",
-    href: "/ki",
-    icon: BotIcon,
-    functionId: "ai-chat",
-    tone: {
-      accent: "#2f6f6a",
-      soft: "color-mix(in srgb, #6db5ae 20%, transparent)",
     },
   },
   {

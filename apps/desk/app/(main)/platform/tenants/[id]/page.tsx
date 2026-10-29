@@ -28,8 +28,10 @@ export default async function PlatformTenantPage({
   const users = await listUsersForTenant(tenant.id);
 
   return (
-    <PlatformShell title={tenant.name}>
-      <PlatformTenantDetailView tenant={tenant} users={users} />
+    <PlatformShell title={tenant.name} pathname="/platform">
+      <div className="p-4 lg:p-6">
+        <PlatformTenantDetailView tenant={tenant} users={users} />
+      </div>
     </PlatformShell>
   );
 }

@@ -4,15 +4,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTransition, type ReactNode } from "react";
 import {
-  ClipboardListIcon,
-  FilePenLineIcon,
-  FileStackIcon,
   FolderOpenIcon,
   HomeIcon,
   LogOutIcon,
+  MessagesSquareIcon,
   SparklesIcon,
   StickyNoteIcon,
-  UserIcon,
   type LucideIcon,
 } from "lucide-react";
 import { PRODUCT_NAME } from "@scrinium/brand";
@@ -39,12 +36,6 @@ const NAV_DATA: ReadonlyArray<NavItem> = [
     icon: FolderOpenIcon,
     functionId: "matters",
   },
-  {
-    label: "Mandanten",
-    href: "/r/mandanten",
-    icon: UserIcon,
-    functionId: "clients",
-  },
 ];
 
 const NAV_FUNCTIONS: ReadonlyArray<NavItem> = [
@@ -55,28 +46,16 @@ const NAV_FUNCTIONS: ReadonlyArray<NavItem> = [
     functionId: "prompts",
   },
   {
+    label: "Akten-Chat",
+    href: "/r/akten-chat",
+    icon: MessagesSquareIcon,
+    functionId: "akten-chat",
+  },
+  {
     label: "Notizen",
     href: "/notizen",
     icon: StickyNoteIcon,
     functionId: "notes",
-  },
-  {
-    label: "Mandats-Aufnahmebogen",
-    href: "/aufnahmebogen",
-    icon: ClipboardListIcon,
-    functionId: "client-intake",
-  },
-  {
-    label: "Textbausteine",
-    href: "/r/textbausteine",
-    icon: FileStackIcon,
-    functionId: "text-blocks",
-  },
-  {
-    label: "Vertragsanalyse",
-    href: "/vertragsanalyse",
-    icon: FilePenLineIcon,
-    functionId: "contract-analysis",
   },
 ];
 

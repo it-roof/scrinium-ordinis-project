@@ -15,6 +15,7 @@ import {
   getLetterById,
   listLetterColleagues,
   markLetterSentRow,
+  renameLetterTitleRow,
   setLetterStatusRow,
   updateLetterRow,
   updateSentLetterMatterRow,
@@ -221,6 +222,38 @@ export async function deleteLetter(id: string) {
 
   revalidateLetters();
   return { success: true as const };
+}
+
+export async function renameLetter(id: string, title: string) {
+  const { error, user } = await requireLettersUser();
+  if (!user) {
+    return { success: false as const, error: error ?? "Nicht angemeldet." };
+  }
+
+  const trimmed = title.trim().slice(0, 200);
+  if (!trimmed) {
+    return { success: false as const, error: "Titel fehlt." };
+  }
+
+  const existing = await getLetterById(user.tenantId, id);
+  if (!existing) {
+    return { success: false as const, error: "Schreiben nicht gefunden." };
+  }
+
+  if (existing.status === "versendet") {
+    return {
+      success: false as const,
+      error: "Versendete Schreiben können nicht umbenannt werden.",
+    };
+  }
+
+  const item = await renameLetterTitleRow(user.tenantId, id, trimmed);
+  if (!item) {
+    return { success: false as const, error: "Umbenennen fehlgeschlagen." };
+  }
+
+  revalidateLetters();
+  return { success: true as const, item };
 }
 
 export async function getLetterColleaguesAction() {

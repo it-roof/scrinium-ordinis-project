@@ -160,7 +160,7 @@ function CreateTenantForm({ onSuccess }: { onSuccess?: () => void }) {
               id="tenant-brand"
               value={brandName}
               onChange={(event) => setBrandName(event.target.value)}
-              placeholder="Sonst Scrinium Ordinis"
+              placeholder="Sonst Scrinium"
               className="h-10 rounded-none"
             />
           </div>

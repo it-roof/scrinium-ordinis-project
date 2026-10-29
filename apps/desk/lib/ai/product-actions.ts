@@ -1,12 +1,14 @@
 /**
- * Produkt-Aktionskatalog (eine Liste) — Zuordnung zu Freier Chat / Akten-Chat.
+ * Produkt-Aktionskatalog — Zuordnung zum regulierten Akten-Chat.
  * Quelle der Wahrheit für Badges und Dev-UI. Siehe docs/ki-chat-konzept.md.
+ *
+ * Badges = Start-Werkzeuge. Abschluss (Öffnen, PDF, Senden) = Artefakt-Aktionen im Thread.
  */
 
 export type ProductActionKind = "prompt" | "function";
 
-/** Chat-Ort laut Konzept. */
-export type ProductChatSlot = "free" | "matter";
+/** Chat-Ort laut Konzept (nur noch regulierter Chat). */
+export type ProductChatSlot = "matter";
 
 export type ProductActionStatus = "live" | "planned";
 
@@ -23,17 +25,10 @@ export type ProductAction = {
 
 /**
  * Eine gemeinsame Liste. Badges = filter badgeV1 + chatSlot.
- * „Freier Dialog“ ist der Chat selbst, kein Badge.
+ * Freier Dialog = der Chat selbst (Assistant-Reply), kein Badge.
+ * Folgeaktionen am Artefakt: send-email / open / print — nicht badgeV1.
  */
 export const PRODUCT_ACTIONS: readonly ProductAction[] = [
-  {
-    id: "free-dialog",
-    kind: "prompt",
-    label: "Freier Dialog",
-    chatSlots: ["free"],
-    badgeV1: false,
-    status: "live",
-  },
   {
     id: "analyze-case-facts",
     kind: "prompt",
@@ -71,26 +66,26 @@ export const PRODUCT_ACTIONS: readonly ProductAction[] = [
     kind: "function",
     label: "E-Mail senden",
     chatSlots: ["matter"],
-    badgeV1: true,
+    badgeV1: false,
     status: "live",
   },
   {
     id: "open-save-letter",
     kind: "function",
-    label: "Schreiben öffnen / speichern",
+    label: "Schreiben öffnen",
     chatSlots: ["matter"],
-    badgeV1: true,
-    status: "planned",
+    badgeV1: false,
+    status: "live",
   },
   {
     id: "print-download",
     kind: "function",
-    label: "Drucken / Download",
+    label: "PDF / DOCX",
     chatSlots: ["matter"],
-    badgeV1: true,
-    status: "planned",
+    badgeV1: false,
+    status: "live",
   },
-] as const;
+];
 
 /** Badges für die Leiste über dem Composer (v1). */
 export function productBadgesForChat(

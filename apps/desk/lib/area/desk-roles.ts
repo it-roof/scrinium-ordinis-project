@@ -35,7 +35,6 @@ export const DESK_ROLE_BUNDLES: Record<DeskRoleId, DeskRoleBundle> = {
       "inbox-sent",
       "prompts",
       "notes",
-      "ai-chat",
       "akten-chat",
       "case-facts-analysis",
       "contract-analysis",

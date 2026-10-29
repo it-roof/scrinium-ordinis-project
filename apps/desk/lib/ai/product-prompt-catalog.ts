@@ -32,10 +32,10 @@ export type ProductPromptCatalogEntry = {
 export function getProductPromptCatalog(): ProductPromptCatalogEntry[] {
   return [
     {
-      id: "ai-chat",
-      label: "Freier Dialog",
+      id: "akten-chat-dialog",
+      label: "Regulierter Dialog",
       task: AI_CHAT_TASK,
-      actionId: "free-dialog",
+      actionId: null,
       body: buildAiChatSystemPrompt(),
     },
     {

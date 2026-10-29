@@ -1,8 +1,8 @@
 # KI-Pseudonymisierung
 
-Stand: Produktentscheidung Scrinium Ordinis Desk · Anwaltsgeheimnis / DSGVO.
+Stand: Produktentscheidung Scrinium Desk · Anwaltsgeheimnis / DSGVO.
 
-Klartext darf die eigene Infrastruktur erst **nach** Pseudonymisierung Richtung Bedrock (EU) verlassen — **für die KI-Analyse (Akten-Sachverhalt)**. Der freie **KI-Chat** (`/ki`) sendet bewusst Klartext (Session-only, Disclaimer in der UI: keine Mandanten-/Falldaten). Es gibt **keine 100 %-Garantie**; Ziel ist maximale praktische Absicherung bei einfacher UX für Anwälte.
+Klartext darf die eigene Infrastruktur erst **nach** Pseudonymisierung Richtung Bedrock (EU) verlassen — für den **regulierten Akten-Chat** (Dialog-Turns, auch ohne Akte) und die **KI-Analyse** (Sachverhalt-Badges). Es gibt **keinen** Klartext-Pfad mehr (freier Chat `/ki` entfernt). Es gibt **keine 100 %-Garantie**; Ziel ist maximale praktische Absicherung bei einfacher UX für Anwälte.
 
 ### TODO — Absolut-Regel für Vertrags-Dokumente nachziehen
 

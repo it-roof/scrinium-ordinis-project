@@ -3,6 +3,7 @@ import {
   requireDeskPractice,
   DeskAppShell,
 } from "@/components/desk/shell/desk-app-shell";
+import { listMatterAiChats } from "@/lib/ai/matter-chat/storage";
 import { getClients } from "@/lib/clients/storage";
 import { formatClientName } from "@/lib/clients/types";
 import { getMatters } from "@/lib/matters/storage";
@@ -18,9 +19,17 @@ export default async function DeskMattersPage({ params }: PageProps) {
   const ctx = await requireDeskPractice(practiceSlug, {
     requireFunction: "matters",
   });
-  const [items, clients] = await Promise.all([
+
+  const canAktenChat =
+    ctx.allowedFunctions === null ||
+    ctx.allowedFunctions.includes("akten-chat");
+
+  const [items, clients, unassignedChats] = await Promise.all([
     getMatters(ctx.tenantId, ctx.area),
     getClients(ctx.tenantId, ctx.area),
+    canAktenChat
+      ? listMatterAiChats(ctx.tenantId, null, ctx.area)
+      : Promise.resolve([]),
   ]);
 
   const clientOptions = clients
@@ -32,7 +41,12 @@ export default async function DeskMattersPage({ params }: PageProps) {
 
   return (
     <DeskAppShell ctx={ctx} headerTitle="Akten">
-      <MattersView initialItems={items} clients={clientOptions} />
+      <MattersView
+        initialItems={items}
+        clients={clientOptions}
+        unassignedChats={unassignedChats}
+        canAktenChat={canAktenChat}
+      />
     </DeskAppShell>
   );
 }

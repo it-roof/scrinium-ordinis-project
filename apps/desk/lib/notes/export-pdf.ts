@@ -10,7 +10,7 @@ function createPdfDocument(title: string): PDFKit.PDFDocument {
     margins: PAGE_MARGINS,
     info: {
       Title: title || "Notiz",
-      Author: "Scrinium Ordinis",
+      Author: "Scrinium",
     },
   });
 }

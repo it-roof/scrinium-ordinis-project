@@ -1,4 +1,4 @@
-# Scrinium Ordinis — Desk (Coolify / Docker)
+# Scrinium — Desk (Coolify / Docker)
 # Build-Context: Monorepo-Root
 #   docker build -f apps/desk/Dockerfile .
 #

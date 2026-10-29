@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   useEffect,
   useMemo,
@@ -13,19 +14,31 @@ import {
 import {
   ArrowUpIcon,
   CheckIcon,
+  FolderOpenIcon,
   MicIcon,
   PaperclipIcon,
   PlusIcon,
-  SquareIcon,
   XIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 
 import { DocMarkdown } from "@/components/docs/doc-markdown";
+import {
+  AktenChatResultActions,
+  type AktenChatResultActionKind,
+} from "@/components/ai/akten-chat-result-actions";
 import { KiActionBadges } from "@/components/ai/ki-action-badges";
+import { useLabTheme } from "@/components/neues-design/lab-theme";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   appendMatterChatDocumentAction,
-  appendMatterChatUserMessageAction,
+  assignMatterToChatAction,
   finishAktenChatCaseFactsJobAction,
   finishAktenChatCreateEmailTextJobAction,
   finishAktenChatCreateLetterJobAction,
@@ -34,6 +47,7 @@ import {
   previewAktenChatCreateEmailTextAction,
   previewAktenChatCreateLetterAction,
   sendAktenChatEmailAction,
+  sendMatterChatTurnAction,
   startAktenChatCaseFactsJobAction,
   startAktenChatCounterReviewJobAction,
   startAktenChatCreateEmailTextJobAction,
@@ -49,20 +63,43 @@ import {
   pickLastLetterSource,
 } from "@/lib/ai/matter-chat/helpers";
 import type { MatterAiChatMessageRecord } from "@/lib/ai/matter-chat/storage";
+import { aktenChatHref } from "@/lib/ai/matter-chat/paths";
 import type { PseudonymGatePolicy } from "@/lib/ai/gate-policy";
 import {
   AI_CONTRACT_UPLOAD_MAX_BYTES,
   detectContractUploadKind,
 } from "@/lib/ai/contract-extract";
-import { AI_FACTS_MAX_CHARS } from "@/lib/ai/limits";
+import { AI_DISMISSED_RESIDUALS_MAX, AI_CHAT_MESSAGE_MAX_CHARS, AI_FACTS_MAX_CHARS } from "@/lib/ai/limits";
 import { practiceBasePath } from "@/lib/area/paths";
 import {
   mergeDictationIntoValue,
   useSimpleDictation,
 } from "@/lib/dictation/use-simple-dictation";
 import { useAudioWaveform } from "@/lib/dictation/use-audio-waveform";
+import {
+  exportLetterDocx,
+  exportLetterPdf,
+} from "@/lib/letters/export-actions";
 import type { PracticeId } from "@/lib/modules";
 import { cn } from "@/lib/utils";
+
+export type AktenChatMatterAssignOption = {
+  id: string;
+  title: string;
+  clientName: string;
+  reference: string;
+};
+
+function downloadBase64(filename: string, mimeType: string, base64: string) {
+  const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+  const blob = new Blob([bytes], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
 
 type PreviewKind =
   | "analyze-case-facts"
@@ -126,11 +163,11 @@ function ProcessingIndicator({ label }: { label?: string }) {
 }
 
 function DictationWaveform({ active }: { active: boolean }) {
-  const levels = useAudioWaveform(active, 22);
+  const levels = useAudioWaveform(active, 24);
   return (
     <div
       className={cn(
-        "flex h-8 w-[4.5rem] shrink-0 items-center justify-end gap-[2px]",
+        "flex h-9 w-32 shrink-0 items-center justify-end gap-[3px]",
         !active && "opacity-40"
       )}
       aria-hidden
@@ -138,11 +175,11 @@ function DictationWaveform({ active }: { active: boolean }) {
       {levels.map((level, i) => (
         <span
           key={i}
-          className="w-[2px] rounded-full"
+          className="w-[2.5px] rounded-full transition-[height,opacity] duration-100 ease-out"
           style={{
-            background: "var(--b-ink)",
-            height: `${Math.max(10, Math.round(level * 100))}%`,
-            opacity: 0.25 + level * 0.55,
+            background: "color-mix(in srgb, var(--b-ink) 40%, transparent)",
+            height: `${Math.max(14, Math.round(level * 100))}%`,
+            opacity: 0.35 + level * 0.45,
           }}
         />
       ))}
@@ -163,24 +200,40 @@ export function AktenChatThreadView({
   practice,
   matterId,
   matterTitle,
+  matterReference,
+  clientId,
+  clientName,
   chatId,
   chatTitle,
   initialMessages,
+  initialLetterId = null,
   consentGranted,
+  matterOptions = [],
 }: {
   practice: PracticeId;
-  matterId: string;
-  matterTitle: string;
+  matterId: string | null;
+  matterTitle?: string;
+  matterReference?: string;
+  clientId?: string;
+  clientName?: string;
   chatId: string;
   chatTitle: string;
   initialMessages: MatterAiChatMessageRecord[];
+  initialLetterId?: string | null;
   consentGranted: boolean;
+  /** Für Zuordnung wenn matterId null. */
+  matterOptions?: AktenChatMatterAssignOption[];
 }) {
+  const withoutMatter = matterId == null;
+  const router = useRouter();
+  const { appearance } = useLabTheme();
   const [messages, setMessages] =
     useState<MatterAiChatMessageRecord[]>(initialMessages);
+  const [letterId, setLetterId] = useState<string | null>(initialLetterId);
   const [draft, setDraft] = useState("");
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [assignOpen, setAssignOpen] = useState(false);
   const [preview, setPreview] = useState<AnalysisPreview | null>(null);
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
   const [activeJobActionId, setActiveJobActionId] =
@@ -190,7 +243,7 @@ export function AktenChatThreadView({
   const [dragActive, setDragActive] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const startInputRef = useRef<HTMLTextAreaElement>(null);
+  const composerInputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dragDepthRef = useRef(0);
   const base = practiceBasePath(practice);
@@ -230,14 +283,31 @@ export function AktenChatThreadView({
   }, [initialMessages]);
 
   useEffect(() => {
+    setLetterId(initialLetterId);
+  }, [initialLetterId]);
+
+  useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isPending, preview, activeJobId]);
 
   useEffect(() => {
     if (!hasStarted && !dictating) {
-      startInputRef.current?.focus();
+      composerInputRef.current?.focus();
     }
   }, [hasStarted, dictating]);
+
+  useEffect(() => {
+    const el = composerInputRef.current;
+    if (!el || (dictating && dictationOpen)) return;
+    const lineHeight = Number.parseFloat(getComputedStyle(el).lineHeight) || 24.8;
+    const baseRows = hasStarted ? 1 : 3;
+    const baseHeight = lineHeight * baseRows;
+    const maxHeight = baseHeight * 4.5;
+    el.style.height = "auto";
+    const contentHeight = el.scrollHeight;
+    el.style.height = `${Math.min(Math.max(contentHeight, baseHeight), maxHeight)}px`;
+    el.style.overflowY = contentHeight > maxHeight ? "auto" : "hidden";
+  }, [draft, hasStarted, dictating, dictationOpen]);
 
   useEffect(() => {
     return () => {
@@ -246,8 +316,9 @@ export function AktenChatThreadView({
   }, []);
 
   useEffect(() => {
-    if (!activeJobId) return;
+    if (!activeJobId || !matterId) return;
 
+    const boundMatterId = matterId;
     let cancelled = false;
     let locked = false;
 
@@ -266,20 +337,20 @@ export function AktenChatThreadView({
           ? await finishAktenChatCreateLetterJobAction({
               chatId,
               practice,
-              matterId,
+              matterId: boundMatterId,
               jobId: activeJobId,
             })
           : activeJobActionId === "create-email-text"
             ? await finishAktenChatCreateEmailTextJobAction({
                 chatId,
                 practice,
-                matterId,
+                matterId: boundMatterId,
                 jobId: activeJobId,
               })
             : await finishAktenChatCaseFactsJobAction({
                 chatId,
                 practice,
-                matterId,
+                matterId: boundMatterId,
                 jobId: activeJobId,
                 actionId: activeJobActionId,
               });
@@ -312,6 +383,17 @@ export function AktenChatThreadView({
       setActiveJobId(null);
       if (result.data.messages.length > 0) {
         setMessages((prev) => [...prev, ...result.data.messages]);
+      }
+      if (
+        activeJobActionId === "create-letter" &&
+        result.data.status === "succeeded"
+      ) {
+        const createdLetterId = (
+          result.data as { letterId?: string }
+        ).letterId;
+        if (createdLetterId) {
+          setLetterId(createdLetterId);
+        }
       }
       if (result.data.status === "succeeded") {
         toast.success(
@@ -486,8 +568,8 @@ export function AktenChatThreadView({
 
     const text = draft.trim();
     if (!text) return;
-    if (text.length > AI_FACTS_MAX_CHARS) {
-      toast.error(`Maximal ${AI_FACTS_MAX_CHARS} Zeichen.`);
+    if (text.length > AI_CHAT_MESSAGE_MAX_CHARS) {
+      toast.error(`Maximal ${AI_CHAT_MESSAGE_MAX_CHARS} Zeichen.`);
       return;
     }
 
@@ -502,7 +584,7 @@ export function AktenChatThreadView({
     setDraft("");
 
     startTransition(async () => {
-      const result = await appendMatterChatUserMessageAction({
+      const result = await sendMatterChatTurnAction({
         chatId,
         practice,
         message: text,
@@ -528,6 +610,7 @@ export function AktenChatThreadView({
   }
 
   function startAnalysis() {
+    if (!matterId) return;
     if (!consentGranted) {
       toast.error("Keine KI-Einwilligung für diesen Mandanten.");
       return;
@@ -593,6 +676,7 @@ export function AktenChatThreadView({
   }
 
   function startCounterReview() {
+    if (!matterId) return;
     if (!consentGranted) {
       toast.error("Keine KI-Einwilligung für diesen Mandanten.");
       return;
@@ -627,6 +711,7 @@ export function AktenChatThreadView({
   }
 
   function startCreateLetter() {
+    if (!matterId) return;
     if (!consentGranted) {
       toast.error("Keine KI-Einwilligung für diesen Mandanten.");
       return;
@@ -661,6 +746,7 @@ export function AktenChatThreadView({
   }
 
   function startCreateEmailText() {
+    if (!matterId) return;
     if (!consentGranted) {
       toast.error("Keine KI-Einwilligung für diesen Mandanten.");
       return;
@@ -695,6 +781,7 @@ export function AktenChatThreadView({
   }
 
   function sendEmail() {
+    if (!matterId) return;
     if (isPending || activeJobId || preview) return;
     if (!pickLastEmailDraft(messages)) {
       toast.error("Zuerst „E-Mail-Text erstellen“.");
@@ -723,7 +810,97 @@ export function AktenChatThreadView({
     });
   }
 
+  function exportLetter(format: "pdf" | "docx") {
+    if (!letterId) {
+      toast.error("Kein Schreiben an diesem Chat.");
+      return;
+    }
+    startTransition(async () => {
+      const result =
+        format === "pdf"
+          ? await exportLetterPdf(letterId)
+          : await exportLetterDocx(letterId);
+      if (!result.success) {
+        toast.error(result.error);
+        return;
+      }
+      downloadBase64(result.filename, result.mimeType, result.base64);
+      toast.success(format === "pdf" ? "PDF erstellt." : "Word erstellt.");
+    });
+  }
+
+  function onResultAction(action: AktenChatResultActionKind) {
+    if (action === "create-letter") {
+      startCreateLetter();
+      return;
+    }
+    if (action === "create-email-text") {
+      startCreateEmailText();
+      return;
+    }
+    if (action === "send-email") {
+      sendEmail();
+      return;
+    }
+    if (action === "export-pdf") {
+      exportLetter("pdf");
+      return;
+    }
+    if (action === "export-docx") {
+      exportLetter("docx");
+    }
+  }
+
+  function resultActionsForMessage(msg: MatterAiChatMessageRecord) {
+    const busy = isPending || Boolean(activeJobId) || Boolean(preview);
+    if (isAnalysisResultMessage(msg) || isCounterReviewResultMessage(msg)) {
+      return (
+        <AktenChatResultActions
+          disabled={busy}
+          onAction={onResultAction}
+          actions={[
+            { id: "create-letter", label: "Schreiben daraus" },
+            { id: "create-email-text", label: "E-Mail-Text" },
+          ]}
+        />
+      );
+    }
+    if (isCreateLetterResultMessage(msg) && letterId) {
+      return (
+        <AktenChatResultActions
+          disabled={busy}
+          onAction={onResultAction}
+          actions={[
+            {
+              id: "open-letter",
+              label: "Öffnen",
+              href: `${base}/schreiben/${letterId}/bearbeiten`,
+            },
+            { id: "export-pdf", label: "PDF" },
+            { id: "export-docx", label: "DOCX" },
+            { id: "create-email-text", label: "E-Mail-Text" },
+          ]}
+        />
+      );
+    }
+    if (isEmailDraftResultMessage(msg)) {
+      return (
+        <AktenChatResultActions
+          disabled={busy}
+          onAction={onResultAction}
+          actions={[{ id: "send-email", label: "E-Mail senden" }]}
+        />
+      );
+    }
+    return null;
+  }
+
   function onBadge(actionId: string) {
+    if (!matterId) {
+      setAssignOpen(true);
+      toast.message("Bitte zuerst eine Akte zuordnen.");
+      return;
+    }
     if (actionId === "analyze-case-facts") {
       startAnalysis();
       return;
@@ -740,57 +917,76 @@ export function AktenChatThreadView({
       startCreateEmailText();
       return;
     }
-    if (actionId === "send-email") {
-      sendEmail();
-      return;
-    }
     toast.message("Diese Aktion folgt in den nächsten Schritten.");
   }
 
+  function assignMatter(nextMatterId: string) {
+    if (isPending || activeJobId) return;
+    startTransition(async () => {
+      const result = await assignMatterToChatAction({
+        chatId,
+        practice,
+        matterId: nextMatterId,
+      });
+      if (!result.success) {
+        toast.error(result.error);
+        return;
+      }
+      setAssignOpen(false);
+      toast.success("Akte zugeordnet.");
+      router.push(result.data.href);
+    });
+  }
+
   function confirmPreview() {
+    if (!matterId) return;
     if (!preview || !canConfirmPreview) {
       toast.error(
         "Bitte alle unklaren Namen markieren oder als kein Personenbezug bestätigen."
       );
       return;
     }
+    const boundMatterId = matterId;
     const kind = preview.kind;
+    const facts = preview.facts;
+    const manualMarks = preview.manualMarks;
+    const dismissedResiduals = preview.dismissedResiduals;
     startTransition(async () => {
       const result =
         kind === "create-letter"
           ? await startAktenChatCreateLetterJobAction({
               chatId,
               practice,
-              matterId,
-              facts: preview.facts,
-              manualMarks: preview.manualMarks,
-              dismissedResiduals: preview.dismissedResiduals,
+              matterId: boundMatterId,
+              facts,
+              manualMarks,
+              dismissedResiduals,
             })
           : kind === "create-email-text"
             ? await startAktenChatCreateEmailTextJobAction({
                 chatId,
                 practice,
-                matterId,
-                facts: preview.facts,
-                manualMarks: preview.manualMarks,
-                dismissedResiduals: preview.dismissedResiduals,
+                matterId: boundMatterId,
+                facts,
+                manualMarks,
+                dismissedResiduals,
               })
             : kind === "counter-review"
               ? await startAktenChatCounterReviewJobAction({
                   chatId,
                   practice,
-                  matterId,
-                  facts: preview.facts,
-                  manualMarks: preview.manualMarks,
-                  dismissedResiduals: preview.dismissedResiduals,
+                  matterId: boundMatterId,
+                  facts,
+                  manualMarks,
+                  dismissedResiduals,
                 })
               : await startAktenChatCaseFactsJobAction({
                   chatId,
                   practice,
-                  matterId,
-                  facts: preview.facts,
-                  manualMarks: preview.manualMarks,
-                  dismissedResiduals: preview.dismissedResiduals,
+                  matterId: boundMatterId,
+                  facts,
+                  manualMarks,
+                  dismissedResiduals,
                 });
       if (!result.success) {
         toast.error(result.error);
@@ -839,26 +1035,9 @@ export function AktenChatThreadView({
           </div>
         ) : null}
 
-        {showDictation ? (
-          <div
-            className={cn(
-              "whitespace-pre-wrap text-[1rem] leading-[1.55]",
-              mode === "start" ? "min-h-[5.5rem]" : "min-h-[2.75rem]"
-            )}
-          >
-            {draft.trim() ? (
-              <span>
-                {draft}
-                {/\s$/.test(draft) ? "" : " "}
-              </span>
-            ) : null}
-            <span style={{ color: "var(--b-faint)", fontStyle: "italic" }}>
-              {liveText || (listening ? "" : "…")}
-            </span>
-          </div>
-        ) : (
+        <div className="relative">
           <textarea
-            ref={mode === "start" ? startInputRef : undefined}
+            ref={composerInputRef}
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={onComposerKeyDown}
@@ -868,30 +1047,53 @@ export function AktenChatThreadView({
                 : "Nachricht zur Akte — oder Empfänger-E-Mail für Versand…"
             }
             rows={mode === "start" ? 3 : 1}
-            disabled={busy}
+            disabled={busy || showDictation}
+            readOnly={showDictation}
+            aria-hidden={showDictation}
+            tabIndex={showDictation ? -1 : undefined}
             maxLength={AI_FACTS_MAX_CHARS}
-            className={mode === "chat" ? "min-h-[1.55rem]" : undefined}
+            className={cn(
+              mode === "chat" ? "min-h-[1.55rem]" : undefined,
+              showDictation && "invisible"
+            )}
           />
-        )}
+          {showDictation ? (
+            <div
+              className="absolute inset-0 overflow-y-auto whitespace-pre-wrap text-[1rem] leading-[1.55]"
+              aria-live="polite"
+            >
+              {draft.trim() ? (
+                <span>
+                  {draft}
+                  {/\s$/.test(draft) ? "" : " "}
+                </span>
+              ) : null}
+              <span style={{ color: "var(--b-faint)", fontStyle: "italic" }}>
+                {liveText || (listening ? "Hört zu…" : "…")}
+              </span>
+            </div>
+          ) : null}
+        </div>
 
         <div className="lab-chat-toolbar">
           <button
             type="button"
-            className="lab-chat-icon-btn"
+            className="lab-chat-attach"
             disabled={busy || showDictation}
             onClick={() => fileInputRef.current?.click()}
-            aria-label="Word oder PDF anhängen"
-            title="Anhängen"
+            aria-label="Dokument hinzufügen"
+            title="Dokument hinzufügen"
           >
             <PlusIcon className="size-4" strokeWidth={2} />
+            Dokument hinzufügen
           </button>
-          <div className="lab-chat-toolbar-right">
+          <div className="lab-chat-toolbar-right min-h-9">
             {showDictation ? (
               <>
                 <DictationWaveform active={listening} />
                 <button
                   type="button"
-                  className="lab-chat-icon-btn"
+                  className="lab-chat-icon-btn lab-chat-icon-btn--outline ml-3"
                   onClick={clearDictation}
                   aria-label="Diktat verwerfen"
                   title="Verwerfen"
@@ -900,8 +1102,7 @@ export function AktenChatThreadView({
                 </button>
                 <button
                   type="button"
-                  className="lab-chat-icon-btn"
-                  data-active="true"
+                  className="lab-chat-icon-btn lab-chat-icon-btn--outline"
                   onClick={() => acceptDictation()}
                   disabled={!liveText.trim() && !listening}
                   aria-label="Diktat übernehmen"
@@ -909,40 +1110,30 @@ export function AktenChatThreadView({
                 >
                   <CheckIcon className="size-4" strokeWidth={2} />
                 </button>
-                {listening ? (
-                  <button
-                    type="button"
-                    className="lab-chat-icon-btn"
-                    data-active="true"
-                    onClick={() => stopListening()}
-                    aria-label="Aufnahme stoppen"
-                    title="Stoppen"
-                  >
-                    <SquareIcon className="size-3.5" fill="currentColor" />
-                  </button>
-                ) : null}
               </>
             ) : (
-              <button
-                type="button"
-                className="lab-chat-icon-btn"
-                disabled={busy}
-                onClick={beginDictation}
-                aria-label="Diktieren"
-                title="Diktieren"
-              >
-                <MicIcon className="size-4" strokeWidth={1.75} />
-              </button>
+              <>
+                <button
+                  type="button"
+                  className="lab-chat-icon-btn"
+                  disabled={busy}
+                  onClick={beginDictation}
+                  aria-label="Diktieren"
+                  title="Diktieren"
+                >
+                  <MicIcon className="size-4" strokeWidth={1.75} />
+                </button>
+                <button
+                  type="button"
+                  className="lab-chat-send"
+                  disabled={!canSend}
+                  onClick={handleSend}
+                  aria-label="Senden"
+                >
+                  <ArrowUpIcon className="size-4" strokeWidth={2.25} />
+                </button>
+              </>
             )}
-            <button
-              type="button"
-              className="lab-chat-send"
-              disabled={!canSend}
-              onClick={handleSend}
-              aria-label="Senden"
-            >
-              <ArrowUpIcon className="size-4" strokeWidth={2.25} />
-            </button>
           </div>
         </div>
       </div>
@@ -961,46 +1152,110 @@ export function AktenChatThreadView({
               : "Pseudonym-Prüfung"}
       </p>
       {openResiduals.length > 0 ? (
-        <ul className="flex flex-wrap gap-2">
-          {openResiduals.map((span) => (
-            <li
-              key={span}
-              className="flex flex-wrap items-center gap-1 rounded-full border border-[var(--b-line)] bg-[var(--b-bg-elev)] px-2 py-1 text-xs"
+        <>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              className="lab-chat-chip"
+              disabled={isPending}
+              onClick={() =>
+                setPreview((p) =>
+                  p
+                    ? {
+                        ...p,
+                        manualMarks: [
+                          ...p.manualMarks,
+                          ...openResiduals.filter(
+                            (span) =>
+                              !p.manualMarks.some(
+                                (m) =>
+                                  m.trim().toLowerCase() ===
+                                  span.trim().toLowerCase()
+                              )
+                          ),
+                        ],
+                      }
+                    : p
+                )
+              }
             >
-              <span className="max-w-[12rem] truncate">{span}</span>
-              <button
-                type="button"
-                className="underline"
-                onClick={() =>
-                  setPreview((p) =>
-                    p ? { ...p, manualMarks: [...p.manualMarks, span] } : p
-                  )
+              Alle markieren
+            </button>
+            <button
+              type="button"
+              className="lab-chat-chip"
+              disabled={isPending}
+              onClick={() => {
+                if (openResiduals.length > AI_DISMISSED_RESIDUALS_MAX) {
+                  toast.error(
+                    `Zu viele unklare Stellen (max. ${AI_DISMISSED_RESIDUALS_MAX}). Bitte einzeln bestätigen oder den Text kürzen.`
+                  );
+                  return;
                 }
+                setPreview((p) =>
+                  p
+                    ? {
+                        ...p,
+                        dismissedResiduals: [
+                          ...p.dismissedResiduals,
+                          ...openResiduals.filter(
+                            (span) =>
+                              !p.dismissedResiduals.some(
+                                (d) =>
+                                  d.trim().toLowerCase() ===
+                                  span.trim().toLowerCase()
+                              )
+                          ),
+                        ],
+                      }
+                    : p
+                );
+              }}
+            >
+              Alle kein Personenbezug
+            </button>
+          </div>
+          <ul className="flex flex-wrap gap-2">
+            {openResiduals.map((span) => (
+              <li
+                key={span}
+                className="flex flex-wrap items-center gap-1 rounded-full border border-[var(--b-line)] bg-[var(--b-bg-elev)] px-2 py-1 text-xs"
               >
-                Markieren
-              </button>
-              <button
-                type="button"
-                className="underline"
-                onClick={() =>
-                  setPreview((p) =>
-                    p
-                      ? {
-                          ...p,
-                          dismissedResiduals: [
-                            ...p.dismissedResiduals,
-                            span,
-                          ],
-                        }
-                      : p
-                  )
-                }
-              >
-                Kein Personenbezug
-              </button>
-            </li>
-          ))}
-        </ul>
+                <span className="max-w-[12rem] truncate">{span}</span>
+                <button
+                  type="button"
+                  className="underline"
+                  onClick={() =>
+                    setPreview((p) =>
+                      p ? { ...p, manualMarks: [...p.manualMarks, span] } : p
+                    )
+                  }
+                >
+                  Markieren
+                </button>
+                <button
+                  type="button"
+                  className="underline"
+                  onClick={() =>
+                    setPreview((p) =>
+                      p
+                        ? {
+                            ...p,
+                            dismissedResiduals: [
+                              ...p.dismissedResiduals,
+                              span,
+                            ],
+                          }
+                        : p
+                    )
+                  }
+                >
+                  Kein Personenbezug
+                </button>
+              </li>
+            ))}
+          </ul>
+        </>
       ) : (
         <p className="b-meta">Keine offenen Residuen.</p>
       )}
@@ -1032,13 +1287,14 @@ export function AktenChatThreadView({
   ) : null;
 
   return (
-    <div
-      className={cn("lab-chat", dragActive && "lab-chat--drag")}
-      onDragEnter={onDragEnter}
-      onDragLeave={onDragLeave}
-      onDragOver={onDragOver}
-      onDrop={onDrop}
-    >
+    <div className="flex min-h-0 flex-1">
+      <div
+        className={cn("lab-chat min-w-0 flex-1", dragActive && "lab-chat--drag")}
+        onDragEnter={onDragEnter}
+        onDragLeave={onDragLeave}
+        onDragOver={onDragOver}
+        onDrop={onDrop}
+      >
       {dragActive ? (
         <div className="lab-chat-drop-overlay" aria-hidden>
           <p className="b-display text-[1.25rem] font-medium tracking-[-0.02em]">
@@ -1061,14 +1317,21 @@ export function AktenChatThreadView({
           <div className="mx-auto flex w-full max-w-[48rem] flex-1 flex-col justify-center px-5 py-12 md:px-8">
             <header className="mx-auto max-w-xl text-center">
               <h1 className="b-display text-[1.75rem] font-medium tracking-[-0.03em] md:text-[2rem]">
-                {chatTitle || "Akten-Chat"}
+                Wobei kann ich helfen?
               </h1>
+              {withoutMatter ? (
+                <p className="b-meta mt-3">
+                  Chat ohne Akte — Pseudonymisierung aktiv. Fallwerkzeuge nach
+                  Zuordnung.
+                </p>
+              ) : null}
             </header>
 
             <div className="mx-auto mt-10 w-full max-w-[48rem]">
-              <div className="mb-3 flex flex-wrap justify-center gap-2">
+              <div className="mb-3 flex justify-center">
                 <KiActionBadges
                   slot="matter"
+                  leadingLabel="Vorschläge:"
                   disabled={busy || Boolean(preview)}
                   onAction={onBadge}
                 />
@@ -1077,12 +1340,23 @@ export function AktenChatThreadView({
             </div>
 
             <p className="b-meta mx-auto mt-4 max-w-md text-center text-[0.75rem]">
-              {showDictation
-                ? "Diktieren — ✓ übernehmen · Steuerworte: Punkt, Komma, Absatz…"
+              {withoutMatter
+                ? "Verlauf wird gespeichert (nicht zugeordnet). Antworten laufen über die Pseudonym-Pipeline."
                 : consentGranted
-                  ? "Word/PDF anhängen oder tippen — Verlauf wird an der Akte gespeichert."
+                  ? "Verlauf wird an der Akte gespeichert."
                   : "Keine KI-Einwilligung — Analyse gesperrt."}
             </p>
+            {withoutMatter ? (
+              <div className="mt-4 flex justify-center">
+                <button
+                  type="button"
+                  className="b-btn b-btn-ghost"
+                  onClick={() => setAssignOpen(true)}
+                >
+                  Akte zuordnen
+                </button>
+              </div>
+            ) : null}
           </div>
         </div>
       ) : (
@@ -1094,15 +1368,24 @@ export function AktenChatThreadView({
                 style={{ color: "var(--b-muted)" }}
               >
                 <Link
-                  href={`${base}/akten-chat/${matterId}`}
+                  href={aktenChatHref(practice, matterId)}
                   className="hover:underline"
                 >
-                  {matterTitle}
+                  {withoutMatter ? "Nicht zugeordnet" : matterTitle}
                 </Link>
                 <span className="mx-1.5 opacity-40">·</span>
                 {chatTitle || "Chat"}
               </p>
             </div>
+            {withoutMatter ? (
+              <button
+                type="button"
+                className="b-btn b-btn-ghost shrink-0"
+                onClick={() => setAssignOpen(true)}
+              >
+                Akte zuordnen
+              </button>
+            ) : null}
           </div>
 
           <div className="lab-chat-scroll">
@@ -1144,6 +1427,7 @@ export function AktenChatThreadView({
                         {msg.content}
                       </div>
                     )}
+                    {resultActionsForMessage(msg)}
                   </div>
                 )
               )}
@@ -1164,9 +1448,10 @@ export function AktenChatThreadView({
             }}
           >
             <div className="mx-auto w-full max-w-[48rem]">
-              <div className="mb-2.5 flex flex-wrap justify-center gap-2">
+              <div className="mb-2.5 flex justify-center">
                 <KiActionBadges
                   slot="matter"
+                  leadingLabel="Vorschläge:"
                   disabled={busy || Boolean(preview)}
                   onAction={onBadge}
                 />
@@ -1176,6 +1461,95 @@ export function AktenChatThreadView({
           </div>
         </>
       )}
+      </div>
+
+      {!withoutMatter ? (
+        <aside className="lab-chat-rail" aria-label="Kontext">
+          <p className="lab-chat-rail-title">Kontext</p>
+          <div className="lab-chat-rail-card lab-chat-rail-card--stack">
+            <Link
+              href={`${base}/akten/${matterId}`}
+              className="lab-chat-rail-block"
+            >
+              <span className="lab-chat-rail-card-icon" aria-hidden>
+                <FolderOpenIcon className="size-5" strokeWidth={1.5} />
+              </span>
+              <span className="lab-chat-rail-card-label">Akte</span>
+              <span className="lab-chat-rail-card-title">{matterTitle}</span>
+              {matterReference?.trim() ? (
+                <span className="lab-chat-rail-card-meta">
+                  {matterReference}
+                </span>
+              ) : null}
+            </Link>
+            <div className="lab-chat-rail-divider" aria-hidden />
+            <Link
+              href={`${base}/mandanten/${clientId}`}
+              className="lab-chat-rail-block"
+            >
+              <span className="lab-chat-rail-card-label">Mandant</span>
+              <span className="lab-chat-rail-card-title">{clientName}</span>
+            </Link>
+          </div>
+        </aside>
+      ) : null}
+
+      <Dialog open={assignOpen} onOpenChange={setAssignOpen}>
+        <DialogContent
+          showCloseButton
+          className="brand-alba brand-alba-manrope lab-matters-dialog gap-0 overflow-hidden rounded-[1.15rem] border p-0 sm:max-w-lg"
+          data-lab-appearance={appearance}
+          style={{
+            borderColor: "var(--b-line)",
+            background: "var(--b-bg-elev)",
+            color: "var(--b-ink)",
+          }}
+        >
+          <div
+            className="space-y-1 border-b px-6 py-5 pr-12"
+            style={{ borderColor: "var(--b-line)" }}
+          >
+            <DialogHeader className="gap-1.5">
+              <DialogTitle className="b-display text-[1.25rem] font-medium tracking-[-0.015em]">
+                Akte zuordnen
+              </DialogTitle>
+              <DialogDescription className="b-meta">
+                Fallwerkzeuge und Kontext brauchen eine Akte. Der Chat-Verlauf
+                bleibt erhalten.
+              </DialogDescription>
+            </DialogHeader>
+          </div>
+          <div className="max-h-[min(60vh,24rem)] overflow-y-auto px-3 py-3">
+            {matterOptions.length === 0 ? (
+              <p className="b-meta px-3 py-6 text-center">
+                Noch keine Akten in diesem Bereich. Lege zuerst unter Mandanten
+                eine Akte an.
+              </p>
+            ) : (
+              <ul className="flex flex-col gap-1">
+                {matterOptions.map((matter) => (
+                  <li key={matter.id}>
+                    <button
+                      type="button"
+                      className="flex w-full flex-col items-start gap-0.5 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-[var(--b-soft)]"
+                      disabled={isPending}
+                      onClick={() => assignMatter(matter.id)}
+                    >
+                      <span className="font-medium text-[var(--b-ink)]">
+                        {matter.title}
+                      </span>
+                      <span className="b-meta">
+                        {matter.clientName}
+                        {matter.reference ? ` · ${matter.reference}` : ""}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

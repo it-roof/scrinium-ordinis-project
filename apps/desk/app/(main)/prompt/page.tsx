@@ -4,16 +4,21 @@ import {
   DeskAppShell,
 } from "@/components/desk/shell/desk-app-shell";
 import { getPrompts } from "@/lib/prompts/storage";
+import { getSessionUser, isPlatformSuperAdmin } from "@/lib/tenant/session";
 
 export const dynamic = "force-dynamic";
 
 export default async function V1PromptPage() {
   const ctx = await requireDeskUser({ requireFunction: "prompts" });
-  const items = await getPrompts();
+  const [items, sessionUser] = await Promise.all([
+    getPrompts(),
+    getSessionUser(),
+  ]);
+  const canEdit = isPlatformSuperAdmin(sessionUser);
 
   return (
     <DeskAppShell ctx={ctx} headerTitle="Prompt-Bibliothek">
-      <V1PromptsLibraryView initialItems={items} />
+      <V1PromptsLibraryView initialItems={items} canEdit={canEdit} />
     </DeskAppShell>
   );
 }

@@ -9,11 +9,14 @@ type BrandWordmarkProps = {
 
 export function BrandWordmark({ className, stacked = false }: BrandWordmarkProps) {
   if (stacked) {
-    const [first, ...rest] = SITE_NAME.split(" ");
+    const [first, ...restParts] = SITE_NAME.split(" ");
+    const rest = restParts.join(" ");
     return (
       <span className={cn("font-heading tracking-tight", className)}>
         <span className="block">{first}</span>
-        <span className="block text-accent-gradient">{rest.join(" ")}</span>
+        {rest ? (
+          <span className="block text-accent-gradient">{rest}</span>
+        ) : null}
       </span>
     );
   }

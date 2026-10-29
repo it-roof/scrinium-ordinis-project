@@ -7,11 +7,32 @@ import {
   previewCaseFactsAnalysis,
   startCaseFactsAnalysisJob,
 } from "@/lib/ai/actions";
+import { writeAiAudit } from "@/lib/ai/audit";
+import {
+  askClaudeChat,
+  getBedrockModelId,
+  type AskClaudeChatMessage,
+} from "@/lib/ai/bedrock";
+import { loadMatterAiContext } from "@/lib/ai/context";
+import {
+  AI_ERROR,
+  AiGatewayError,
+  userMessageForAiError,
+} from "@/lib/ai/errors";
+import {
+  AI_CHAT_HISTORY_MAX_TURNS,
+  AI_CHAT_MAX_TOKENS,
+  AI_CHAT_MESSAGE_MAX_CHARS,
+  AI_FACTS_MAX_CHARS,
+} from "@/lib/ai/limits";
 import {
   appendMatterAiChatMessages,
+  assignMatterAiChat,
   createMatterAiChat,
+  deleteMatterAiChat,
   getMatterAiChatDetail,
   listMatterAiChats,
+  renameMatterAiChat,
   setMatterAiChatLetterId,
   type MatterAiChatDetail,
   type MatterAiChatListItem,
@@ -23,9 +44,14 @@ import {
   pickLastEmailSource,
   pickLastLetterSource,
 } from "@/lib/ai/matter-chat/helpers";
-import { AI_FACTS_MAX_CHARS } from "@/lib/ai/limits";
 import { practiceBasePath } from "@/lib/area/paths";
+import { aktenChatHref, aktenChatMatterSegment } from "@/lib/ai/matter-chat/paths";
 import type { PseudonymGatePolicy } from "@/lib/ai/gate-policy";
+import { runPseudonymPipeline } from "@/lib/ai/pipeline";
+import {
+  AI_CHAT_TASK,
+  buildAiChatSystemPrompt,
+} from "@/lib/ai/prompts/ai-chat";
 import {
   CREATE_LETTER_TASK,
   parseCreateLetterOutput,
@@ -36,6 +62,10 @@ import {
   parseCreateEmailTextOutput,
 } from "@/lib/ai/prompts/create-email-text";
 import { COUNTER_REVIEW_TASK } from "@/lib/ai/prompts/counter-review";
+import {
+  repersonalize,
+  type KnownEntity,
+} from "@/lib/ai/pseudonymize";
 import { createLetterRow } from "@/lib/letters/storage";
 import { sendMailWithUserSmtp } from "@/lib/smtp/send";
 import { getUserSmtpConnectionConfig } from "@/lib/smtp/storage";
@@ -50,7 +80,7 @@ export type MatterChatActionResult<T> =
   | { success: true; data: T }
   | { success: false; error: string };
 
-/** Sachverhalt / Analyse-Ergebnis — länger als Freier-Chat-Turns. */
+/** Sachverhalt / Analyse-Ergebnis — länger als Dialog-Turns. */
 const MATTER_CHAT_CONTENT_MAX = AI_FACTS_MAX_CHARS;
 
 async function requireAktenChatContext(practice: PracticeId) {
@@ -103,16 +133,125 @@ async function requireAktenChatAnalysisAndLetters(practice: PracticeId) {
 
 function revalidateChat(
   practice: PracticeId,
-  matterId: string,
+  matterId: string | null,
   chatId: string
 ) {
   const base = practiceBasePath(practice);
-  revalidatePath(`${base}/akten-chat/${matterId}`);
-  revalidatePath(`${base}/akten-chat/${matterId}/${chatId}`);
+  const segment = aktenChatMatterSegment(matterId);
+  if (matterId) {
+    revalidatePath(`${base}/akten/${matterId}`);
+  }
+  revalidatePath(`${base}/akten-chat`);
+  revalidatePath(`${base}/akten-chat/${segment}`);
+  revalidatePath(`${base}/akten-chat/${segment}/${chatId}`);
+}
+
+async function requireMatterIfPresent(
+  tenantId: string,
+  matterId: string | null,
+  practice: PracticeId
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (matterId == null) {
+    return { ok: true };
+  }
+  const matter = await getMatterById(tenantId, matterId);
+  if (!matter || matter.module !== practice) {
+    return { ok: false, error: "Akte nicht gefunden." };
+  }
+  return { ok: true };
+}
+
+export async function renameMatterChatAction(params: {
+  chatId: string;
+  matterId: string | null;
+  practice: PracticeId;
+  title: string;
+}): Promise<MatterChatActionResult<{ title: string }>> {
+  const gate = await requireAktenChatContext(params.practice);
+  if (!gate.ok) {
+    return { success: false, error: gate.error };
+  }
+
+  const title = params.title.trim().slice(0, 200);
+  if (!title) {
+    return { success: false, error: "Titel fehlt." };
+  }
+
+  const matterOk = await requireMatterIfPresent(
+    gate.user.tenantId,
+    params.matterId,
+    params.practice
+  );
+  if (!matterOk.ok) {
+    return { success: false, error: matterOk.error };
+  }
+
+  const detail = await getMatterAiChatDetail({
+    tenantId: gate.user.tenantId,
+    chatId: params.chatId,
+    module: params.practice,
+  });
+  if (!detail || detail.matterId !== params.matterId) {
+    return { success: false, error: "Chat nicht gefunden." };
+  }
+
+  const ok = await renameMatterAiChat({
+    tenantId: gate.user.tenantId,
+    chatId: params.chatId,
+    module: params.practice,
+    title,
+  });
+  if (!ok) {
+    return { success: false, error: "Chat nicht gefunden." };
+  }
+
+  revalidateChat(params.practice, params.matterId, params.chatId);
+  return { success: true, data: { title } };
+}
+
+export async function deleteMatterChatAction(params: {
+  chatId: string;
+  matterId: string | null;
+  practice: PracticeId;
+}): Promise<MatterChatActionResult<{ chatId: string }>> {
+  const gate = await requireAktenChatContext(params.practice);
+  if (!gate.ok) {
+    return { success: false, error: gate.error };
+  }
+
+  const matterOk = await requireMatterIfPresent(
+    gate.user.tenantId,
+    params.matterId,
+    params.practice
+  );
+  if (!matterOk.ok) {
+    return { success: false, error: matterOk.error };
+  }
+
+  const detail = await getMatterAiChatDetail({
+    tenantId: gate.user.tenantId,
+    chatId: params.chatId,
+    module: params.practice,
+  });
+  if (!detail || detail.matterId !== params.matterId) {
+    return { success: false, error: "Chat nicht gefunden." };
+  }
+
+  const ok = await deleteMatterAiChat({
+    tenantId: gate.user.tenantId,
+    chatId: params.chatId,
+    module: params.practice,
+  });
+  if (!ok) {
+    return { success: false, error: "Chat nicht gefunden." };
+  }
+
+  revalidateChat(params.practice, params.matterId, params.chatId);
+  return { success: true, data: { chatId: params.chatId } };
 }
 
 export async function listMatterChatsAction(params: {
-  matterId: string;
+  matterId: string | null;
   practice: PracticeId;
 }): Promise<MatterChatActionResult<MatterAiChatListItem[]>> {
   const gate = await requireAktenChatContext(params.practice);
@@ -120,9 +259,13 @@ export async function listMatterChatsAction(params: {
     return { success: false, error: gate.error };
   }
 
-  const matter = await getMatterById(gate.user.tenantId, params.matterId);
-  if (!matter || matter.module !== params.practice) {
-    return { success: false, error: "Akte nicht gefunden." };
+  const matterOk = await requireMatterIfPresent(
+    gate.user.tenantId,
+    params.matterId,
+    params.practice
+  );
+  if (!matterOk.ok) {
+    return { success: false, error: matterOk.error };
   }
 
   const chats = await listMatterAiChats(
@@ -134,7 +277,7 @@ export async function listMatterChatsAction(params: {
 }
 
 export async function createMatterChatAction(params: {
-  matterId: string;
+  matterId?: string | null;
   practice: PracticeId;
   title?: string;
 }): Promise<MatterChatActionResult<{ chatId: string; href: string }>> {
@@ -143,15 +286,20 @@ export async function createMatterChatAction(params: {
     return { success: false, error: gate.error };
   }
 
-  const matter = await getMatterById(gate.user.tenantId, params.matterId);
-  if (!matter || matter.module !== params.practice) {
-    return { success: false, error: "Akte nicht gefunden." };
+  const matterId = params.matterId ?? null;
+  const matterOk = await requireMatterIfPresent(
+    gate.user.tenantId,
+    matterId,
+    params.practice
+  );
+  if (!matterOk.ok) {
+    return { success: false, error: matterOk.error };
   }
 
   const chat = await createMatterAiChat({
     tenantId: gate.user.tenantId,
     userId: gate.user.id,
-    matterId: params.matterId,
+    matterId,
     module: params.practice,
     title: params.title,
   });
@@ -160,10 +308,59 @@ export async function createMatterChatAction(params: {
     return { success: false, error: "Chat konnte nicht angelegt werden." };
   }
 
-  const base = practiceBasePath(params.practice);
-  const href = `${base}/akten-chat/${params.matterId}/${chat.id}`;
-  revalidatePath(`${base}/akten-chat/${params.matterId}`);
+  const href = aktenChatHref(params.practice, matterId, chat.id);
+  revalidatePath(aktenChatHref(params.practice, matterId));
+  revalidatePath(`${practiceBasePath(params.practice)}/akten-chat`);
   return { success: true, data: { chatId: chat.id, href } };
+}
+
+/** Unzugeordneten Chat einer Akte zuordnen (für Badges / Kontext). */
+export async function assignMatterToChatAction(params: {
+  chatId: string;
+  practice: PracticeId;
+  matterId: string;
+}): Promise<MatterChatActionResult<{ href: string }>> {
+  const gate = await requireAktenChatContext(params.practice);
+  if (!gate.ok) {
+    return { success: false, error: gate.error };
+  }
+
+  const matterOk = await requireMatterIfPresent(
+    gate.user.tenantId,
+    params.matterId,
+    params.practice
+  );
+  if (!matterOk.ok) {
+    return { success: false, error: matterOk.error };
+  }
+
+  const detail = await getMatterAiChatDetail({
+    tenantId: gate.user.tenantId,
+    chatId: params.chatId,
+    module: params.practice,
+  });
+  if (!detail) {
+    return { success: false, error: "Chat nicht gefunden." };
+  }
+  if (detail.matterId != null) {
+    return { success: false, error: "Chat ist bereits einer Akte zugeordnet." };
+  }
+
+  const assigned = await assignMatterAiChat({
+    tenantId: gate.user.tenantId,
+    chatId: params.chatId,
+    module: params.practice,
+    matterId: params.matterId,
+  });
+  if (!assigned) {
+    return { success: false, error: "Zuordnung fehlgeschlagen." };
+  }
+
+  const href = aktenChatHref(params.practice, assigned.matterId, assigned.id);
+  revalidateChat(params.practice, null, params.chatId);
+  revalidateChat(params.practice, assigned.matterId, assigned.id);
+  revalidatePath(`${practiceBasePath(params.practice)}/akten/${assigned.matterId}`);
+  return { success: true, data: { href } };
 }
 
 export async function getMatterChatAction(params: {
@@ -184,9 +381,13 @@ export async function getMatterChatAction(params: {
     return { success: false, error: "Chat nicht gefunden." };
   }
 
-  const matter = await getMatterById(gate.user.tenantId, detail.matterId);
-  if (!matter || matter.module !== params.practice) {
-    return { success: false, error: "Akte nicht gefunden." };
+  const matterOk = await requireMatterIfPresent(
+    gate.user.tenantId,
+    detail.matterId,
+    params.practice
+  );
+  if (!matterOk.ok) {
+    return { success: false, error: matterOk.error };
   }
 
   return { success: true, data: detail };
@@ -245,6 +446,203 @@ export async function appendMatterChatUserMessageAction(params: {
 
   revalidateChat(params.practice, detail.matterId, params.chatId);
   return { success: true, data: { messages: inserted } };
+}
+
+/**
+ * Regulierter Dialog-Turn: User speichern → Pseudonym → Bedrock → Assistant speichern.
+ * Auch ohne Akte (matterId null).
+ */
+export async function sendMatterChatTurnAction(params: {
+  chatId: string;
+  practice: PracticeId;
+  message: string;
+}): Promise<
+  MatterChatActionResult<{ messages: MatterAiChatMessageRecord[] }>
+> {
+  const gate = await requireAktenChatContext(params.practice);
+  if (!gate.ok) {
+    return { success: false, error: gate.error };
+  }
+
+  const text = params.message.trim();
+  if (!text) {
+    return { success: false, error: "Nachricht fehlt." };
+  }
+  if (text.length > AI_CHAT_MESSAGE_MAX_CHARS) {
+    return {
+      success: false,
+      error: `Maximal ${AI_CHAT_MESSAGE_MAX_CHARS} Zeichen.`,
+    };
+  }
+
+  const detail = await getMatterAiChatDetail({
+    tenantId: gate.user.tenantId,
+    chatId: params.chatId,
+    module: params.practice,
+  });
+  if (!detail) {
+    return { success: false, error: "Chat nicht gefunden." };
+  }
+
+  const userInserted = await appendMatterAiChatMessages({
+    tenantId: gate.user.tenantId,
+    chatId: params.chatId,
+    module: params.practice,
+    messages: [{ role: "user", content: text, actionId: null }],
+  });
+  if (!userInserted) {
+    return { success: false, error: "Speichern fehlgeschlagen." };
+  }
+
+  let entities: KnownEntity[] = [];
+  let clientId: string | null = null;
+  if (detail.matterId) {
+    try {
+      const ctx = await loadMatterAiContext(
+        gate.user.tenantId,
+        detail.matterId
+      );
+      entities = ctx.entities;
+      clientId = ctx.clientId;
+    } catch {
+      // Ohne Context weiter mit leeren Entities (NER greift trotzdem).
+    }
+  }
+
+  const historySource: Array<{ role: "user" | "assistant"; content: string }> =
+    [
+      ...detail.messages
+        .filter((m) => m.role === "user" || m.role === "assistant")
+        .map((m) => ({
+          role: m.role as "user" | "assistant",
+          content: m.content,
+        })),
+      { role: "user" as const, content: text },
+    ].slice(-AI_CHAT_HISTORY_MAX_TURNS);
+
+  let known = [...entities];
+  const mergedMapping = new Map<string, string>();
+  const bedrockMessages: AskClaudeChatMessage[] = [];
+
+  for (const msg of historySource) {
+    const pipeline = runPseudonymPipeline(msg.content, known);
+    for (const [placeholder, original] of pipeline.mapping) {
+      mergedMapping.set(placeholder, original);
+    }
+    known = [...known, ...pipeline.nerEntities];
+    bedrockMessages.push({
+      role: msg.role,
+      content: pipeline.text.slice(0, AI_CHAT_MESSAGE_MAX_CHARS),
+    });
+  }
+
+  // Bedrock: alternating roles starting with user
+  const normalized: AskClaudeChatMessage[] = [];
+  for (const msg of bedrockMessages) {
+    const last = normalized[normalized.length - 1];
+    if (last && last.role === msg.role) {
+      last.content = `${last.content}\n\n${msg.content}`.slice(
+        0,
+        AI_CHAT_MESSAGE_MAX_CHARS
+      );
+      continue;
+    }
+    normalized.push({ ...msg });
+  }
+  if (normalized[0]?.role !== "user") {
+    revalidateChat(params.practice, detail.matterId, params.chatId);
+    return { success: true, data: { messages: userInserted } };
+  }
+
+  let modelForAudit = "unset";
+  try {
+    modelForAudit = getBedrockModelId();
+  } catch {
+    modelForAudit = "unset";
+  }
+
+  try {
+    const result = await askClaudeChat({
+      system: buildAiChatSystemPrompt(),
+      messages: normalized,
+      maxTokens: AI_CHAT_MAX_TOKENS,
+    });
+
+    const clearReply = repersonalize(result.text, mergedMapping).text.trim();
+    if (!clearReply) {
+      await writeAiAudit({
+        tenantId: gate.user.tenantId,
+        userId: gate.user.id,
+        clientId,
+        matterId: detail.matterId,
+        task: AI_CHAT_TASK,
+        model: result.model,
+        inputTokens: result.inputTokens,
+        outputTokens: result.outputTokens,
+        latencyMs: result.latencyMs,
+        success: false,
+        errorCode: AI_ERROR.AI_ERROR,
+      });
+      revalidateChat(params.practice, detail.matterId, params.chatId);
+      return {
+        success: false,
+        error: "Die KI hat keine Antwort geliefert.",
+      };
+    }
+
+    const assistantInserted = await appendMatterAiChatMessages({
+      tenantId: gate.user.tenantId,
+      chatId: params.chatId,
+      module: params.practice,
+      messages: [{ role: "assistant", content: clearReply, actionId: null }],
+    });
+    if (!assistantInserted) {
+      revalidateChat(params.practice, detail.matterId, params.chatId);
+      return { success: false, error: "Antwort speichern fehlgeschlagen." };
+    }
+
+    await writeAiAudit({
+      tenantId: gate.user.tenantId,
+      userId: gate.user.id,
+      clientId,
+      matterId: detail.matterId,
+      task: AI_CHAT_TASK,
+      model: result.model,
+      inputTokens: result.inputTokens,
+      outputTokens: result.outputTokens,
+      latencyMs: result.latencyMs,
+      success: true,
+    });
+
+    revalidateChat(params.practice, detail.matterId, params.chatId);
+    return {
+      success: true,
+      data: { messages: [...userInserted, ...assistantInserted] },
+    };
+  } catch (err) {
+    const errCode =
+      err instanceof AiGatewayError ? err.code : AI_ERROR.AI_ERROR;
+    console.error("[ai/matter-chat]", errCode);
+    try {
+      await writeAiAudit({
+        tenantId: gate.user.tenantId,
+        userId: gate.user.id,
+        clientId,
+        matterId: detail.matterId,
+        task: AI_CHAT_TASK,
+        model: modelForAudit,
+        success: false,
+        errorCode: errCode,
+      });
+    } catch {
+      console.error("[ai/matter-chat]", "AUDIT_FAILED");
+    }
+    revalidateChat(params.practice, detail.matterId, params.chatId);
+    return {
+      success: false,
+      error: userMessageForAiError(errCode),
+    };
+  }
 }
 
 /**

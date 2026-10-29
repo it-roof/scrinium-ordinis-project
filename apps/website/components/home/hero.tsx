@@ -11,18 +11,18 @@ export function Hero() {
     <section className="content-canvas relative flex min-h-svh flex-col overflow-hidden">
       {/* Atmosphere */}
       <div aria-hidden className="pointer-events-none absolute inset-0">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_10%_-10%,oklch(0.72_0.1_235_/_0.28),transparent_55%),radial-gradient(ellipse_70%_50%_at_95%_5%,oklch(0.78_0.08_185_/_0.22),transparent_50%),radial-gradient(ellipse_60%_55%_at_80%_100%,oklch(0.82_0.09_75_/_0.18),transparent_55%)] animate-hero-wash" />
-        <div className="absolute -left-24 top-1/4 size-[28rem] rounded-full bg-[oklch(0.7_0.1_250_/_0.12)] blur-3xl animate-hero-drift" />
-        <div className="absolute -right-16 bottom-0 size-[22rem] rounded-full bg-[oklch(0.75_0.08_185_/_0.14)] blur-3xl animate-hero-drift-delayed" />
+        <div className="absolute inset-0 animate-hero-wash bg-[radial-gradient(ellipse_80%_60%_at_10%_-10%,var(--atmosphere-1),transparent_55%),radial-gradient(ellipse_70%_50%_at_95%_5%,var(--atmosphere-2),transparent_50%),radial-gradient(ellipse_60%_55%_at_80%_100%,var(--atmosphere-3),transparent_55%)]" />
+        <div className="absolute -left-24 top-1/4 size-[28rem] rounded-full bg-[var(--atmosphere-1)] blur-3xl animate-hero-drift" />
+        <div className="absolute -right-16 bottom-0 size-[22rem] rounded-full bg-[var(--atmosphere-2)] blur-3xl animate-hero-drift-delayed" />
         <div className="hero-grid absolute inset-0 opacity-[0.35]" />
-        <div className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-sky-400 via-teal-400 to-amber-400 animate-hero-bar" />
+        <div className="absolute inset-y-0 left-0 w-1 animate-hero-bar bg-gradient-to-b from-primary via-primary/70 to-muted-foreground" />
       </div>
 
       <div className="relative z-10 mx-auto flex w-full max-w-6xl flex-1 flex-col justify-end px-6 pb-16 pt-28 sm:px-10 sm:pb-24 lg:justify-center lg:pb-20">
         <div className="max-w-3xl pl-3 sm:pl-5">
           <div className="space-y-3 animate-hero-brand">
             <div className="accent-rule" />
-            <p className="text-[0.7rem] font-medium tracking-[0.22em] text-accent-foreground/80 uppercase">
+            <p className="text-[0.7rem] font-medium tracking-[0.22em] text-muted-foreground uppercase">
               {KANZLEI_NAME}
             </p>
           </div>
@@ -41,17 +41,17 @@ export function Hero() {
 
           <div className="mt-10 flex flex-wrap items-center gap-3 animate-hero-cta">
             <Link
-              href="#module"
+              href="/ki-schulung-rechtsanwalt"
               className={cn(
                 buttonVariants({ size: "lg" }),
                 "h-12 rounded-none bg-primary px-6 text-[0.95rem] shadow-[var(--shadow-soft)] shadow-primary/15 transition-transform hover:-translate-y-0.5",
               )}
             >
-              Mehr erfahren
+              KI-Schulung
               <ArrowRightIcon data-icon="inline-end" />
             </Link>
             <Link
-              href="#kontakt"
+              href="mailto:hello@scrinium-ordinis.de?subject=Anfrage%20Scrinium"
               className={cn(
                 buttonVariants({ variant: "outline", size: "lg" }),
                 "h-12 rounded-none border-border/80 bg-card/60 px-6 text-[0.95rem] backdrop-blur-sm transition-transform hover:-translate-y-0.5",

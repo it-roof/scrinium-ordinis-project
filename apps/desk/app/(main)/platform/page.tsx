@@ -10,8 +10,10 @@ export default async function PlatformPage() {
   const tenants = await listTenantsWithUserCounts();
 
   return (
-    <PlatformShell title="Tenants">
-      <PlatformTenantsView tenants={tenants} />
+    <PlatformShell title="Tenants" pathname="/platform">
+      <div className="p-4 lg:p-6">
+        <PlatformTenantsView tenants={tenants} />
+      </div>
     </PlatformShell>
   );
 }

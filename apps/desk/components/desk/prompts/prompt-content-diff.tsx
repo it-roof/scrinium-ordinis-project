@@ -1,8 +1,12 @@
 "use client";
 
-import { diffWords } from "diff";
-
 import { cn } from "@/lib/utils";
+
+type DiffPart = {
+  value: string;
+  added?: boolean;
+  removed?: boolean;
+};
 
 type PromptContentDiffProps = {
   before: string;
@@ -12,6 +16,75 @@ type PromptContentDiffProps = {
   className?: string;
 };
 
+/** Wort-Diff ohne `diff`-Package (CJS/require bricht im Client-Bundle). */
+function diffWords(before: string, after: string): DiffPart[] {
+  if (before === after) return [{ value: before }];
+
+  const tokenize = (text: string) =>
+    text.split(/(\s+)/).filter((part) => part.length > 0);
+  const a = tokenize(before);
+  const b = tokenize(after);
+  const n = a.length;
+  const m = b.length;
+
+  // Sehr große Texte: ganzes Vorher/Nachher statt O(n·m)
+  if (n * m > 1_500_000) {
+    return [
+      { value: before, removed: true },
+      { value: after, added: true },
+    ];
+  }
+
+  const dp: Uint16Array[] = Array.from(
+    { length: n + 1 },
+    () => new Uint16Array(m + 1)
+  );
+  for (let i = 1; i <= n; i += 1) {
+    for (let j = 1; j <= m; j += 1) {
+      const row = dp[i]!;
+      row[j] =
+        a[i - 1] === b[j - 1]
+          ? (dp[i - 1]![j - 1]! + 1) as number
+          : Math.max(dp[i - 1]![j]!, row[j - 1]!);
+    }
+  }
+
+  const stack: DiffPart[] = [];
+  let i = n;
+  let j = m;
+  while (i > 0 || j > 0) {
+    if (i > 0 && j > 0 && a[i - 1] === b[j - 1]) {
+      stack.push({ value: a[i - 1]! });
+      i -= 1;
+      j -= 1;
+      continue;
+    }
+    if (j > 0 && (i === 0 || dp[i]![j - 1]! >= dp[i - 1]![j]!)) {
+      stack.push({ value: b[j - 1]!, added: true });
+      j -= 1;
+      continue;
+    }
+    stack.push({ value: a[i - 1]!, removed: true });
+    i -= 1;
+  }
+
+  const parts: DiffPart[] = [];
+  for (let k = stack.length - 1; k >= 0; k -= 1) {
+    const part = stack[k]!;
+    const last = parts[parts.length - 1];
+    if (
+      last &&
+      Boolean(last.added) === Boolean(part.added) &&
+      Boolean(last.removed) === Boolean(part.removed)
+    ) {
+      last.value += part.value;
+    } else {
+      parts.push({ ...part });
+    }
+  }
+  return parts;
+}
+
 function DiffPane({
   title,
   parts,
@@ -19,7 +92,7 @@ function DiffPane({
   className,
 }: {
   title: string;
-  parts: ReturnType<typeof diffWords>;
+  parts: DiffPart[];
   side: "before" | "after";
   className?: string;
 }) {
@@ -78,28 +151,21 @@ export function PromptContentDiff({
       </div>
 
       {identical ? (
-        <div className="rounded-xl border border-dashed border-border/60 bg-muted/20 px-4 py-8 text-center text-sm text-muted-foreground">
-          Keine Unterschiede.
+        <DiffPane
+          title="Aktuell"
+          parts={[{ value: after }]}
+          side="after"
+          className={layout === "stack" ? "min-h-[12rem]" : undefined}
+        />
+      ) : layout === "stack" ? (
+        <div className="flex min-h-0 flex-col gap-3">
+          <DiffPane title="Vorher" parts={parts} side="before" />
+          <DiffPane title="Nachher" parts={parts} side="after" />
         </div>
       ) : (
-        <div
-          className={cn(
-            "flex min-h-0 flex-1 gap-3",
-            layout === "stack" ? "flex-col" : "flex-col lg:flex-row"
-          )}
-        >
-          <DiffPane
-            title="Bisher"
-            parts={parts}
-            side="before"
-            className={layout === "stack" ? "min-h-[12rem]" : undefined}
-          />
-          <DiffPane
-            title="Neu"
-            parts={parts}
-            side="after"
-            className={layout === "stack" ? "min-h-[12rem]" : undefined}
-          />
+        <div className="grid min-h-0 gap-3 md:grid-cols-2">
+          <DiffPane title="Vorher" parts={parts} side="before" />
+          <DiffPane title="Nachher" parts={parts} side="after" />
         </div>
       )}
     </div>

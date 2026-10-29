@@ -26,6 +26,7 @@ import {
   getUserDeskRole,
   getUserEffectiveModules,
 } from "@/lib/tenant/modules";
+import { isPlatformSuperAdmin } from "@/lib/tenant/session";
 import { formatUserName } from "@/lib/users/names";
 
 import "@/app/neues-design/brand-lab.css";
@@ -102,13 +103,16 @@ export async function requireDeskUser(options?: {
     ]);
 
   if (!deskRole || !isDeskRoleId(deskRole)) {
-    redirect("/");
+    if (!isPlatformSuperAdmin(session.user)) {
+      redirect("/");
+    }
   }
 
   if (
     options?.requireFunction &&
     allowedFunctions !== null &&
-    !allowedFunctions.includes(options.requireFunction)
+    !allowedFunctions.includes(options.requireFunction) &&
+    !isPlatformSuperAdmin(session.user)
   ) {
     redirect("/dashboard");
   }
@@ -127,11 +131,14 @@ export async function requireDeskUser(options?: {
       }) || profile.name
     : session.user.name || "Benutzer";
 
+  const resolvedDeskRole: DeskRoleId =
+    deskRole && isDeskRoleId(deskRole) ? deskRole : "rechtsanwalt";
+
   return {
     userId: session.user.id,
     tenantId: session.user.tenantId,
     area,
-    deskRole,
+    deskRole: resolvedDeskRole,
     allowedFunctions,
     displayName,
     email: profile?.email ?? session.user.email ?? "",

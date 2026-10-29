@@ -1,11 +1,48 @@
 import { and, asc, desc, eq, sql } from "drizzle-orm";
 
-import { clients, letters, matters } from "@/lib/db/schema";
+import {
+  clients,
+  letters,
+  matterFileNumberCounters,
+  matterParties,
+  matters,
+  type ContentModule,
+} from "@/lib/db/schema";
 import { withTenantDb } from "@/lib/tenant/db";
 
 import type { MatterInput, MatterRecord } from "@/lib/clients/types";
 
 type MatterRow = typeof matters.$inferSelect;
+type TenantTx = Parameters<Parameters<typeof withTenantDb>[1]>[0];
+
+async function allocateFileNumber(
+  tx: TenantTx,
+  tenantId: string,
+  module: ContentModule
+): Promise<string> {
+  const year = new Date().getFullYear();
+  const [row] = await tx
+    .insert(matterFileNumberCounters)
+    .values({
+      tenantId,
+      module,
+      year,
+      lastSeq: 1,
+    })
+    .onConflictDoUpdate({
+      target: [
+        matterFileNumberCounters.tenantId,
+        matterFileNumberCounters.module,
+        matterFileNumberCounters.year,
+      ],
+      set: {
+        lastSeq: sql`${matterFileNumberCounters.lastSeq} + 1`,
+      },
+    })
+    .returning({ lastSeq: matterFileNumberCounters.lastSeq });
+
+  return `${row?.lastSeq ?? 1}/${year}`;
+}
 
 function toMatter(
   row: MatterRow,
@@ -109,7 +146,16 @@ export async function createMatterRow(
 ): Promise<MatterRecord | null> {
   return withTenantDb(tenantId, async (tx) => {
     const [client] = await tx
-      .select({ id: clients.id, name: clients.name })
+      .select({
+        id: clients.id,
+        name: clients.name,
+        kind: clients.kind,
+        firstName: clients.firstName,
+        lastName: clients.lastName,
+        street: clients.street,
+        postalCode: clients.postalCode,
+        city: clients.city,
+      })
       .from(clients)
       .where(
         and(eq(clients.id, input.clientId), eq(clients.tenantId, tenantId))
@@ -120,18 +166,40 @@ export async function createMatterRow(
       return null;
     }
 
+    const fileNumber = await allocateFileNumber(tx, tenantId, input.module);
+    const openedAt = new Date().toISOString().slice(0, 10);
+
     const [row] = await tx
       .insert(matters)
       .values({
         tenantId,
         createdBy: userId,
+        lawyerId: userId,
         clientId: input.clientId,
         title: input.title.trim(),
         reference: input.reference.trim(),
         notes: input.notes.trim(),
         module: input.module,
+        fileNumber,
+        openedAt,
+        status: "open",
       })
       .returning();
+
+    if (!row) return null;
+
+    await tx.insert(matterParties).values({
+      tenantId,
+      matterId: row.id,
+      role: "client",
+      kind: client.kind,
+      name: client.name,
+      firstName: client.firstName,
+      lastName: client.lastName,
+      street: client.street,
+      postalCode: client.postalCode,
+      city: client.city,
+    });
 
     return toMatter(row, client.name, 0);
   });

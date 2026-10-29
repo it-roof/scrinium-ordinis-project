@@ -61,7 +61,7 @@ async function sendResetMail(email: string, token: string) {
 
   return sendSystemMail({
     to: email,
-    subject: "Scrinium Ordinis — Passwort zurücksetzen",
+    subject: "Scrinium — Passwort zurücksetzen",
     text: [
       "Du hast das Zurücksetzen deines Passworts angefordert.",
       "",

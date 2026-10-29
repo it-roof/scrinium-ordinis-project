@@ -127,12 +127,12 @@ export function EditTenantForm({
             id="edit-tenant-brand"
             value={brandName}
             onChange={(event) => setBrandName(event.target.value)}
-            placeholder="Optional, sonst Scrinium Ordinis"
+            placeholder="Optional, sonst Scrinium"
             className="h-10 rounded-none"
           />
           <p className="text-xs text-muted-foreground">
             Wird nach dem Login (und auf der Custom-Domain schon beim Login)
-            statt „Scrinium Ordinis“ angezeigt.
+            statt „Scrinium“ angezeigt.
           </p>
         </div>
         <div className="space-y-2 sm:col-span-2">

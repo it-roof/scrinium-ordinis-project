@@ -1,6 +1,6 @@
 /** Produktmarke (Desk + Website) */
-export const PRODUCT_NAME = "Scrinium Ordinis";
-export const PRODUCT_WORDMARK = "Scrinium Ordinis";
+export const PRODUCT_NAME = "Scrinium";
+export const PRODUCT_WORDMARK = "Scrinium";
 
 export const PRODUCT_TAGLINE =
   "Kanzlei-Werkzeug für Dokumentation, Textbausteine und Arbeitsfunktionen.";

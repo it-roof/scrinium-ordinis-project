@@ -1,4 +1,4 @@
-# Scrinium Ordinis — Modul-Dokumentation
+# Scrinium — Modul-Dokumentation
 
 Interne Dokumentation für Entwickler und Agenten. **Code und DB auf Englisch**, **UI auf Deutsch**.
 

@@ -5,7 +5,8 @@
 export const AI_FACTS_MAX_CHARS = 50_000;
 export const AI_MANUAL_MARKS_MAX = 50;
 export const AI_MANUAL_MARK_MAX_CHARS = 200;
-export const AI_DISMISSED_RESIDUALS_MAX = 50;
+/** Gegenprüfung/Analyse-Texte erzeugen viele Großschreib-Residuen. */
+export const AI_DISMISSED_RESIDUALS_MAX = 300;
 
 /** Free-form KI chat (session-only UI). */
 export const AI_CHAT_MESSAGE_MAX_CHARS = 8_000;

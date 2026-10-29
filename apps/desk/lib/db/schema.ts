@@ -63,12 +63,26 @@ export const letterStatusEnum = pgEnum("letter_status", [
   "versendet",
 ]);
 
-/** Rolle einer Partei an der Akte (Gegner / Beteiligter / Sonstige). */
+/** Rolle einer Partei an der Akte. */
 export const matterPartyRoleEnum = pgEnum("matter_party_role", [
+  "client",
   "opponent",
+  "opponent_counsel",
+  "court",
   "party",
   "other",
 ]);
+
+/** Akte offen oder abgeschlossen. */
+export const matterStatusEnum = pgEnum("matter_status", ["open", "closed"]);
+
+export type MatterCollisionMatch = {
+  matterId: string;
+  matterTitle: string;
+  fileNumber: string;
+  role: (typeof matterPartyRoleEnum.enumValues)[number];
+  name: string;
+};
 
 /** KI-Einwilligung des Mandanten (Historie; neuester Eintrag gilt). */
 export const aiConsentStatusEnum = pgEnum("ai_consent_status", [
@@ -143,7 +157,7 @@ export const tenants = pgTable("tenants", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(),
   slug: text("slug").notNull().unique(),
-  /** Optional: UI-Label statt „Scrinium Ordinis“ (White-Label nach Login). */
+  /** Optional: UI-Label statt „Scrinium“ (White-Label nach Login). */
   brandName: text("brand_name"),
   /** Optional: eine Custom-Domain pro Kanzlei (Host → Tenant). */
   customDomain: text("custom_domain").unique(),
@@ -654,9 +668,28 @@ export const matters = pgTable(
     clientId: uuid("client_id")
       .notNull()
       .references(() => clients.id, { onDelete: "cascade" }),
+    /** Kurzbezeichnung, z. B. Mandant ./. Gegner */
     title: text("title").notNull(),
     reference: text("reference").notNull().default(""),
     notes: text("notes").notNull().default(""),
+    /** lfd. Nr./Jahr, z. B. 12/2026 */
+    fileNumber: text("file_number").notNull().default(""),
+    /** Gegenstand („wegen …“) */
+    subject: text("subject").notNull().default(""),
+    legalArea: text("legal_area").notNull().default(""),
+    lawyerId: uuid("lawyer_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    assistantId: uuid("assistant_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    openedAt: date("opened_at", { mode: "string" }).notNull().defaultNow(),
+    status: matterStatusEnum("status").notNull().default("open"),
+    closedAt: date("closed_at", { mode: "string" }),
+    amountInDispute: text("amount_in_dispute").notNull().default(""),
+    proceedingInstance: text("proceeding_instance").notNull().default(""),
+    courtName: text("court_name").notNull().default(""),
+    courtFileNumber: text("court_file_number").notNull().default(""),
     createdBy: uuid("created_by").references(() => users.id, {
       onDelete: "set null",
     }),
@@ -671,13 +704,64 @@ export const matters = pgTable(
     tenantIdIdx: index("matters_tenant_id_idx").on(table.tenantId),
     clientIdIdx: index("matters_client_id_idx").on(table.clientId),
     moduleIdx: index("matters_module_idx").on(table.module),
+    tenantModuleFileNumberIdx: uniqueIndex(
+      "matters_tenant_module_file_number_idx"
+    ).on(table.tenantId, table.module, table.fileNumber),
+  })
+);
+
+/** Laufende Aktennummer je Kanzlei, Bereich und Jahr. */
+export const matterFileNumberCounters = pgTable(
+  "matter_file_number_counters",
+  {
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    module: moduleEnum("module").notNull(),
+    year: integer("year").notNull(),
+    lastSeq: integer("last_seq").notNull(),
+  },
+  (table) => ({
+    pk: primaryKey({
+      columns: [table.tenantId, table.module, table.year],
+    }),
   })
 );
 
 /**
- * Gegner / Beteiligte / Sonstige an einer Akte.
- * Mandant kommt indirekt über matters.client_id.
+ * Haftungsnotiz: Kollision erkannt, Anwalt hat trotzdem angelegt.
  */
+export const matterCollisionAcks = pgTable(
+  "matter_collision_acks",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    matterId: uuid("matter_id")
+      .notNull()
+      .references(() => matters.id, { onDelete: "cascade" }),
+    acknowledgedBy: uuid("acknowledged_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    reason: text("reason").notNull(),
+    matches: jsonb("matches")
+      .$type<MatterCollisionMatch[]>()
+      .notNull()
+      .default([]),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    tenantMatterIdx: index("matter_collision_acks_tenant_matter_idx").on(
+      table.tenantId,
+      table.matterId
+    ),
+  })
+);
+
+/** Beteiligte an einer Akte (Mandant, Gegner, Gericht, …). */
 export const matterParties = pgTable(
   "matter_parties",
   {
@@ -956,6 +1040,48 @@ export const letters = pgTable(
 );
 
 /**
+ * Dateien an einer Akte (PDF/Word u. a.) — in „Letzte Elemente“.
+ * Tenant-Isolation via RLS + withTenantDb.
+ */
+export const matterFiles = pgTable(
+  "matter_files",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    matterId: uuid("matter_id")
+      .notNull()
+      .references(() => matters.id, { onDelete: "cascade" }),
+    module: moduleEnum("module").notNull().default("legal"),
+    uploadedBy: uuid("uploaded_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    storageKey: text("storage_key").notNull().unique(),
+    filename: text("filename").notNull(),
+    mimeType: text("mime_type").notNull(),
+    sizeBytes: integer("size_bytes").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    tenantMatterIdx: index("matter_files_tenant_matter_idx").on(
+      table.tenantId,
+      table.matterId
+    ),
+    tenantMatterUpdatedIdx: index("matter_files_tenant_matter_updated_idx").on(
+      table.tenantId,
+      table.matterId,
+      table.updatedAt
+    ),
+  })
+);
+
+/**
  * KI-Chat unter einer Akte (≈ Claude-Projekt → Thread).
  * Vollständiger Verlauf in matter_ai_chat_messages.
  */
@@ -966,14 +1092,17 @@ export const matterAiChats = pgTable(
     tenantId: uuid("tenant_id")
       .notNull()
       .references(() => tenants.id, { onDelete: "cascade" }),
-    matterId: uuid("matter_id")
-      .notNull()
-      .references(() => matters.id, { onDelete: "cascade" }),
+    /** Null = Practice-Chat ohne Akte (`/akten-chat/ohne`). */
+    matterId: uuid("matter_id").references(() => matters.id, {
+      onDelete: "set null",
+    }),
     module: moduleEnum("module").notNull().default("legal"),
     title: text("title").notNull().default(""),
     createdBy: uuid("created_by").references(() => users.id, {
       onDelete: "set null",
     }),
+    /** Set when the owner pins the chat (Claude-style). */
+    pinnedAt: timestamp("pinned_at", { withTimezone: true, mode: "string" }),
     /** Optional: erzeugtes Letter aus diesem Chat. */
     letterId: uuid("letter_id").references(() => letters.id, {
       onDelete: "set null",
@@ -1306,8 +1435,11 @@ export type LetterStatus = (typeof letterStatusEnum.enumValues)[number];
 export type Client = typeof clients.$inferSelect;
 export type ClientPerson = typeof clientPersons.$inferSelect;
 export type Matter = typeof matters.$inferSelect;
+export type MatterStatus = (typeof matterStatusEnum.enumValues)[number];
+export type MatterFile = typeof matterFiles.$inferSelect;
 export type MatterParty = typeof matterParties.$inferSelect;
 export type MatterPartyRole = (typeof matterPartyRoleEnum.enumValues)[number];
+export type MatterCollisionAck = typeof matterCollisionAcks.$inferSelect;
 export type AiConsent = typeof aiConsents.$inferSelect;
 export type AiConsentStatus = (typeof aiConsentStatusEnum.enumValues)[number];
 export type AiAuditRow = typeof aiAudit.$inferSelect;

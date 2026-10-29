@@ -1,7 +1,7 @@
 # Zugriff, Practice & Routing — Architekturentscheidung
 
 **Status:** verbindlich — URL-Kanon + Rollen-Matrix umgesetzt (`app/(main)/`, `lib/area/paths.ts`, `lib/area/desk-roles.ts`)  
-**Gilt für:** `apps/desk` (Scrinium Ordinis)  
+**Gilt für:** `apps/desk` (Scrinium)  
 **Datum:** 2026-09-23  
 
 Dieses Dokument hält die konsolidierte Empfehlung fest: Multi-Tenant, Fachwelten (Practice), Rollen/Funktionen und URL-Struktur — **Enterprise Lightweight**, skalierbar deutschlandweit.

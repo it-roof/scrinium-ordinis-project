@@ -133,16 +133,8 @@ const featureMeta: Record<
     cardClass:
       "hover:border-orange-200/80 hover:bg-gradient-to-br hover:from-orange-50/50 hover:to-white",
   },
-  "ai-chat": {
-    description: "Einfacher KI-Chat — ohne Mandanten- oder Falldaten.",
-    icon: MessagesSquareIcon,
-    iconWrap: "bg-teal-100 text-teal-800 ring-teal-200/70",
-    linkClass: "text-teal-700",
-    cardClass:
-      "hover:border-teal-200/80 hover:bg-gradient-to-br hover:from-teal-50/50 hover:to-white",
-  },
   "akten-chat": {
-    description: "Chats an der Akte — Analyse, Schreiben und E-Mail.",
+    description: "Regulierter KI-Chat — optional an Akte, immer pseudonymisiert.",
     icon: MessagesSquareIcon,
     iconWrap: "bg-sky-100 text-sky-800 ring-sky-200/70",
     linkClass: "text-sky-700",

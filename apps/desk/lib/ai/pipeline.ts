@@ -83,10 +83,10 @@ export function runPseudonymPipeline(
   );
   // Only dismissals that match a detected residual are honored
   const allowedDismissKeys = new Set(
-    residualsBeforeDismiss.map((r) => r.toLowerCase())
+    residualsBeforeDismiss.map((r) => r.trim().toLowerCase())
   );
   const appliedDismissals = requestedDismissals.filter((d) =>
-    allowedDismissKeys.has(d.toLowerCase())
+    allowedDismissKeys.has(d.trim().toLowerCase())
   );
   const residuals = filterDismissedResiduals(
     residualsBeforeDismiss,

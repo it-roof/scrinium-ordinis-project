@@ -8,11 +8,6 @@ import { toast } from "sonner";
 
 import { PromptContentDiff } from "@/components/desk/prompts/prompt-content-diff";
 import { V1PromptTagsInput } from "@/components/desk/prompts/prompt-tags-input";
-import { Button } from "@/components/desk/ui/button";
-import { Card, CardContent } from "@/components/desk/ui/card";
-import { Input } from "@/components/desk/ui/input";
-import { Label } from "@/components/desk/ui/label";
-import { Textarea } from "@/components/desk/ui/textarea";
 import {
   checkPromptNumber,
   createPrompt,
@@ -25,7 +20,6 @@ import {
 } from "@/lib/prompts/types";
 import { cn } from "@/lib/utils";
 
-const PROMPT_BASE = "/prompt";
 const NUMBER_CHECK_DEBOUNCE_MS = 300;
 
 type NumberCheckState =
@@ -42,6 +36,8 @@ type V1PromptFormProps = {
   availableTags: string[];
   /** page = eigene Route; panel = Sheet/Seitenleiste */
   variant?: "page" | "panel";
+  /** Zurück-/Erfolg-Ziel (z. B. `/platform/prompts`). */
+  libraryHref?: string;
   onSuccess?: (prompt: Prompt) => void;
   onCancel?: () => void;
 };
@@ -52,6 +48,7 @@ export function V1PromptForm({
   initialValues,
   availableTags,
   variant = "page",
+  libraryHref = "/prompt",
   onSuccess,
   onCancel,
 }: V1PromptFormProps) {
@@ -147,7 +144,7 @@ export function V1PromptForm({
       onCancel();
       return;
     }
-    router.push(PROMPT_BASE);
+    router.push(libraryHref);
   }
 
   function handleCompare() {
@@ -159,9 +156,7 @@ export function V1PromptForm({
     event.preventDefault();
     const trimmedNumber = numberInput.trim();
     const number =
-      trimmedNumber === ""
-        ? null
-        : Number.parseInt(trimmedNumber, 10);
+      trimmedNumber === "" ? null : Number.parseInt(trimmedNumber, 10);
     const input: PromptInput = { number, title, content, tags };
 
     startTransition(async () => {
@@ -184,38 +179,41 @@ export function V1PromptForm({
         return;
       }
 
-      router.push(PROMPT_BASE);
+      router.push(libraryHref);
       router.refresh();
     });
   }
 
   const numberHint =
     numberCheck.status === "checking" ? (
-      <p className="text-xs text-muted-foreground">Nummer wird geprüft…</p>
+      <p className="b-meta mt-1.5">Nummer wird geprüft…</p>
     ) : numberCheck.status === "taken" ? (
-      <p className="text-xs text-destructive">
+      <p className="b-meta mt-1.5" style={{ color: "var(--b-accent)" }}>
         Nummer bereits vergeben: „{numberCheck.title}“
       </p>
     ) : numberCheck.status === "invalid" ? (
-      <p className="text-xs text-destructive">{numberCheck.message}</p>
-    ) : numberCheck.status === "available" ? (
-      <p className="text-xs text-emerald-700">Nummer ist frei.</p>
-    ) : mode === "create" ? (
-      <p className="text-xs text-muted-foreground">
-        Leer = nächste freie Nummer.
+      <p className="b-meta mt-1.5" style={{ color: "var(--b-accent)" }}>
+        {numberCheck.message}
       </p>
+    ) : numberCheck.status === "available" ? (
+      <p className="b-meta mt-1.5">Nummer ist frei.</p>
+    ) : mode === "create" ? (
+      <p className="b-meta mt-1.5">Leer = nächste freie Nummer.</p>
     ) : null;
 
+  const submitDisabled =
+    isPending ||
+    numberCheck.status === "taken" ||
+    numberCheck.status === "invalid" ||
+    numberCheck.status === "checking";
+
   const fields = (
-    <div
-      className={cn(
-        "space-y-6",
-        isPanel ? "flex-1 overflow-y-auto px-4 pb-4" : "px-6 py-6"
-      )}
-    >
-      <div className="grid gap-2 sm:max-w-[12rem]">
-        <Label htmlFor="prompt-number">Nummer</Label>
-        <Input
+    <div className={cn("flex flex-col gap-6", isPanel ? "px-1" : "")}>
+      <div className="flex max-w-[12rem] flex-col gap-1.5">
+        <label htmlFor="prompt-number" className="b-meta">
+          Nummer
+        </label>
+        <input
           id="prompt-number"
           type="text"
           inputMode="numeric"
@@ -233,29 +231,27 @@ export function V1PromptForm({
           aria-invalid={
             numberCheck.status === "taken" || numberCheck.status === "invalid"
           }
-          className={cn(
-            "tabular-nums",
-            (numberCheck.status === "taken" ||
-              numberCheck.status === "invalid") &&
-              "border-destructive focus-visible:ring-destructive/30"
-          )}
+          className="lab-field tabular-nums"
         />
         {numberHint}
       </div>
 
-      <div className="grid gap-2">
-        <Label htmlFor="title">Titel</Label>
-        <Input
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="title" className="b-meta">
+          Titel
+        </label>
+        <input
           id="title"
           value={title}
           onChange={(event) => setTitle(event.target.value)}
           placeholder="z. B. E-Mail zusammenfassen"
           required
+          className="lab-field"
         />
       </div>
 
-      <div className="grid gap-2">
-        <Label>Tags</Label>
+      <div className="flex flex-col gap-1.5">
+        <span className="b-meta">Tags</span>
         <V1PromptTagsInput
           value={tags}
           onChange={setTags}
@@ -264,19 +260,21 @@ export function V1PromptForm({
         />
       </div>
 
-      <div className="grid gap-2">
-        <Label htmlFor="content">Prompt-Text</Label>
-        <Textarea
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="content" className="b-meta">
+          Prompt-Text
+        </label>
+        <textarea
           id="content"
           value={content}
           onChange={(event) => setContent(event.target.value)}
           placeholder="Dein Prompt…"
           required
           className={cn(
-            "resize-y font-mono text-sm leading-relaxed",
+            "lab-field font-mono text-[0.875rem] leading-relaxed",
             isPanel
-              ? "min-h-[min(40dvh,24rem)]"
-              : "min-h-[min(50dvh,32rem)]"
+              ? "!h-auto min-h-[min(40dvh,24rem)] py-3"
+              : "!h-auto min-h-[min(50dvh,32rem)] py-3"
           )}
         />
       </div>
@@ -286,43 +284,41 @@ export function V1PromptForm({
   const actions = (
     <div
       className={cn(
-        "flex flex-wrap justify-end gap-2 border-t",
-        isPanel ? "px-4 py-4" : "px-6 py-4"
+        "flex flex-wrap gap-2",
+        isPanel ? "justify-end pt-4" : "justify-end border-t pt-6",
+        !isPanel && "mt-8"
       )}
+      style={!isPanel ? { borderColor: "var(--b-line)" } : undefined}
     >
-      <Button
+      <button
         type="button"
-        variant="outline"
+        className="b-btn b-btn-ghost"
         disabled={isPending}
         onClick={handleCancel}
       >
         Abbrechen
-      </Button>
+      </button>
       {mode === "edit" ? (
-        <Button
+        <button
           type="button"
-          variant="outline"
+          className="b-btn b-btn-secondary"
           disabled={isPending}
           onClick={handleCompare}
         >
           Vergleichen
-        </Button>
+        </button>
       ) : null}
-      <Button
+      <button
         type="submit"
-        disabled={
-          isPending ||
-          numberCheck.status === "taken" ||
-          numberCheck.status === "invalid" ||
-          numberCheck.status === "checking"
-        }
+        className="b-btn b-btn-primary"
+        disabled={submitDisabled}
       >
         {isPending
           ? "Speichern…"
           : mode === "edit"
             ? "Speichern"
             : "Anlegen"}
-      </Button>
+      </button>
     </div>
   );
 
@@ -341,49 +337,55 @@ export function V1PromptForm({
   }
 
   return (
-    <div className="mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col gap-6 overflow-y-auto p-4 md:p-6">
-      <Button asChild variant="ghost" size="sm" className="w-fit px-0">
-        <Link href={PROMPT_BASE}>
-          <ArrowLeftIcon />
+    <div className="lab-prompts relative flex min-h-0 flex-1 flex-col overflow-y-auto">
+      <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-6 pt-10 pb-14 md:px-10 md:pt-12">
+        <Link
+          href={libraryHref}
+          className="b-meta inline-flex w-fit items-center gap-1.5 transition-colors hover:text-[var(--b-ink)]"
+          style={{ color: "var(--b-muted)" }}
+        >
+          <ArrowLeftIcon className="size-3.5" strokeWidth={1.75} />
           Zurück zur Bibliothek
         </Link>
-      </Button>
 
-      <div className="space-y-1">
-        <h1 className="font-heading text-3xl font-medium tracking-tight">
-          {mode === "edit" ? "Prompt bearbeiten" : "Neuer Prompt"}
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          {mode === "edit"
-            ? "Änderungen speichern oder mit „Vergleichen“ den Prompt-Text prüfen."
-            : "Titel, Tags und Prompt-Text speichern."}
-        </p>
-      </div>
+        <header className="mt-6 flex max-w-2xl flex-col">
+          <h1 className="b-display b-title font-medium tracking-[-0.02em]">
+            {mode === "edit" ? "Prompt bearbeiten" : "Neuer Prompt"}
+          </h1>
+          <p className="b-lead mt-2 max-w-none text-[1.0625rem] leading-[1.55]">
+            {mode === "edit"
+              ? "Nummer, Titel, Tags und Text anpassen — optional mit Vergleich prüfen."
+              : "Titel, Tags und Prompt-Text speichern."}
+          </p>
+        </header>
 
-      <Card className="gap-0 border-border/80 py-0 shadow-none">
-        <CardContent className="p-0">{formBody}</CardContent>
-      </Card>
+        <div className="mt-10">{formBody}</div>
 
-      {mode === "edit" && diffOpen ? (
-        <div className="relative rounded-xl border border-border/70 bg-muted/15 p-4">
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            className="absolute top-3 right-3"
-            onClick={() => setDiffOpen(false)}
-            aria-label="Vergleich schließen"
+        {mode === "edit" && diffOpen ? (
+          <div
+            className="relative mt-8 rounded-[0.85rem] border px-5 py-5"
+            style={{
+              borderColor: "var(--b-line)",
+              background: "var(--b-soft)",
+            }}
           >
-            <XIcon />
-          </Button>
-          <PromptContentDiff
-            before={originalContent}
-            after={comparedContent}
-            layout="side"
-            className="pr-8"
-          />
-        </div>
-      ) : null}
+            <button
+              type="button"
+              className="b-btn b-btn-ghost absolute top-3 right-3 !px-2"
+              onClick={() => setDiffOpen(false)}
+              aria-label="Vergleich schließen"
+            >
+              <XIcon className="size-4" strokeWidth={1.75} />
+            </button>
+            <PromptContentDiff
+              before={originalContent}
+              after={comparedContent}
+              layout="side"
+              className="pr-8"
+            />
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }

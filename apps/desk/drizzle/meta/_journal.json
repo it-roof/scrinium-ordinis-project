@@ -470,6 +470,41 @@
       "when": 1788516000000,
       "tag": "0066_matter_ai_chats",
       "breakpoints": true
+    },
+    {
+      "idx": 67,
+      "version": "7",
+      "when": 1788517000000,
+      "tag": "0067_matter_files",
+      "breakpoints": true
+    },
+    {
+      "idx": 68,
+      "version": "7",
+      "when": 1788518000000,
+      "tag": "0068_matter_ai_chats_matter_nullable",
+      "breakpoints": true
+    },
+    {
+      "idx": 69,
+      "version": "7",
+      "when": 1788519000000,
+      "tag": "0069_matter_ai_chats_pinned_at",
+      "breakpoints": true
+    },
+    {
+      "idx": 70,
+      "version": "7",
+      "when": 1788520000000,
+      "tag": "0070_matter_party_roles",
+      "breakpoints": true
+    },
+    {
+      "idx": 71,
+      "version": "7",
+      "when": 1788521000000,
+      "tag": "0071_matter_card",
+      "breakpoints": true
     }
   ]
 }

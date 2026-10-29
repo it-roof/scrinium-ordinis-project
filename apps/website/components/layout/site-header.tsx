@@ -2,9 +2,11 @@
 
 import { MenuIcon } from "lucide-react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 
 import { BrandWordmark } from "@/components/brand/brand-wordmark";
+import { AppearanceToggle } from "@/components/theme/appearance-toggle";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Sheet,
@@ -17,7 +19,16 @@ import { siteNav } from "@/lib/navigation";
 import { cn } from "@/lib/utils";
 
 export function SiteHeader() {
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
+
+  if (
+    pathname?.startsWith("/demo") ||
+    pathname?.startsWith("/leistungen") ||
+    pathname?.startsWith("/ki-schulung-rechtsanwalt")
+  ) {
+    return null;
+  }
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 animate-hero-brand">
@@ -40,6 +51,7 @@ export function SiteHeader() {
           </nav>
 
           <div className="hidden items-center gap-3 md:flex">
+            <AppearanceToggle />
             <Link
               href="#kontakt"
               className={cn(
@@ -51,57 +63,60 @@ export function SiteHeader() {
             </Link>
           </div>
 
-          <Sheet open={open} onOpenChange={setOpen}>
-            <SheetTrigger
-              render={
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="rounded-none md:hidden"
-                  aria-label="Menü öffnen"
-                />
-              }
-            >
-              <MenuIcon className="size-4" />
-            </SheetTrigger>
-            <SheetContent
-              side="right"
-              className="flex h-full flex-col rounded-none border-l border-border/70 bg-background/95 p-0 backdrop-blur-md"
-            >
-              <SheetHeader className="border-b border-border/60 px-6 py-5 text-left">
-                <SheetTitle className="font-heading text-lg font-medium tracking-tight">
-                  <BrandWordmark />
-                </SheetTitle>
-              </SheetHeader>
-              <nav
-                className="flex flex-col gap-1 px-3 py-4"
-                aria-label="Mobile Navigation"
+          <div className="flex items-center gap-2 md:hidden">
+            <AppearanceToggle />
+            <Sheet open={open} onOpenChange={setOpen}>
+              <SheetTrigger
+                render={
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="rounded-none"
+                    aria-label="Menü öffnen"
+                  />
+                }
               >
-                {siteNav.map((item) => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={() => setOpen(false)}
-                    className="rounded-none px-3 py-3 text-base font-medium text-foreground transition-colors hover:bg-muted"
-                  >
-                    {item.label}
-                  </Link>
-                ))}
-              </nav>
-              <div className="mt-auto border-t border-border/60 px-6 py-5">
-                <Link
-                  href="#kontakt"
-                  onClick={() => setOpen(false)}
-                  className={cn(
-                    buttonVariants({ size: "lg" }),
-                    "h-11 w-full rounded-none bg-primary",
-                  )}
+                <MenuIcon className="size-4" />
+              </SheetTrigger>
+              <SheetContent
+                side="right"
+                className="flex h-full flex-col rounded-none border-l border-border/70 bg-background/95 p-0 backdrop-blur-md"
+              >
+                <SheetHeader className="border-b border-border/60 px-6 py-5 text-left">
+                  <SheetTitle className="font-heading text-lg font-medium tracking-tight">
+                    <BrandWordmark />
+                  </SheetTitle>
+                </SheetHeader>
+                <nav
+                  className="flex flex-col gap-1 px-3 py-4"
+                  aria-label="Mobile Navigation"
                 >
-                  Gespräch vereinbaren
-                </Link>
-              </div>
-            </SheetContent>
-          </Sheet>
+                  {siteNav.map((item) => (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={() => setOpen(false)}
+                      className="rounded-none px-3 py-3 text-base font-medium text-foreground transition-colors hover:bg-muted"
+                    >
+                      {item.label}
+                    </Link>
+                  ))}
+                </nav>
+                <div className="mt-auto border-t border-border/60 px-6 py-5">
+                  <Link
+                    href="#kontakt"
+                    onClick={() => setOpen(false)}
+                    className={cn(
+                      buttonVariants({ size: "lg" }),
+                      "h-11 w-full rounded-none bg-primary",
+                    )}
+                  >
+                    Gespräch vereinbaren
+                  </Link>
+                </div>
+              </SheetContent>
+            </Sheet>
+          </div>
         </div>
       </div>
     </header>

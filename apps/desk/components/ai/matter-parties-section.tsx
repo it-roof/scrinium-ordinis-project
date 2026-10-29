@@ -22,7 +22,10 @@ import {
 } from "@/components/ui/select";
 
 const ROLE_LABELS: Record<MatterPartyRole, string> = {
+  client: "Mandant",
   opponent: "Gegner",
+  opponent_counsel: "Gegnervertreter",
+  court: "Gericht",
   party: "Beteiligter",
   other: "Sonstige",
 };

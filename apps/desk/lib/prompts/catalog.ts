@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 
 import { db } from "@/lib/db";
-import { tenants } from "@/lib/db/schema";
+import { tenants, type PlatformRole } from "@/lib/db/schema";
 
 /** Gemeinsame Prompt-Bibliothek für alle Kunden-Kanzleien. */
 export const PROMPT_CATALOG_TENANT_SLUG = "schneiderbanger";
@@ -26,10 +26,16 @@ export async function getPromptCatalogTenantId(): Promise<string> {
   return row.id;
 }
 
-/** Nur die Katalog-Kanzlei darf die gemeinsame Bibliothek verwalten. */
+/**
+ * Katalog bearbeiten: Plattform-Super-Admin oder Session in der Katalog-Kanzlei.
+ */
 export async function canManagePromptCatalog(
-  sessionTenantId: string
+  sessionTenantId: string,
+  platformRole?: PlatformRole | null
 ): Promise<boolean> {
+  if (platformRole === "super_admin") {
+    return true;
+  }
   const catalogId = await getPromptCatalogTenantId();
   return sessionTenantId === catalogId;
 }

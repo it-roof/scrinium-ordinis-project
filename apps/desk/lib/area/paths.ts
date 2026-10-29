@@ -70,7 +70,6 @@ export const FUNCTION_PATH_SEGMENTS: Record<AreaFunctionId, string> = {
   "text-blocks": "textbausteine",
   prompts: "prompt",
   notes: "notizen",
-  "ai-chat": "ki",
   "akten-chat": "akten-chat",
   "case-facts-analysis": "analyse",
   "contract-analysis": "vertragsanalyse",
@@ -87,7 +86,6 @@ export const FUNCTION_PATH_SEGMENTS: Record<AreaFunctionId, string> = {
 export const DESK_FLAT_HREFS: Partial<Record<AreaFunctionId, string>> = {
   prompts: "/prompt",
   notes: "/notizen",
-  "ai-chat": "/ki",
   "contract-analysis": "/vertragsanalyse",
   "client-intake": "/aufnahmebogen",
   inbox: "/eingang",

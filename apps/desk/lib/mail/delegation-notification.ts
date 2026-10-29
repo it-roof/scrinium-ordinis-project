@@ -31,12 +31,12 @@ export async function sendDelegationAssignmentMail(input: {
     "Unter Meine Aufgaben findest du die Aufgabe:",
     link,
     "",
-    "Scrinium Ordinis"
+    "Scrinium"
   );
 
   return sendSystemMail({
     to: input.to,
-    subject: "Scrinium Ordinis — Neue Aufgabe",
+    subject: "Scrinium — Neue Aufgabe",
     text: lines.join("\n"),
   });
 }

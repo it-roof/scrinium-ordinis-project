@@ -290,6 +290,28 @@ export async function updateLetterRow(
   });
 }
 
+export async function renameLetterTitleRow(
+  tenantId: string,
+  id: string,
+  title: string
+): Promise<LetterRecord | null> {
+  const trimmed = title.trim().slice(0, 200);
+  if (!trimmed) return null;
+
+  return withTenantDb(tenantId, async (tx) => {
+    const [row] = await tx
+      .update(letters)
+      .set({
+        title: trimmed,
+        updatedAt: new Date().toISOString(),
+      })
+      .where(and(eq(letters.id, id), eq(letters.tenantId, tenantId)))
+      .returning();
+
+    return row ? toLetter(row) : null;
+  });
+}
+
 /** Kollegen für Schreiben-Zuweisung — nur Nutzer mit Zugriff auf den Bereich. */
 export async function listLetterColleagues(
   tenantId: string,

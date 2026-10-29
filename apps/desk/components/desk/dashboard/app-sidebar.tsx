@@ -52,10 +52,6 @@ const LAB_NAV: ReadonlyArray<{
     href: (area) => hrefFor("clients", area),
   },
   {
-    label: "Freier Chat",
-    href: () => hrefFor("ai-chat"),
-  },
-  {
     label: "Akten-Chat",
     href: (area) => hrefFor("akten-chat", area),
   },
@@ -139,7 +135,7 @@ function PracticeSwitcher({
 
 export function AppSidebar({
   user,
-  brandLabel: _brandLabel = "Scrinium Ordinis",
+  brandLabel: _brandLabel = "Scrinium",
   area = "legal",
   deskRole = "rechtsanwalt",
   allowedFunctions: _allowedFunctions = null,

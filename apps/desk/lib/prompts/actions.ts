@@ -3,7 +3,11 @@
 import { revalidatePath } from "next/cache";
 
 import { assertUserCanAccessAreaFunction } from "@/lib/tenant/access";
-import { requireSessionUser } from "@/lib/tenant/session";
+import {
+  isPlatformSuperAdmin,
+  requireSessionUser,
+  type SessionUser,
+} from "@/lib/tenant/session";
 import { canManagePromptCatalog } from "./catalog";
 import {
   createPromptRow,
@@ -42,9 +46,21 @@ async function assertPromptsAccess(userId: string, tenantId: string) {
   return assertUserCanAccessAreaFunction(userId, tenantId, "prompts");
 }
 
-async function assertCatalogManageAccess(tenantId: string) {
-  if (!(await canManagePromptCatalog(tenantId))) {
-    return "Die gemeinsame Prompt-Bibliothek kann nur von Dr. Schneiderbanger verwaltet werden.";
+/** Lesen: Prompt-Funktion oder Plattform-Admin. */
+async function assertCanReadPrompts(user: SessionUser) {
+  if (isPlatformSuperAdmin(user)) return null;
+  return assertPromptsAccess(user.id, user.tenantId);
+}
+
+/** Schreiben: Plattform-Admin oder Katalog-Kanzlei mit Prompt-Recht. */
+async function assertCanManagePrompts(user: SessionUser) {
+  if (isPlatformSuperAdmin(user)) return null;
+
+  const denied = await assertPromptsAccess(user.id, user.tenantId);
+  if (denied) return denied;
+
+  if (!(await canManagePromptCatalog(user.tenantId, user.platformRole))) {
+    return "Die gemeinsame Prompt-Bibliothek kann nur von der Plattform-Verwaltung bearbeitet werden.";
   }
   return null;
 }
@@ -56,7 +72,7 @@ export async function checkPromptNumber(
   const user = await requireSessionUser();
   if (!user) return { success: false as const, error: "Nicht angemeldet." };
 
-  const denied = await assertPromptsAccess(user.id, user.tenantId);
+  const denied = await assertCanReadPrompts(user);
   if (denied) return { success: false as const, error: denied };
 
   if (!Number.isInteger(number) || number < 1) {
@@ -82,10 +98,7 @@ export async function createPrompt(input: PromptInput) {
   const user = await requireSessionUser();
   if (!user) return { success: false as const, error: "Nicht angemeldet." };
 
-  const denied = await assertPromptsAccess(user.id, user.tenantId);
-  if (denied) return { success: false as const, error: denied };
-
-  const manageDenied = await assertCatalogManageAccess(user.tenantId);
+  const manageDenied = await assertCanManagePrompts(user);
   if (manageDenied) return { success: false as const, error: manageDenied };
 
   const error = validateInput(input);
@@ -109,10 +122,7 @@ export async function updatePrompt(id: string, input: PromptInput) {
   const user = await requireSessionUser();
   if (!user) return { success: false as const, error: "Nicht angemeldet." };
 
-  const denied = await assertPromptsAccess(user.id, user.tenantId);
-  if (denied) return { success: false as const, error: denied };
-
-  const manageDenied = await assertCatalogManageAccess(user.tenantId);
+  const manageDenied = await assertCanManagePrompts(user);
   if (manageDenied) return { success: false as const, error: manageDenied };
 
   const error = validateInput(input);
@@ -140,10 +150,7 @@ export async function updatePromptNumber(id: string, number: number) {
   const user = await requireSessionUser();
   if (!user) return { success: false as const, error: "Nicht angemeldet." };
 
-  const denied = await assertPromptsAccess(user.id, user.tenantId);
-  if (denied) return { success: false as const, error: denied };
-
-  const manageDenied = await assertCatalogManageAccess(user.tenantId);
+  const manageDenied = await assertCanManagePrompts(user);
   if (manageDenied) return { success: false as const, error: manageDenied };
 
   const item = await updatePromptNumberRow(id, number);
@@ -165,10 +172,7 @@ export async function renamePromptTag(tagId: string, name: string) {
   const user = await requireSessionUser();
   if (!user) return { success: false as const, error: "Nicht angemeldet." };
 
-  const denied = await assertPromptsAccess(user.id, user.tenantId);
-  if (denied) return { success: false as const, error: denied };
-
-  const manageDenied = await assertCatalogManageAccess(user.tenantId);
+  const manageDenied = await assertCanManagePrompts(user);
   if (manageDenied) return { success: false as const, error: manageDenied };
 
   const result = await renamePromptTagRow(tagId, name);
@@ -190,10 +194,7 @@ export async function deletePrompt(id: string) {
   const user = await requireSessionUser();
   if (!user) return { success: false as const, error: "Nicht angemeldet." };
 
-  const denied = await assertPromptsAccess(user.id, user.tenantId);
-  if (denied) return { success: false as const, error: denied };
-
-  const manageDenied = await assertCatalogManageAccess(user.tenantId);
+  const manageDenied = await assertCanManagePrompts(user);
   if (manageDenied) return { success: false as const, error: manageDenied };
 
   const deleted = await deletePromptRow(id);

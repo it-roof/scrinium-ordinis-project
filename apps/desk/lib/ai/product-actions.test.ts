@@ -6,23 +6,23 @@ import {
 } from "@/lib/ai/product-actions";
 
 describe("productBadgesForChat", () => {
-  it("Freier Chat v1: keine Badges", () => {
-    expect(productBadgesForChat("free")).toEqual([]);
-  });
-
-  it("Akten-Chat v1: Prompt- und Funktions-Badges", () => {
+  it("Akten-Chat: nur Start-Prompt-Badges", () => {
     const badges = productBadgesForChat("matter");
     expect(badges.map((b) => b.id)).toEqual([
       "analyze-case-facts",
       "counter-review",
       "create-letter",
       "create-email-text",
-      "send-email",
-      "open-save-letter",
-      "print-download",
     ]);
-    expect(badges.some((b) => b.kind === "prompt")).toBe(true);
-    expect(badges.some((b) => b.kind === "function")).toBe(true);
+    expect(badges.every((b) => b.kind === "prompt")).toBe(true);
+  });
+
+  it("Abschluss-Aktionen sind Katalog, aber kein Badge", () => {
+    for (const id of ["send-email", "open-save-letter", "print-download"]) {
+      const action = PRODUCT_ACTIONS.find((a) => a.id === id);
+      expect(action).toBeDefined();
+      expect(action?.badgeV1).toBe(false);
+    }
   });
 
   it("Vertrag analysieren ist nicht im Katalog", () => {

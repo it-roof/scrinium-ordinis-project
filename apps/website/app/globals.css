@@ -54,43 +54,88 @@
   --animate-hero-bar: hero-bar 1s cubic-bezier(0.22, 1, 0.36, 1) both;
   --animate-hero-drift: hero-drift 18s ease-in-out infinite alternate;
   --animate-hero-drift-delayed: hero-drift 22s ease-in-out 2s infinite alternate;
+  --animate-trust-logos: trust-logos 36s linear infinite;
+  --animate-pill-blink: pill-blink 1.8s ease-in-out infinite;
 }
 
+/* Alba palette (copied from Desk brand-lab — local, not shared) */
 :root {
-  --background: oklch(0.988 0.008 95);
-  --foreground: oklch(0.24 0.04 258);
-  --card: oklch(0.998 0.004 95);
-  --card-foreground: oklch(0.24 0.04 258);
-  --popover: oklch(0.998 0.004 95);
-  --popover-foreground: oklch(0.24 0.04 258);
-  --primary: oklch(0.34 0.08 250);
-  --primary-foreground: oklch(0.985 0.006 95);
-  --secondary: oklch(0.965 0.012 230);
-  --secondary-foreground: oklch(0.32 0.05 250);
-  --muted: oklch(0.965 0.01 95);
-  --muted-foreground: oklch(0.5 0.03 258);
-  --accent: oklch(0.955 0.022 185);
-  --accent-foreground: oklch(0.3 0.06 200);
-  --destructive: oklch(0.55 0.2 25);
-  --border: oklch(0.91 0.014 230);
-  --input: oklch(0.935 0.012 230);
-  --ring: oklch(0.58 0.07 250);
-  --chart-1: oklch(0.58 0.1 250);
-  --chart-2: oklch(0.68 0.1 85);
-  --chart-3: oklch(0.58 0.08 185);
-  --chart-4: oklch(0.52 0.09 290);
-  --chart-5: oklch(0.45 0.06 258);
+  --background: #f4f3f0;
+  --foreground: #1b1b1a;
+  --card: #fbfaf8;
+  --card-foreground: #1b1b1a;
+  --popover: #fbfaf8;
+  --popover-foreground: #1b1b1a;
+  --primary: #6f5f4a;
+  --primary-foreground: #fbfaf8;
+  --secondary: color-mix(in srgb, #6f5f4a 12%, transparent);
+  --secondary-foreground: #1b1b1a;
+  --muted: color-mix(in srgb, #6f5f4a 10%, #f4f3f0);
+  --muted-foreground: #5c5954;
+  --accent: color-mix(in srgb, #6f5f4a 12%, transparent);
+  --accent-foreground: #1b1b1a;
+  --destructive: #a63d2f;
+  --border: #d9d4cc;
+  --input: #d9d4cc;
+  --ring: #6f5f4a;
+  --chart-1: #6f5f4a;
+  --chart-2: #8a8580;
+  --chart-3: #5c5954;
+  --chart-4: #c4b09a;
+  --chart-5: #1b1b1a;
   --radius: 0.25rem;
-  --sidebar: oklch(0.2 0.045 258);
-  --sidebar-foreground: oklch(0.93 0.012 95);
-  --sidebar-primary: oklch(0.78 0.1 82);
-  --sidebar-primary-foreground: oklch(0.2 0.045 258);
-  --sidebar-accent: oklch(0.27 0.05 245);
-  --sidebar-accent-foreground: oklch(0.96 0.01 95);
-  --sidebar-border: oklch(0.3 0.04 258);
-  --sidebar-ring: oklch(0.78 0.1 82);
-  --shadow-soft: 0 1px 2px oklch(0.28 0.06 250 / 0.05),
-    0 12px 40px oklch(0.28 0.06 250 / 0.07);
+  --sidebar: #fbfaf8;
+  --sidebar-foreground: #1b1b1a;
+  --sidebar-primary: #6f5f4a;
+  --sidebar-primary-foreground: #fbfaf8;
+  --sidebar-accent: color-mix(in srgb, #6f5f4a 12%, transparent);
+  --sidebar-accent-foreground: #1b1b1a;
+  --sidebar-border: #d9d4cc;
+  --sidebar-ring: #6f5f4a;
+  --shadow-soft: 0 1px 2px color-mix(in srgb, #1b1b1a 5%, transparent),
+    0 12px 40px color-mix(in srgb, #1b1b1a 7%, transparent);
+  --atmosphere-1: color-mix(in srgb, #6f5f4a 18%, transparent);
+  --atmosphere-2: color-mix(in srgb, #c4b09a 22%, transparent);
+  --atmosphere-3: color-mix(in srgb, #8a8580 14%, transparent);
+}
+
+.dark {
+  --background: #121211;
+  --foreground: #f2efe9;
+  --card: #1a1a18;
+  --card-foreground: #f2efe9;
+  --popover: #1a1a18;
+  --popover-foreground: #f2efe9;
+  --primary: #c4b09a;
+  --primary-foreground: #121211;
+  --secondary: color-mix(in srgb, #c4b09a 14%, transparent);
+  --secondary-foreground: #f2efe9;
+  --muted: color-mix(in srgb, #c4b09a 10%, #121211);
+  --muted-foreground: #b0aaa0;
+  --accent: color-mix(in srgb, #c4b09a 14%, transparent);
+  --accent-foreground: #f2efe9;
+  --destructive: #d96b5c;
+  --border: #2a2926;
+  --input: #2a2926;
+  --ring: #c4b09a;
+  --chart-1: #c4b09a;
+  --chart-2: #b0aaa0;
+  --chart-3: #7a746a;
+  --chart-4: #6f5f4a;
+  --chart-5: #f2efe9;
+  --sidebar: #1a1a18;
+  --sidebar-foreground: #f2efe9;
+  --sidebar-primary: #c4b09a;
+  --sidebar-primary-foreground: #121211;
+  --sidebar-accent: color-mix(in srgb, #c4b09a 14%, transparent);
+  --sidebar-accent-foreground: #f2efe9;
+  --sidebar-border: #2a2926;
+  --sidebar-ring: #c4b09a;
+  --shadow-soft: 0 1px 2px color-mix(in srgb, #000 20%, transparent),
+    0 12px 40px color-mix(in srgb, #000 35%, transparent);
+  --atmosphere-1: color-mix(in srgb, #c4b09a 16%, transparent);
+  --atmosphere-2: color-mix(in srgb, #6f5f4a 18%, transparent);
+  --atmosphere-3: color-mix(in srgb, #7a746a 12%, transparent);
 }
 
 @keyframes hero-rise {
@@ -121,6 +166,44 @@
   to {
     transform: scaleY(1);
     transform-origin: top;
+  }
+}
+
+@keyframes trust-logos {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes pill-blink {
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.22);
+  }
+  50% {
+    opacity: 0.55;
+    box-shadow: 0 0 0 10px rgba(255, 255, 255, 0);
+  }
+}
+
+/* Marquee vorerst aus — wieder aktivieren, wenn mehrere Trust-Logos da sind
+.trust-logo-track {
+  animation: var(--animate-trust-logos);
+}
+*/
+
+.animate-pill-blink {
+  animation: var(--animate-pill-blink);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .trust-logo-track,
+  .animate-pill-blink {
+    animation: none;
   }
 }
 
@@ -171,17 +254,17 @@
     background-image:
       radial-gradient(
         ellipse 70% 55% at 0% 0%,
-        oklch(0.94 0.04 235 / 0.35),
+        var(--atmosphere-1),
         transparent 55%
       ),
       radial-gradient(
         ellipse 60% 50% at 100% 0%,
-        oklch(0.95 0.035 185 / 0.28),
+        var(--atmosphere-2),
         transparent 50%
       ),
       radial-gradient(
         ellipse 55% 45% at 85% 100%,
-        oklch(0.96 0.04 75 / 0.2),
+        var(--atmosphere-3),
         transparent 55%
       );
   }
@@ -192,18 +275,18 @@
     border-radius: 9999px;
     background: linear-gradient(
       90deg,
-      oklch(0.58 0.1 250),
-      oklch(0.62 0.1 185),
-      oklch(0.72 0.1 75)
+      var(--primary),
+      color-mix(in srgb, var(--primary) 55%, var(--muted-foreground)),
+      var(--muted-foreground)
     );
   }
 
   .text-accent-gradient {
     background: linear-gradient(
       100deg,
-      oklch(0.38 0.09 250),
-      oklch(0.42 0.08 200) 55%,
-      oklch(0.48 0.07 185)
+      var(--foreground),
+      var(--primary) 55%,
+      color-mix(in srgb, var(--primary) 70%, var(--muted-foreground))
     );
     -webkit-background-clip: text;
     background-clip: text;
@@ -212,8 +295,15 @@
 
   .hero-grid {
     background-image:
-      linear-gradient(oklch(0.4 0.04 250 / 0.045) 1px, transparent 1px),
-      linear-gradient(90deg, oklch(0.4 0.04 250 / 0.045) 1px, transparent 1px);
+      linear-gradient(
+        color-mix(in srgb, var(--foreground) 5%, transparent) 1px,
+        transparent 1px
+      ),
+      linear-gradient(
+        90deg,
+        color-mix(in srgb, var(--foreground) 5%, transparent) 1px,
+        transparent 1px
+      );
     background-size: 4.5rem 4.5rem;
     mask-image: radial-gradient(ellipse 75% 65% at 50% 40%, black, transparent);
   }
